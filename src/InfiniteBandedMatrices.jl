@@ -2,12 +2,12 @@
 module InfiniteBandedMatrices
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
-import Base: +, -, *, /, \, OneTo
+import Base: +, -, *, /, \, OneTo, getindex
 import InfiniteArrays: OneToInf
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: reflector!, reflectorApply!
-import MatrixFactorizations: ql, ql!
+import LinearAlgebra: reflector!, reflectorApply!, lmul!, has_offset_axes
+import MatrixFactorizations: ql, ql!, QLPackedQ
 
 export Vcat, Fill, ql, ql!, ∞
 
@@ -79,5 +79,37 @@ function ql!(B::InfBandedMatrix{T}) where T
     QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ,Fill(τ,∞)))
 end
 
+function getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T
+    (Q*Vcat(Zeros{T}(j-1), one(T), Zeros{T}(∞)))[i]
+end
+
+function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
+    @assert !has_offset_axes(B)
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = bandwidths(Afactors)
+    D = Afactors.data
+    begin
+        for k = 1:∞
+            ν = k
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,ν-u):k-1
+                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
+                end
+                vBj = A.τ[k]*vBj
+                B[k,j] -= vBj
+                for i = max(1,ν-u):k-1
+                    B[i,j] -= D[i-ν+u+1,ν]*vBj
+                end
+            end
+        end
+    end
+    B
+end
 
 end # module
