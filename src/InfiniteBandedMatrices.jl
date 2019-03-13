@@ -2,11 +2,12 @@
 module InfiniteBandedMatrices
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
-import Base: +, -, *, /, \, OneTo, getindex
+import Base: +, -, *, /, \, OneTo, getindex, promote_op
 import InfiniteArrays: OneToInf
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: reflector!, reflectorApply!, lmul!, has_offset_axes
+import LinearAlgebra: reflector!, reflectorApply!, lmul!, has_offset_axes, matprod
+import LazyArrays: CachedArray
 import MatrixFactorizations: ql, ql!, QLPackedQ
 
 export Vcat, Fill, ql, ql!, ∞
@@ -83,6 +84,11 @@ function getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) 
     (Q*Vcat(Zeros{T}(j-1), one(T), Zeros{T}(∞)))[i]
 end
 
+
+nzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
+nzeros(B::CachedArray, k) = max(size(B.data,k), nzeros(B.array,k))
+
+
 function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     @assert !has_offset_axes(B)
     mA, nA = size(A.factors)
@@ -96,10 +102,14 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     begin
         for k = 1:∞
             ν = k
+            allzero = k > nzeros(B,1) ? true : false
             for j = 1:nB
                 vBj = B[k,j]
                 for i = max(1,ν-u):k-1
-                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
+                    if !iszero(B[i,j])
+                        allzero = false
+                        vBj += conj(D[i-ν+u+1,ν])*B[i,j]
+                    end
                 end
                 vBj = A.τ[k]*vBj
                 B[k,j] -= vBj
@@ -107,9 +117,15 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
                     B[i,j] -= D[i-ν+u+1,ν]*vBj
                 end
             end
+            allzero && break
         end
     end
     B
+end
+
+function (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, cache(copy(convert(AbstractVector{TS},x))))
 end
 
 end # module
