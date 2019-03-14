@@ -40,6 +40,22 @@ Q̃, L̃ = ql(BandedMatrix(A)[1:1000,1:1000]);
 @test Q̃.τ[1:20] ≈ Q.τ[1:20]
 @test Q̃[1:20,1:20] ≈ Q[1:20,1:20]
 
+
+T = Tridiagonal(Vcat(ComplexF64[], Fill(1/2+0im,∞)), 
+                Vcat(ComplexF64[], Fill(0.0im,∞)), 
+                Vcat(ComplexF64[], Fill(2.0+0im,∞)))
+
+
+
+scatter((z -> 1/(2z) + 2z).(exp.(im*(0:0.01:2π))))
+ql(J-1.6im*I).L[1,1]
+
+eigvals(Matrix(J[1:100,1:100]))
+
+scatter(eigvals(J[1:100,1:100]+eps()*randn(100,100)))
+
+using Plots
+
 L*Q
 
 Q, L = randn(

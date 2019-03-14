@@ -69,7 +69,7 @@ end
 function tailiterate!(X::AbstractMatrix{T}) where T
     c,a,b = X[1,:]
     h = zero(T)
-    for _=1:10_000
+    for _=1:10_000_000
         QL = ql!(X)     
         h == X[1,3] && return X, QL.τ[end]
         h = X[1,3]
