@@ -13,12 +13,15 @@ import MatrixFactorizations: ql, ql!, QLPackedQ, getL
 export Vcat, Fill, ql, ql!, ∞
 
 const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
+const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
 
 for op in (:-, :+)
     @eval begin
         $op(A::SymTriPertToeplitz{T}, λ::UniformScaling) where T = SymTridiagonal(broadcast($op, A.dv, λ.λ), A.ev)
         $op(λ::UniformScaling, A::SymTriPertToeplitz{T}) where T = SymTridiagonal(broadcast($op, λ.λ, A.dv), A.ev)
+        $op(A::TriPertToeplitz{T}, λ::UniformScaling) where T = Tridiagonal(A.dl, broadcast($op, A.d, λ.λ), A.du)
+        $op(λ::UniformScaling, A::TriPertToeplitz{T}) where T = Tridiagonal(A.dl, broadcast($op, λ.λ, A.d), A.du)
     end
 end
 
@@ -37,6 +40,21 @@ function BandedMatrix(A::SymTriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     data[u+2,1:length(b)] .= b
     data[u+2,length(b)+1:end] .= b∞.value
     _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; b∞.value; Zeros{T}(l-1)] * Ones(1,∞)), ∞, l, u)
+end
+
+function BandedMatrix(A::TriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
+    a,a∞ = A.d.arrays
+    b,b∞ = A.du.arrays
+    c,c∞ = A.dl.arrays
+    n = max(length(a), length(b)+1, length(c)-1) + 1
+    data = zeros(T, l+u+1, n)
+    data[u,2:length(b)+1] .= b
+    data[u,length(b)+2:end] .= b∞.value
+    data[u+1,1:length(a)] .= a
+    data[u+1,length(a)+1:end] .= a∞.value
+    data[u+2,1:length(c)] .= c
+    data[u+2,length(c)+1:end] .= c∞.value
+    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones(1,∞)), ∞, l, u)
 end
 
 
@@ -63,12 +81,13 @@ end
 tailiterate(c,a,b) = tailiterate!([c a b; 0 c a])
 
 ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
+ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
 
 toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
 
 function ql!(B::InfBandedMatrix{T}) where T
     @assert bandwidths(B) == (2,1)
-    c,a,b,_ = toeptail(B)
+    b,a,c,_ = toeptail(B)
     X, τ = tailiterate(c,a,b)
     data = bandeddata(B).arrays[1]
     B̃ = _BandedMatrix(data, size(data,2), 2,1)
