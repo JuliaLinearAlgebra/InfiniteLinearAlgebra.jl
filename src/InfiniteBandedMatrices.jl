@@ -8,7 +8,7 @@ import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
 import LinearAlgebra: reflector!, reflectorApply!, lmul!, has_offset_axes, matprod
 import LazyArrays: CachedArray
-import MatrixFactorizations: ql, ql!, QLPackedQ
+import MatrixFactorizations: ql, ql!, QLPackedQ, getL
 
 export Vcat, Fill, ql, ql!, ∞
 
@@ -80,13 +80,16 @@ function ql!(B::InfBandedMatrix{T}) where T
     QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ,Fill(τ,∞)))
 end
 
-function getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T
-    (Q*Vcat(Zeros{T}(j-1), one(T), Zeros{T}(∞)))[i]
+getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
+    (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]
+
+function getL(Q::QL{T,<:InfBandedMatrix{T}}) where T
+    LowerTriangular(Q.factors)
 end
 
-
-nzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
-nzeros(B::CachedArray, k) = max(size(B.data,k), nzeros(B.array,k))
+# number of structural non-zeros
+nzzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
+nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
 
 
 function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
@@ -102,7 +105,7 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     begin
         for k = 1:∞
             ν = k
-            allzero = k > nzeros(B,1) ? true : false
+            allzero = k > nzzeros(B,1) ? true : false
             for j = 1:nB
                 vBj = B[k,j]
                 for i = max(1,ν-u):k-1
@@ -123,9 +126,44 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     B
 end
 
+function lmul!(adjA::Adjoint{<:Any,<:QLPackedQ{<:Any,<:InfBandedMatrix}}, B::AbstractVecOrMat)
+    @assert !has_offset_axes(B)
+    A = adjA.parent
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = bandwidths(Afactors)
+    D = Afactors.data
+    @inbounds begin
+        for k = nzzeros(B,1)+u:-1:1
+            ν = k
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,ν-u):k-1
+                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
+                end
+                vBj = conj(A.τ[k])*vBj
+                B[k,j] -= vBj
+                for i = max(1,ν-u):k-1
+                    B[i,j] -= D[i-ν+u+1,ν]*vBj
+                end
+            end
+        end
+    end
+    B
+end
+
 function (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
-    lmul!(A, cache(copy(convert(AbstractVector{TS},x))))
+    lmul!(A, cache(convert(AbstractVector{TS},x)))
+end
+
+function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
 
 end # module
