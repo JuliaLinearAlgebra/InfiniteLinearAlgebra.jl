@@ -2,13 +2,17 @@
 module InfiniteBandedMatrices
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
-import Base: +, -, *, /, \, OneTo, getindex, promote_op
-import InfiniteArrays: OneToInf
+import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row
+import InfiniteArrays: OneToInf, InfUnitRange, Infinity
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: reflector!, reflectorApply!, lmul!, has_offset_axes, matprod
+import LinearAlgebra: lmul!,  ldiv!, has_offset_axes, matprod, qr, QRPackedQ
 import LazyArrays: CachedArray
-import MatrixFactorizations: ql, ql!, QLPackedQ, getL
+import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
+
+import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
+
+
 
 export Vcat, Fill, ql, ql!, ∞
 
@@ -26,6 +30,36 @@ for op in (:-, :+)
 end
 
 *(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = MulArray(a,b)
+
+
+sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = BlockSizes((Vcat(1, 1 .+ cumsum(length.(A))),))
+
+function sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) 
+    sz = size.(A.d, 1), size.(A.d,2)
+    BlockSizes(Vcat.(1,(c -> 1 .+ c).(cumsum.(sz))))
+end
+
+_find_block(cs::Number, i::Integer) = i ≤ cs ? 1 : 0
+function _find_block(cs::Vcat, i::Integer)
+    n = 0
+    for a in cs.arrays
+        i < first(a) && return n
+        if i ≤ last(a)
+            return _find_block(a, i) + n
+        end
+        n += length(a)
+    end 
+    return 0
+end
+
+print_matrix_row(io::IO,
+        X::AbstractBlockVecOrMat, A::Vector,
+        i::Integer, cols::AbstractVector{<:Infinity}, sep::AbstractString) = nothing
+
+
+####
+# Conversions to BandedMatrix
+####        
 
 
 function BandedMatrix(A::SymTriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
