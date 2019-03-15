@@ -22,10 +22,28 @@ const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
 
 for op in (:-, :+)
     @eval begin
-        $op(A::SymTriPertToeplitz{T}, λ::UniformScaling) where T = SymTridiagonal(broadcast($op, A.dv, λ.λ), A.ev)
-        $op(λ::UniformScaling, A::SymTriPertToeplitz{T}) where T = SymTridiagonal(broadcast($op, λ.λ, A.dv), A.ev)
-        $op(A::TriPertToeplitz{T}, λ::UniformScaling) where T = Tridiagonal(A.dl, broadcast($op, A.d, λ.λ), A.du)
-        $op(λ::UniformScaling, A::TriPertToeplitz{T}) where T = Tridiagonal(A.dl, broadcast($op, λ.λ, A.d), A.du)
+        function $op(A::SymTriPertToeplitz{T}, λ::UniformScaling) where T 
+            TV = promote_type(T,eltype(λ))
+            SymTridiagonal(convert(AbstractVector{TV}, broadcast($op, A.dv, λ.λ)), 
+                           convert(AbstractVector{TV}, A.ev))
+        end
+        function $op(λ::UniformScaling, A::SymTriPertToeplitz{V}) where V
+            TV = promote_type(eltype(λ),V)
+            SymTridiagonal(convert(AbstractVector{TV}, broadcast($op, λ.λ, A.dv)), 
+                           convert(AbstractVector{TV}, A.ev))
+        end
+        function $op(A::TriPertToeplitz{T}, λ::UniformScaling) where T 
+            TV = promote_type(T,eltype(λ))
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.d, λ.λ).arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, A.du.arrays)...))
+        end
+        function $op(λ::UniformScaling, A::TriPertToeplitz{V}) where V
+            TV = promote_type(eltype(λ),V)
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, A.du.arrays)...))
+        end
     end
 end
 
