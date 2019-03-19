@@ -136,7 +136,9 @@ struct ContinuousSpectrumError <: Exception end
 
 function qltail(Z::Number, A::Number, B::Number)
     T = promote_type(eltype(Z),eltype(A),eltype(B))
-    ñ = (A + sign(real(A))*sqrt(A^2-4B*Z))/2
+    ñ1 = (A + sqrt(A^2-4B*Z))/2
+    ñ2 = (A - sqrt(A^2-4B*Z))/2
+    ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
     (n,σ) = (abs(ñ),conj(sign(ñ)))
     if n^2 < abs2(B)
         throw(ContinuousSpectrumError())

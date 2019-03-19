@@ -1,13 +1,248 @@
-using Revise, InfiniteBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test
+using Revise, InfiniteBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!
 
+Base.copysign(a::Dual, b::Dual) = abs(a)*sign(b)
 
-
+c,a,b
 c,a,b = 2-0.2im,0.0+0im,0.5+im
-J = Tridiagonal(Vcat(ComplexF64[], Fill(b,∞)), 
-                    Vcat(ComplexF64[], Fill(a,∞)),
-                    Vcat(ComplexF64[], Fill(c,∞)))
+c,a,b = 0.5+0im,0.0+0im,0.5+0im
+c,a,b = ComplexF64.((0.5,0,2))
+J = Tridiagonal(Vcat(ComplexF64[], Fill(c,∞)), 
+                    Vcat(ComplexF64[], Fill(0.0im,∞)),
+                    Vcat(ComplexF64[], Fill(b,∞)))
+
+Q,L = ql(BandedMatrix(J)[1:1000,1:1000])
+
+M = zeros(ComplexF64,n,n); M[band(1)] .= b; M[band(-1)] .= c; 
+M = zeros(ComplexF64,n,n); M[band(1)] .= conj(c); M[band(-1)] .= conj(b); 
+ql(M)
+M
+
+qr(M)
+
+svdvals(Matrix(F.L[1:1000,1:1000]))
+
+Q,L = F;
+
+@which Matrix(Q)
+
+typeof(Q')
+function Base.Matrix(::Adjoint{<:Any,<:QLPackedQ}) 
+Base.Matrix{T}(Q::Adjoint{<:Any,<:QLPackedQ}) where {T} = lmul!(Q, Matrix{T}(I, size(Q, 1), min(Q,2)))
+@time Q'*[1; zeros(999)]
+
+n = 1000; Q = F.Q; Qt = lmul!(Q', Matrix{T}(I, n,n)); Q = Qt';  svdvals(Q[1:501,1:501])
+
+k = zeros(eltype(Q),n)
+k[1] = 1
+k[3] = -Q[2,1]/Q[2,3]
+for m = 4:2:20 
+    k[m+1] = -(Q*k)[m]/Q[m,m+1]
+end
 
 
+plot(abs.(k))
+
+plot(abs.(Q*k))
+
+
+plot(abs.(nullspace(Matrix(L'))); yscale=:log10)
+
+Q*k
+
+Q[2:2:end,1:2:end]
+
+svdvals(Q[2:2:end,1:2:end])
+
+
+Q*k
+
+
+
+
+k
+
+Q[1:505,1:501]
+
+[1; zeros(999)]
+
+F.τ
+
+F.factors
+
+F.τ
+norm(Q[1,2])
+Q[2,1]
+heatmap(sparse(abs.(Q)))
+
+svdvals(Q[:,1:10])
+
+plot(abs.(Q[:,51]))
+
+size(Q)
+
+svdvals(Q[:,[1,3]])
+
+svdvals(Q)
+
+spy(abs.(Q))
+norm(Q[3,4])
+plot(abs.(Q[:,2])) 
+
+plot(real.(F.L[band(-2)])[1:100])
+
+function it(Z,A,B,d,e)
+    X = [Z A B; 0 d e]
+    ql!(X)
+    X[1,1:2]
+end
+fxd(Z,A,B,d,e) = it(Z,A,B,d,e) - [d,e]
+
+A = (J-0.0im*I)
+ql(A)
+@which qltail(c,0.0,b)
+Z,A,B = c,0.9im,b
+T = promote_type(eltype(Z),eltype(A),eltype(B))
+ñ1 = (A + sqrt(A^2-4B*Z))/2
+ñ2 = (A - sqrt(A^2-4B*Z))/2
+ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+(n,σ) = (abs(ñ),conj(sign(ñ)))
+if n^2 < abs2(B)
+    throw(ContinuousSpectrumError())
+end
+
+e = sqrt(n^2 - abs2(B))
+d = σ*e*Z/n
+epsilon.(fxd(Z,A,B,dual(d,1), e))
+A = 1.1im
+Z,A,B = c,1.1im,b
+tailiterate(Z,A,B)
+J + A*I
+
+
+(BandedMatrix(J - 0.0im*I)[1:10000,1:10000] |> ql).L
+
+ql(J - 0.9im*I).L
+
+J
+
+A = -1.0001im
+d,e = tailiterate(Z,A,B)[1][1,1:2]
+sqrt(e^2 + abs2(B))
+
+B = BandedMatrix(J+A*I,(2,1))
+
+opnorm(Matrix(ql(BandedMatrix(J)[1:1000,1:1000]).L))
+
+Matrix(ql(BandedMatrix(J)[1:100,1:100]).Q)
+
+
+
+
+norm(J[1:1000,1:1000])
+
+Matrix(J[1:2000,1:2000]) |> svdvals
+opnorm(Matrix(J[1:2000,1:2000]))
+
+b,a,c,_ = toeptail(B)
+
+B
+@which toeptail(B)
+
+
+
+b,a,c
+
+A
+
+Z,A,B
+J
+
+
+T = promote_type(eltype(Z),eltype(A),eltype(B))
+ñ1 = (A + sqrt(A^2-4B*Z))/2
+ñ2 = (A - sqrt(A^2-4B*Z))/2
+ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+(n,σ) = (abs(ñ),conj(sign(ñ)))
+if n^2 < abs2(B)
+    throw(ContinuousSpectrumError())
+end
+
+e = sqrt(n^2 - abs2(B))
+d = σ*e*Z/n
+
+X = [Z A B;
+        0 d e]
+QL = ql!(X)
+
+# two iterations to correct for sign
+X[2,:] .= (zero(T), X[1,1], X[1,2]);
+X[1,:] .= (Z,A,B);
+QL = ql!(X)
+
+X, QL.τ[end]  
+Z,A,B
+c,a,b
+tailiterate(c,a,b)
+qltail(c,a,b)
+
+
+A
+
+it(d,e) - [d,e]
+
+it(d,e) - [d,e]
+
+
+X1 = [Z A B; 0 dual(d,1) e]; ql!(X1); epsilon.(X1[1,1:2]-[d,e])
+X2 = [Z A B; 0 d dual(e,1)]
+ql!(X2)
+
+[epsilon.(X1[1,1:2]) epsilon.(X2[1,1:2])] |> eigvals
+
+ X2
+
+X = [Z A B; 0 d e+10eps()]
+tailiterate!(X)
+QL = ql!(X)
+
+# two iterations to correct for sign
+X[2,:] .= (zero(T), X[1,1], X[1,2]);
+X[1,:] .= (Z,A,B);
+QL = ql!(X)
+
+X, QL.τ[end]      
+c,a,b
+a = 0.0
+tailiterate(c,a,b)
+
+tailiterate!(X)
+
+
+
+Q,L= ql(J)
+
+Q[1:100,1:100]*L[1:100,1:100]
+
+Q,L = ql(BandedMatrix(J)[1:100,1:100])
+plot(abs.(Q[:,1]))
+Q'Q
+
+J
+
+abs.(eigvals(Matrix(J[1:1000,1:1000])))|> minimum
+
+Q*L - J[1:100,1:100] |> norm
+
+B = BandedMatrix(A, (2,1))
+ b,a,c,_ = toeptail(B)
+
+toeptail(B)
+
+qltail(c,a,b)
+
+Z,A,B = c,-1.001im,b
+qltail(Z,A,B)
 
 using Plots    
 
@@ -21,7 +256,40 @@ L = (λ -> try
 plot(xx,L)    
 
 
-ql(J-5im*I)
+θθ = 2π*(0:0.0001:1)
+    zz = exp.(im*θθ)
+    plot(b./zz  .+ c.*zz)
+θθ = 2π*(0:0.0001:0.5)
+    zz = exp.(im*θθ)
+    plot!(b./zz  .+ c.*zz)
+
+b,c
+
+c,a,b
+
+plot(θθ, abs.(c./zz .+ a .+ b.*zz))
+
+
+Z,A,B = c,-1.0001im,b
+
+Bandw(J+A*I)
+qltail(Z,A,B)
+
+
+b,a,c,_ = toeptail(B)
+X, τ = qltail(c,a,b)
+
+T = promote_type(eltype(Z),eltype(A),eltype(B))
+ñ1 = (A + sqrt(A^2-4B*Z))/2
+ñ2 = (A - sqrt(A^2-4B*Z))/2
+ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+(n,σ) = (abs(ñ),conj(sign(ñ)))
+if n^2 < abs2(B)
+    throw(ContinuousSpectrumError())
+end
+n^2 < abs2(B)
+
+ql(J-1.007im*I)
 ###
 
 import InfiniteBandedMatrices: tailiterate, tailiterate!, reflector!, reflectorApply!
