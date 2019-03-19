@@ -14,7 +14,7 @@ import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, 
 
 
 
-export Vcat, Fill, ql, ql!, ∞
+export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError
 
 const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
@@ -132,6 +132,31 @@ function tailiterate!(X::AbstractMatrix{T}) where T
 end
 tailiterate(c,a,b) = tailiterate!([c a b; 0 c a])
 
+struct ContinuousSpectrumError <: Exception end
+
+function qltail(Z::Number, A::Number, B::Number)
+    T = promote_type(eltype(Z),eltype(A),eltype(B))
+    ñ = (A + sign(real(A))*sqrt(A^2-4B*Z))/2
+    (n,σ) = (abs(ñ),conj(sign(ñ)))
+    if n^2 < abs2(B)
+        throw(ContinuousSpectrumError())
+    end
+
+    e = sqrt(n^2 - abs2(B))
+    d = σ*e*Z/n
+
+    X = [Z A B;
+         0 d e]
+    QL = ql!(X)
+
+    # two iterations to correct for sign
+    X[2,:] .= (zero(T), X[1,1], X[1,2]);
+    X[1,:] .= (Z,A,B);
+    QL = ql!(X)
+
+    X, QL.τ[end]         
+end
+
 ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
 ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
 
@@ -140,7 +165,7 @@ toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
 function ql!(B::InfBandedMatrix{T}) where T
     @assert bandwidths(B) == (2,1)
     b,a,c,_ = toeptail(B)
-    X, τ = tailiterate(c,a,b)
+    X, τ = qltail(c,a,b)
     data = bandeddata(B).arrays[1]
     B̃ = _BandedMatrix(data, size(data,2), 2,1)
     B̃[end,end-1:end] .= (X[1,1], X[1,2])
