@@ -1,22 +1,95 @@
-using Revise, InfiniteBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers
+using Revise, InfiniteBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, Plots
 import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!
 
 Base.copysign(a::Dual, b::Dual) = abs(a)*sign(b)
+
+function symbolplot!(c,a,b; label="")
+    θθ = 2π*(0:0.0001:1)
+    zz = exp.(im*θθ)
+    ii = b./zz  .+ c.*zz
+    plot!(real.(ii), imag.(ii); label=label)
+end
 
 c,a,b
 c,a,b = 2-0.2im,0.0+0im,0.5+im
 c,a,b = 0.5+0im,0.0+0im,0.5+0im
 c,a,b = ComplexF64.((0.5,0,2))
 J = Tridiagonal(Vcat(ComplexF64[], Fill(c,∞)), 
-                    Vcat(ComplexF64[], Fill(0.0im,∞)),
+                    Vcat(ComplexF64[1.5], Fill(0.0im,∞)),
                     Vcat(ComplexF64[], Fill(b,∞)))
 
+xx = -5:0.001:5; plot(xx, (λ -> real(ql(J'-λ*I).L[1,1])).(xx); label="abs(L[1,1])", xlabel="x")
+                plot(xx, (λ -> real(ql(J'-λ*I).L[1,1])).(xx); label="abs(L[1,1])", xlabel="x")
+
+
+ql(J'-2.49999*I)
+
+ql(J-2.50001*I)
+eigbvalBandedMatrix(J)[1:100,1:100]
+
+
+λ = eigvals(Matrix(J[1:2000,1:2000]))
+scatter(real.(λ), imag.(λ); label="finite section with n = $(length(λ))")
+    symbolplot!(c,a,b; label="essential spectrum")
+
+
+
+
+ql(J'-0I)
+
+
+symbolplot!(c,a,b)
+
+@which ql(J'-λ[1]*I).Q[3,1]
+
+ql(J'-λ[1]*I).factors
+a
+tailiterate(b,a-λ[1],c)
+qltail(b,a-λ[1],c)
+
+ql(J'-λ[1]*I).τ
+ql(J'-λ[1]*I).factors
+
+ql(J'-0.1*I)
+
+Q.factors
+
+Q.factors
+Q.τ
+
+Q,L = ((BandedMatrix(J'-λ[1]*I)[1:200,1:200]) |> ql)
+
+(BandedMatrix(J)[1:200,1:200]-λ[1]*I) * Q[:,1]
+
+Q[1000,1]
+n = 150; κ = Q[1:n,1]
+(J-λ[1]*I)[1:n,1:n]*κ
+
+
+
+(J-λ[1]*I)*Vcat(Q[1:150,1],Zeros(∞))
+
+Q*Vcat(1,Zeros(∞))
+
+Q[:,1]
+
+J'-λ[1]*I
+
+ql(J-2.500001*I)
+
+ql(BandedMatrix(J-3*I)[1:1000,1:1000])
+
+
 Q,L = ql(BandedMatrix(J)[1:1000,1:1000])
+
+Q[:,1]
 
 M = zeros(ComplexF64,n,n); M[band(1)] .= b; M[band(-1)] .= c; 
 M = zeros(ComplexF64,n,n); M[band(1)] .= conj(c); M[band(-1)] .= conj(b); 
 ql(M)
 M
+
+plot(1:5)
 
 qr(M)
 
@@ -32,6 +105,13 @@ Base.Matrix{T}(Q::Adjoint{<:Any,<:QLPackedQ}) where {T} = lmul!(Q, Matrix{T}(I, 
 @time Q'*[1; zeros(999)]
 
 n = 1000; Q = F.Q; Qt = lmul!(Q', Matrix{T}(I, n,n)); Q = Qt';  svdvals(Q[1:501,1:501])
+
+Q[2:2:200,1:2:200]
+
+Q[2:2:400,1:2:200] \ [Zeros(200-1);1] |> norm
+
+plot(abs.(Q*[Zeros(n-1);1]))
+svdvals(Q[2:2:400,1:2:200])
 
 k = zeros(eltype(Q),n)
 k[1] = 1

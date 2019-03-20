@@ -18,6 +18,7 @@ export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError
 
 const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
+const AdjTriPertToeplitz{T} = Adjoint{T,Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}}
 const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
 
 for op in (:-, :+)
@@ -43,6 +44,20 @@ for op in (:-, :+)
             Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...), 
                         Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
                         Vcat(convert.(AbstractVector{TV}, A.du.arrays)...))
+        end
+        function $op(adjA::AdjTriPertToeplitz{T}, λ::UniformScaling) where T 
+            A = parent(adjA)
+            TV = promote_type(T,eltype(λ))
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.du.arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.d, λ.λ).arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...))
+        end
+        function $op(λ::UniformScaling, adjA::AdjTriPertToeplitz{V}) where V
+            A = parent(adjA)
+            TV = promote_type(eltype(λ),V)
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.du.arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
+                        Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...))
         end
     end
 end
@@ -179,7 +194,7 @@ function ql!(B::InfBandedMatrix{T}) where T
 end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
-    (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]
+    (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
 
 function getL(Q::QL{T,<:InfBandedMatrix{T}}) where T
     LowerTriangular(Q.factors)
