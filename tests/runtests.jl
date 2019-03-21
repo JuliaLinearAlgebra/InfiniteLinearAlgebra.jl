@@ -13,19 +13,213 @@ end
 c,a,b
 c,a,b = 2-0.2im,0.0+0im,0.5+im
 c,a,b = 0.5+0im,0.0+0im,0.5+0im
-c,a,b = ComplexF64.((0.5,0,2))
+c,a,b = ComplexF64.((2,0,0.5))
 J = Tridiagonal(Vcat(ComplexF64[], Fill(c,∞)), 
-                    Vcat(ComplexF64[1.5], Fill(0.0im,∞)),
+                    Vcat(ComplexF64[], Fill(0.0im,∞)),
                     Vcat(ComplexF64[], Fill(b,∞)))
 
+c,a,b = (2.,0.,0.5)
+J = Tridiagonal(Vcat(Float64[], Fill(c,∞)), 
+                    Vcat(Float64[], Fill(a,∞)),
+                    Vcat(Float64[], Fill(b,∞)))
 xx = -5:0.001:5; plot(xx, (λ -> real(ql(J'-λ*I).L[1,1])).(xx); label="abs(L[1,1])", xlabel="x")
                 plot(xx, (λ -> real(ql(J'-λ*I).L[1,1])).(xx); label="abs(L[1,1])", xlabel="x")
 
 
-ql(J'-2.49999*I)
+A = J+0.0000im*I
+Q,L = ql(A)
 
-ql(J-2.50001*I)
-eigbvalBandedMatrix(J)[1:100,1:100]
+X, τ =qltail(c,a+0im,b)
+d,e = X[1:2,1]
+X = [c a b; 0 d e]
+F = ql(X)
+
+a
+Q,L = ql(A - 4im*I)
+
+
+Matrix(Q)
+
+A = J-(4im)*I
+ql(BandedMatrix(A)[1:100,1:100])
+Q,L = tailiterate(c,-4im,b)
+X,τ = qltail(c,-4im,b)
+
+d,e = X[1:2,1]
+X = [c a b; 0 d e]
+InfiniteBandedMatrices._qlfactUnblocked!(X)
+X = [0 c a b 0 0;
+     0 0 c a b 0;
+     0 0 0 c a b;
+     0 0 0 0 c a]
+
+Q,L = tailiterate(b,a,c)
+
+
+
+Q'Q-I
+
+abs.(eigvals(Matrix(Q)))
+det(Q)
+
+ql(BandedMatrix(A)[1:100,1:100])
+
+
+tailiterate(0.5,-4,0.5)
+
+
+X[3:4,:]   .= 0
+X[3,4:end] .= X[1,1:3]
+X[4,5:end] .= X[2,2:3]
+X[1:2,:] .= [0 c a b 0 0;
+             0 0 c a b 0]
+InfiniteBandedMatrices._qlfactUnblocked!(X)
+
+
+ql(Matrix(A[1:100,1:100]))
+X
+
+
+d,e
+
+Q,L= ql(A)
+Q[1:5,1:7]*L[1:7,1:3]
+
+Q[1:
+
+tailiterate(c,a-4*im,b)
+qltail(c,a-4*im,b)
+
+1-ql(X).τ[1] 
+
+
+
+ql(J'-2.49999*I)
+a = -3.0
+c,a,b
+J = Tridiagonal(Vcat(ComplexF64[], Fill(complex(c),∞)), 
+                    Vcat(ComplexF64[], Fill(complex(a),∞)),
+                    Vcat(ComplexF64[], Fill(complex(b),∞)))
+Tridiagonal(J')
+
+A = J-3*I
+ql(J-3*I)
+
+ql(A)
+Q,L = ql(J)
+
+Q[1:3,1:4]*L[1:4,1:2]
+
+A
+J-3*I
+
+d,e = qltail(c,a,b).factors[1,1:2]
+F =  qltail(complex.((c,a,b))...)
+qltail(complex.((c,a,b))...)
+qltail(c,a,b)
+F.τ
+
+X = [c a b; 0 d e]
+ql(X)
+
+ql(complex.([c a b; 0 d e]))
+
+ql(AbstractMatrix{ComplexF64}.(A)).factors
+
+Q,L = ql(A)
+a = -3
+tailiterate(c,a,b)
+tailiterate(c+0im,a+0im,b+0im)
+
+
+L
+
+Q[1:3,1:3]*L[1:3,1]
+
+ql(BandedMatrix(A)[1:100,1:100])
+
+X = [c a -b; 0 d e]
+Q,L = ql(X)
+Q.τ
+
+X,τ = qltail(c,a,b)
+d,e = X[1,1:2]
+X = [c a b; 0 d e]
+X = complex.(X)
+F = ql!(X)
+
+
+tailiterate(c,a,b)
+ql(complex.(X)).factors
+ql((X)).factors
+
+ql([1+0im 1 0; 0 0 1]).τ
+@which LinearAlgebra.qrfactUnblocked!([1 0 0; 0 1 1+0im])
+
+x = [0,0.0,0,1]
+    LinearAlgebra.reflector!(x)
+x
+
+
+LinearAlgebra.reflector!(x)
+x
+qr([1 0 0; 0 1 1])
+
+Q*L-X
+
+c,a,b
+B = BandedMatrix(J-3*I,(2,1))
+    ql!(B)
+
+BandedMatrix(J-3*I)
+
+B
+
+
+Q2,L2 =     ql(BandedMatrix(J'-3*I)[1:1000,1:1000])
+L
+
+Q[1:10,1:10]*L[1:10,1:10]
+
+Q[3:3,1:3]*L[1:3,1]
+Q2[3:3,1:3]*L2[1:3,1]
+Q[3:3,1:3],L[1:3,1]
+Q2[3:3,1:3],L2[1:3,1]
+
+Q2.τ
+Q.τ
+Q2.factors
+Q.factors
+
+B = BandedMatrix((J-3*I),(2,1))
+
+b,a,c,_ = toeptail(B)
+X, τ = qltail(c,a,b)
+c,a,b
+qltail(c,a,b)
+d,e = tailiterate(c,a,b)[1][1,1:2]
+tailiterate!([c a b; 0 d -e])
+d,e
+ql([c a b; 0 -d -e])
+
+B[1,1,] = -3.0
+
+ql!(B[1:100,1:100]).factors
+
+B[1:100,1:100]
+c,a,b
+
+data = bandeddata(B).arrays[1]
+B̃ = _BandedMatrix(data, size(data,2), 2,1)
+B̃[end,end-1:end] .= (X[1,1], X[1,2])
+F = ql!(B̃)
+B̃.data[3:end,end] .= (X[2,2], X[2,1]) # fill in L
+B̃.data[4,end-1] = X[2,1] # fill in L
+H = Hcat(B̃.data, [X[1,3], X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞))
+QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ,Fill(τ,∞)))
+X
+
+eigvalBandedMatrix(J)[1:100,1:100]
 
 
 λ = eigvals(Matrix(J[1:2000,1:2000]))

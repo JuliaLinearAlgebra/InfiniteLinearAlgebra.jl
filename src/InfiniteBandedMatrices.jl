@@ -133,12 +133,30 @@ end
 #                 [Z I Z; Z Z I; Z Z Z]
 # end
 
+# doesn't normalize last column
+function _qlfactUnblocked!(A::AbstractMatrix{T}) where {T}
+    @assert !has_offset_axes(A)
+    m, n = size(A)
+    τ = zeros(T, min(m,n))
+    for k = min(m,n):-1:2
+        ν = k+n-min(m,n)
+        x = view(A, k:-1:1, ν)
+        τk = reflector!(x)
+        τ[k] = τk
+        reflectorApply!(x, τk, view(A, k:-1:1, 1:ν-1))
+    end
+    QL(A, τ)
+end
+
+
 function tailiterate!(X::AbstractMatrix{T}) where T
     c,a,b = X[1,:]
     h = zero(T)
     for _=1:10_000_000
         QL = ql!(X)     
-        h == X[1,3] && return X, QL.τ[end]
+        if h == X[1,3] 
+            return QL
+        end
         h = X[1,3]
         X[2,:] .= (zero(T), X[1,1], X[1,2]);
         X[1,:] .= (c,a,b);
@@ -164,18 +182,19 @@ function qltail(Z::Number, A::Number, B::Number)
 
     X = [Z A B;
          0 d e]
-    QL = ql!(X)
+    QL = _qlfactUnblocked!(X)
 
     # two iterations to correct for sign
     X[2,:] .= (zero(T), X[1,1], X[1,2]);
     X[1,:] .= (Z,A,B);
-    QL = ql!(X)
+    QL = _qlfactUnblocked!(X)
 
     X, QL.τ[end]         
 end
 
 ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
 ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
+ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (2,1)))
 
 toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
 
