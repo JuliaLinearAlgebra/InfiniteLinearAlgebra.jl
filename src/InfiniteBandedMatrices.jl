@@ -6,13 +6,18 @@ import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: lmul!,  ldiv!, has_offset_axes, matprod, qr, QRPackedQ
+import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ
 import LazyArrays: CachedArray
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
 
-
+if VERSION < v"1.2-"
+    import Base: has_offset_axes
+    require_one_based_indexing(A...) = !has_offset_axes(A...) || throw(ArgumentError("offset arrays are not supported but got an array with index other than 1"))
+else
+    import Base: require_one_based_indexing    
+end             
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError
 
@@ -135,7 +140,7 @@ end
 
 # doesn't normalize last column
 function _qlfactUnblocked!(A::AbstractMatrix{T}) where {T}
-    @assert !has_offset_axes(A)
+    require_one_based_indexing(A)
     m, n = size(A)
     τ = zeros(T, min(m,n))
     for k = min(m,n):-1:2
@@ -225,7 +230,7 @@ nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
 
 
 function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
-    @assert !has_offset_axes(B)
+    require_one_based_indexing(B)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
     if mA != mB
@@ -259,7 +264,7 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
 end
 
 function lmul!(adjA::Adjoint{<:Any,<:QLPackedQ{<:Any,<:InfBandedMatrix}}, B::AbstractVecOrMat)
-    @assert !has_offset_axes(B)
+    require_one_based_indexing(B)
     A = adjA.parent
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
