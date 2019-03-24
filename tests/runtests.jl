@@ -4,8 +4,11 @@ import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!
 A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
                        Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
                        Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
-
+A[Block.(1:2),Block(1)]
 A isa InfiniteBandedMatrices.BlockTriPertToeplitz                       
+
+
+BlockBandedMatrix(A,(1,1))
 BlockSkylineMatrix(A)[1:100,1:100] == A[1:100,1:100]
 
 
