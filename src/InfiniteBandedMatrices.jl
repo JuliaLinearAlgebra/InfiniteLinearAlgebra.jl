@@ -1,9 +1,8 @@
-
 module InfiniteBandedMatrices
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
 import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row
-import InfiniteArrays: OneToInf, InfUnitRange, Infinity
+import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ
@@ -11,6 +10,9 @@ import LazyArrays: CachedArray
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
+
+import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSizes, cumulsizes, _BlockSkylineMatrix, BlockSizes, blockstart, blockstride,
+        BlockSkylineSizes, BlockSkylineMatrix
 
 if VERSION < v"1.2-"
     import Base: has_offset_axes
@@ -25,6 +27,7 @@ const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1
 const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const AdjTriPertToeplitz{T} = Adjoint{T,Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}}
 const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
+
 
 for op in (:-, :+)
     @eval begin
@@ -302,5 +305,7 @@ function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector{S
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
+
+include("blocktridiagonal.jl")
 
 end # module
