@@ -1,18 +1,85 @@
-using Revise, InfiniteBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, Plots
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
 import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!
+import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 
 A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
                        Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
                        Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
-A[Block.(1:2),Block(1)]
-A isa InfiniteBandedMatrices.BlockTriPertToeplitz                       
+                    
+@test A isa InfiniteBandedMatrices.BlockTriPertToeplitz                       
+@test isblockbanded(A)
+
+@test A[Block.(1:2),Block(1)] == A[1:3,1:1] == reshape([0.,1.,1.],3,1)
+
+@test BlockBandedMatrix(A)[1:100,1:100] == BlockBandedMatrix(A,(2,1))[1:100,1:100] == BlockBandedMatrix(A,(1,1))[1:100,1:100] == A[1:100,1:100]
+
+@test (A - I)[1:100,1:100] == A[1:100,1:100]-I
+@test (A + I)[1:100,1:100] == A[1:100,1:100]+I
+@test (I + A)[1:100,1:100] == I+A[1:100,1:100]
+@test (I - A)[1:100,1:100] == I-A[1:100,1:100]
 
 
-BlockBandedMatrix(A,(1,1))
-BlockSkylineMatrix(A)[1:100,1:100] == A[1:100,1:100]
+
+# periodic
+A = BlockTridiagonal(Vcat([[0. 1.; 0. 0.]],Fill([0. 1.; 0. 0.], ∞)), 
+                       Vcat([[-1. 1.; 1. 1.]], Fill([-1. 1.; 1. 1.], ∞)), 
+                       Vcat([[0. 0.; 1. 0.]], Fill([0. 0.; 1. 0.], ∞)))
 
 
-Base.copysign(a::Dual, b::Dual) = abs(a)*sign(b)
+Q,L = ql(A);                       
+@test Q.factors isa InfiniteBandedMatrices.InfBlockBandedMatrix
+Q̃,L̃ = ql(BlockBandedMatrix(A)[Block.(1:100),Block.(1:100)])
+
+@test Q̃.factors[1:100,1:100] ≈ Q.factors[1:100,1:100]
+@test Q̃.τ[1:100] ≈ Q.τ[1:100]
+@test L[1:100,1:100] ≈ L̃[1:100,1:100]
+@test Q[1:10,1:10] ≈ Q̃[1:10,1:10]
+
+
+
+c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
+
+z = zero(c)
+d,e = c,a
+
+
+
+F.factors
+
+
+Block.(N-2:N-1)
+BB
+BB
+
+BB
+ql(A[1:100,1:100]).τ
+
+ql(A[1:100,1:100]).factors - F∞[1:100,1:100]
+
+
+X = [c a b; z d e]
+ql(X)
+
+QL = ql!(X)     
+P = PseudoBlockArray(X, [2,2], [2,2,2])
+P[Block(1,2)]
+
+
+X
+
+if h == X[1,3] 
+    return QL
+end
+h = X[1,3]
+X[2,:] .= (zero(T), X[1,1], X[1,2]);
+X[1,:] .= (c,a,b);
+end
+
+
+X
+
+
+
 
 function symbolplot!(c,a,b; label="")
     θθ = 2π*(0:0.0001:1)

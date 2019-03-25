@@ -5,14 +5,14 @@ import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ
+import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular
 import LazyArrays: CachedArray
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
 
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSizes, cumulsizes, _BlockSkylineMatrix, BlockSizes, blockstart, blockstride,
-        BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix
+        BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix
 
 if VERSION < v"1.2-"
     import Base: has_offset_axes
@@ -26,7 +26,7 @@ export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError
 
 
 include("infbanded.jl")
-include("blocktridiagonal.jl")
+include("infblocktridiagonal.jl")
 include("infql.jl")
 
 end # module

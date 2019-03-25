@@ -14,7 +14,7 @@ for op in (:-, :+)
         function $op(λ::UniformScaling, A::SymTriPertToeplitz{V}) where V
             TV = promote_type(eltype(λ),V)
             SymTridiagonal(convert(AbstractVector{TV}, broadcast($op, λ.λ, A.dv)), 
-                           convert(AbstractVector{TV}, A.ev))
+                           convert(AbstractVector{TV}, broadcast($op, A.ev)))
         end
         function $op(A::TriPertToeplitz{T}, λ::UniformScaling) where T 
             TV = promote_type(T,eltype(λ))
@@ -24,9 +24,9 @@ for op in (:-, :+)
         end
         function $op(λ::UniformScaling, A::TriPertToeplitz{V}) where V
             TV = promote_type(eltype(λ),V)
-            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...), 
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.arrays))...), 
                         Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, A.du.arrays)...))
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.du.arrays))...))
         end
         function $op(adjA::AdjTriPertToeplitz{T}, λ::UniformScaling) where T 
             A = parent(adjA)
@@ -38,9 +38,9 @@ for op in (:-, :+)
         function $op(λ::UniformScaling, adjA::AdjTriPertToeplitz{V}) where V
             A = parent(adjA)
             TV = promote_type(eltype(λ),V)
-            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.du.arrays)...), 
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, broadcast($op, A.du.arrays))...), 
                         Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...))
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.arrays))...))
         end
     end
 end

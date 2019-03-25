@@ -88,9 +88,7 @@ end
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
     (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
 
-function getL(Q::QL{T,<:InfBandedMatrix{T}}) where T
-    LowerTriangular(Q.factors)
-end
+getL(Q::QL, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
 
 # number of structural non-zeros
 nzzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
@@ -167,6 +165,89 @@ function (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector{S}) where {T,S
 end
 
 function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, cache(convert(AbstractVector{TS},x)))
+end
+
+
+function blocktailiterate(c,b,a)
+    z = zero(c)
+    d,e = c,a
+    for _=1:1000
+        X = [b ; e]
+        F  = ql!(X)
+        P = PseudoBlockArray(F.Q'*[c a; z d], [2,2], [2,2])
+        P[Block(1,1)] == d && P[Block(1,2)] == e && return PseudoBlockArray([P X], fill(2,2), fill(2,3)), F.τ
+        d,e = P[Block(1,1)],P[Block(1,2)]
+    end
+    error("Did not converge")
+end
+
+
+###
+# BlockTridiagonal
+####
+
+function ql(A::BlockTriPertToeplitz)
+    N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+    c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
+    P,τ = blocktailiterate(c,b,a)
+    B = BlockBandedMatrix(A,(2,1))
+
+    BB = _BlockBandedMatrix(B.data.arrays[1], (fill(2,N+2), fill(2,N)), (2,1))
+    BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
+    F = ql!(view(BB, Block.(1:N), Block.(1:N)))
+    BB[Block(N+1),Block.(N-1:N)] .= P[Block(2), Block.(1:2)]
+    BB[Block(N+2),Block(N)] .= P[Block(2), Block.(1)]
+
+
+    QL(_BlockSkylineMatrix(Vcat(BB.data, mortar(Fill(vec(Vcat(P[Block(1,3)], P[Block(2,3)], P[Block(2,2)], P[Block(2,1)])),∞))),B.block_sizes),
+            Vcat(F.τ,mortar(Fill(τ,∞))))
+end
+
+const InfBlockBandedMatrix{T} = BlockSkylineMatrix{T,<:Vcat{T,1,<:Tuple{Vector{T},<:BlockArray{T,1,<:Fill{<:Any,1,Tuple{OneToInf{Int64}}}}}}}
+
+function lmul!(adjA::Adjoint{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix}}, B::AbstractVector)
+    require_one_based_indexing(B)
+    A = adjA.parent
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = blockbandwidths(Afactors)
+    # todo: generalize
+    l = 2l+1
+    u = 2u+1
+    @inbounds begin
+        for k = nzzeros(B,1)+u:-1:1
+            ν = k
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,ν-u):k-1
+                    vBj += conj(Afactors[i,ν])*B[i,j]
+                end
+                vBj = conj(A.τ[k])*vBj
+                B[k,j] -= vBj
+                for i = max(1,ν-u):k-1
+                    B[i,j] -= Afactors[i,ν]*vBj
+                end
+            end
+        end
+    end
+    B
+end
+
+getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Integer, j::Integer) where T =
+    (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
+
+function (*)(A::QLPackedQ{T,<:InfBlockBandedMatrix}, x::AbstractVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, cache(convert(AbstractVector{TS},x)))
+end
+
+function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end

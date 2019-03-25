@@ -2,6 +2,24 @@ const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{
                                         BlockSizes{2,Vcat{Int,1,Tuple{Int,Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}}
 
 
+
+for op in (:-, :+)
+    @eval begin
+        function $op(A::BlockTriPertToeplitz{T}, λ::UniformScaling) where T 
+            TV = promote_type(T,eltype(λ))
+            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.dl.arrays)...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.d, Ref(λ)).arrays)...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.du.arrays)...))
+        end
+        function $op(λ::UniformScaling, A::BlockTriPertToeplitz{V}) where V
+            TV = promote_type(eltype(λ),V)
+            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.dl.arrays))...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, Ref(λ), A.blocks.d).arrays)...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.du.arrays))...))
+        end
+    end
+end
+
 *(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = MulArray(a,b)
 
 
@@ -28,6 +46,12 @@ end
 print_matrix_row(io::IO,
         X::AbstractBlockVecOrMat, A::Vector,
         i::Integer, cols::AbstractVector{<:Infinity}, sep::AbstractString) = nothing
+
+print_matrix_row(io::IO,
+        X::Union{AbstractTriangular{<:Any,<:AbstractBlockMatrix},
+                 Symmetric{<:Any,<:AbstractBlockMatrix},
+                 Hermitian{<:Any,<:AbstractBlockMatrix}}, A::Vector,
+        i::Integer, cols::AbstractVector{<:Infinity}, sep::AbstractString) = nothing        
                                         
 function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
     N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
@@ -35,12 +59,13 @@ function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
     block_starts = BandedMatrix{Int}(undef, (N+l,N),  (l,u))
     block_strides = Vector{Int}(undef, N)
     for J=1:N
-        block_starts[max(1,J-l),J] = J == 1 ? 1 :
+        block_starts[max(1,J-u),J] = J == 1 ? 1 :
                             block_starts[max(1,J-1-u),J-1]+block_sizes[J-1]*block_strides[J-1]
-        for K=max(1,J-l)+1:J+u
+                                
+        for K=max(1,J-u)+1:J+l
             block_starts[K,J] = block_starts[K-1,J]+size(A[Block(K-1,J)],1)
         end
-        block_strides[J] = block_starts[J+u,J] + size(A[Block(J+u,J)],1) - block_starts[max(1,J-l),J]
+        block_strides[J] = block_starts[J+l,J] + size(A[Block(J+l,J)],1) - block_starts[max(1,J-u),J]
         block_sizes[J] = size(A[Block(J,J)],2)
     end
 
@@ -72,3 +97,5 @@ function BlockBandedMatrix(A::BlockTriPertToeplitz{T}, (l,u)::NTuple{2,Int}) whe
     
     B = _BlockSkylineMatrix(Vcat(data,tl), BlockSkylineSizes(A, (l,u)))
 end    
+
+BlockBandedMatrix(A::BlockTriPertToeplitz) = BlockBandedMatrix(A, blockbandwidths(A))
