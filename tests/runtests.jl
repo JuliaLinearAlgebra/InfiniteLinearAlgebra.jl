@@ -37,6 +37,9 @@ Q̃,L̃ = ql(BlockBandedMatrix(A)[Block.(1:100),Block.(1:100)])
 
 
 
+
+
+
 c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
 
 z = zero(c)

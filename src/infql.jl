@@ -170,17 +170,26 @@ function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector{S
 end
 
 
-function blocktailiterate(c,b,a)
+function blocktailiterate(c,a,b,d=c,e=a)
     z = zero(c)
-    d,e = c,a
-    for _=1:1000
-        X = [b ; e]
+    for _=1:1_000_000
+        X = [c a b ; z d e]
         F  = ql!(X)
-        P = PseudoBlockArray(F.Q'*[c a; z d], [2,2], [2,2])
-        P[Block(1,1)] == d && P[Block(1,2)] == e && return PseudoBlockArray([P X], fill(2,2), fill(2,3)), F.τ
-        d,e = P[Block(1,1)],P[Block(1,2)]
+        P = PseudoBlockArray(F.L, [2,2], fill(2,3))
+        d̃, ẽ = P[Block(1,1)],P[Block(1,2)]
+        # standardise signs
+        σ = Diagonal(sign.(ẽ))
+        d̃, ẽ = σ*d̃, σ*ẽ
+        if d̃ == d && ẽ == e 
+            # only want two τs
+            X2 = [b ; e]
+            F2  = ql!(X2)
+            P2 = F2.Q'*[c a; z d]
+            return PseudoBlockArray([P2 X2], fill(2,2), fill(2,3)), F2.τ
+        end
+        d,e = d̃, ẽ 
     end
-    error("Did not converge")
+    error("Did not converge for c=$c, a=$a, b=$b")
 end
 
 
@@ -191,7 +200,7 @@ end
 function ql(A::BlockTriPertToeplitz)
     N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
     c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
-    P,τ = blocktailiterate(c,b,a)
+    P,τ = blocktailiterate(c,a,b)
     B = BlockBandedMatrix(A,(2,1))
 
     BB = _BlockBandedMatrix(B.data.arrays[1], (fill(2,N+2), fill(2,N)), (2,1))

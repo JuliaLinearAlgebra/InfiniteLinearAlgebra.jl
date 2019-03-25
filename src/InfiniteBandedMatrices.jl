@@ -21,7 +21,7 @@ else
     import Base: require_one_based_indexing    
 end             
 
-export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError
+export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
 
 
