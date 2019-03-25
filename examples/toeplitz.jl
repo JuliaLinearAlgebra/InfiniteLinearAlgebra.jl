@@ -46,7 +46,7 @@ using BandedMatrices
 F = ql(BandedMatrix(T-3I)[1:100,1:100])
 
 import MatrixFactorizations: reflectorApply!
-
+import InfiniteBandedMatrices: blocktailiterate
 reflectorApply!(F.factors[2:-1:1,2], F.τ[2], [0.0,0.5])
 
 X
@@ -55,6 +55,20 @@ F.factors
 
 F.τ
 
+c,a,b = [0 0.5; 0 0],[0 2.0; 0.5 0],[0 0.0; 2.0 0]; 
+A = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
+                Vcat([a], Fill(a,∞)), 
+                Vcat([b], Fill(b,∞)))
+
+imag.(ql((A-5im*I)[1:100,1:100]).L)
+blocktailiterate(c,a-5im*I,b)[1]
+
+ql((A-5im*I)[1:100,1:100]).factors[1:10,1:10]
+
+
+
+c,a,b = 
+A
 
 X
 
@@ -69,7 +83,7 @@ A = BlockTridiagonal(Vcat(Matrix{Float64}[2R], Fill(2R,∞)),
                 Vcat(Matrix{Float64}[0.5R], Fill(0.5R,∞)))
 
 A
-import InfiniteBandedMatrices: blocktailiterate
+
 using BlockArrays
 
 c,a,b = (2R, λ*E, 0.5*R)
