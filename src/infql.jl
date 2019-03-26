@@ -171,21 +171,21 @@ end
 
 
 
-function blocktailiterate(c,a,b, d=c, e=b)
+function blocktailiterate(c,a,b, d=c, e=a)
     z = zero(c)
-    for _=1:100_000
+    for _=1:1_000
         X = [c a b; z d e]
         F = ql!(X)
         d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
-        # undo last rotation
-        d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ 
-        if d̃ == d && ẽ == e 
-            X[1:2,1:2] = d; X[1:2,3:4] = e # undo last rotation in x
+        
+        d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ  # undo last rotation
+        if ≈(d̃, d; atol=1E-5) && ≈(ẽ, e; atol=1E-5)
+            X[1:2,1:2] = d̃; X[1:2,3:4] = ẽ
             return PseudoBlockArray(X,fill(2,2), fill(2,3)), F.τ[3:end]
         end
         d,e = d̃,ẽ
     end
-    error("Did not converge")
+    blocktailiterate(c,a,b,randn(2,2),randn(2,2))
 end
 
 
@@ -193,11 +193,12 @@ end
 # BlockTridiagonal
 ####
 
-function ql(A::BlockTriPertToeplitz)
+function _ql(A::BlockTriPertToeplitz, d, e)
     N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
     c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
-    P,τ = blocktailiterate(c,a,b)
+    P,τ = blocktailiterate(c,a,b,d,e)
     B = BlockBandedMatrix(A,(2,1))
+    
 
     BB = _BlockBandedMatrix(B.data.arrays[1], (fill(2,N+2), fill(2,N)), (2,1))
     BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
@@ -207,8 +208,12 @@ function ql(A::BlockTriPertToeplitz)
 
 
     QL(_BlockSkylineMatrix(Vcat(BB.data, mortar(Fill(vec(Vcat(P[Block(1,3)], P[Block(2,3)], P[Block(2,2)], P[Block(2,1)])),∞))),B.block_sizes),
-            Vcat(F.τ,mortar(Fill(τ,∞))))
+            Vcat(F.τ,mortar(Fill(τ,∞)))), P[Block(1,1)], P[Block(1,2)]
 end
+
+ql(A::BlockTriPertToeplitz) = _ql(A, A[Block(2,3)], A[Block(3,3)])[1]
+
+ql(A::Adjoint{T,BlockTriPertToeplitz{T}}) where T = ql(BlockTridiagonal(A))
 
 const InfBlockBandedMatrix{T} = BlockSkylineMatrix{T,<:Vcat{T,1,<:Tuple{Vector{T},<:BlockArray{T,1,<:Fill{<:Any,1,Tuple{OneToInf{Int64}}}}}}}
 

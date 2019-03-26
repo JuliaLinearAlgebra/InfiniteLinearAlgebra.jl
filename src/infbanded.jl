@@ -80,3 +80,15 @@ function BandedMatrix(A::TriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     data[u+2,length(c)+1:end] .= c∞.value
     _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones(1,∞)), ∞, l, u)
 end
+
+function BandedMatrix(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::Tuple{Int,Int}) where T
+    a∞ = A.d
+    b∞ = A.du
+    c∞ = A.dl
+    n = 2
+    data = zeros(T, l+u+1, n)
+    data[u,2:end] .= b∞.value
+    data[u+1,1:end] .= a∞.value
+    data[u+2,1:end] .= c∞.value
+    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones(1,∞)), ∞, l, u)
+end

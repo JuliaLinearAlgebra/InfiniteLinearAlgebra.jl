@@ -44,12 +44,46 @@ A = BlockTridiagonal(Vcat([c], Fill(c,∞)),
 Q,L = ql(A)                
 @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10]
 
+c,a,b = [0 0.5; 0 0],[0 2.0; 0.5 0],[0 0.0; 2.0 0]; 
+A = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
+                Vcat([a], Fill(a,∞)), 
+                Vcat([b], Fill(b,∞)))
+Q,L = ql(A)                
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10]
+@test L[1,1] == 0 # degenerate
+
+
+Q,L = ql(A')                
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10]'
+@test L[1,1]  ≠ 0 # non-degenerate
+
+
+
+
+ql(A')
+
+mortar(A.blocks')
+
+A
+
+(A.blocks')[1,2]
+A.blocks[2,1]
+ql(A')
+
+
+BlockArray(A.blocks')
+
+A'
+
+T = Tridiagonal(randn(4), randn(5), randn(4))
+T'
 
 
 c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
 
 z = zero(c)
 d,e = c,a
+ql(A-3*I)
 
 
 

@@ -2,6 +2,12 @@ const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{
                                         BlockSizes{2,Vcat{Int,1,Tuple{Int,Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}}
 
 
+function BlockTridiagonal(adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T
+    A = parent(adjA)
+    BlockTridiagonal(Matrix.(adjoint.(A.blocks.du)), 
+                     Matrix.(adjoint.(A.blocks.d)), 
+                     Matrix.(adjoint.(A.blocks.dl)))
+end                                       
 
 for op in (:-, :+)
     @eval begin
@@ -17,6 +23,8 @@ for op in (:-, :+)
                              Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, Ref(λ), A.blocks.d).arrays)...), 
                              Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.du.arrays))...))
         end
+        $op(adjA::Adjoint{T,BlockTriPertToeplitz{T}}, λ::UniformScaling) where T = $op(BlockTridiagonal(adjA), λ)
+        $op(λ::UniformScaling, adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T = $op(λ, BlockTridiagonal(adjA))
     end
 end
 

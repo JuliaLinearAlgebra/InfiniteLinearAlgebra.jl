@@ -1,4 +1,4 @@
-using Revise, InfiniteBandedMatrices, LazyArrays, FillArrays, Plots
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, LazyArrays, FillArrays, Plots
 
 # create a complex valued Toeplitz matrix
 T = Tridiagonal(Vcat(Float64[], Fill(1/2,∞)), 
@@ -52,11 +52,209 @@ X
 F.factors
 
 F.τ
+x = -1.98
+c,a,b = [0 2.0; 0 0],[0 0.5; 2.0 0] - x*I,[0 0.0; 0.5 0]; 
+T = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
+                Vcat([copy(a)], Fill(a,∞)), 
+                Vcat([b], Fill(b,∞)))
+A = deepcopy(T); A[1,1] =  2+1.98; A
+function it(c, a, b, d, e)
+    z = zero(c)
+    X = [c a b; z d e]
+    F = ql!(X)
+    d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
+    d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ  # undo last rotation
+end
 
-c,a,b = [0 0.5; 0 0],[0 2.0; 0.5 0],[0 0.0; 2.0 0]; 
-A = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
-                Vcat([a], Fill(a,∞)), 
-                Vcat([b], Fill(b,∞))) - 5im*I
+it(c,a,b,0.,0.2)
+
+B = BandedMatrix(Tridiagonal(Fill(2.0,∞), Fill(-x,∞), Fill(0.5,∞)))
+Q,L = ql(B[1:100_000,1:100_000]);
+d,e = (Q'*[[0 2.0; 0 0]; zeros(size(Q,1)-2,2)])[1:2,1:2],L[1:2,1:2]
+d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
+f = (x,y) -> it(c,a,b,[0 2.; 0 0], [1.98 0.5; x y])[2][2,:] .- (x,y)
+
+x,y = 1.98,0.9
+x,y = it(c,a,b,[0 2.; 0 0], [1.98 0.5; x y])[2][2,:]
+it(c,a,b,[0 2.; 0 0], [1.98 0.5; x y]) 
+y = 1.0
+q = Fun(x -> norm(f(x,y)), 0..2, 1000)
+x = findmin(q)[2]
+q = Fun(y -> norm(f(x,y)), 0.5..2, 1000)
+y = findmin(q)[2]
+q = Fun(x -> norm(f(x,y)), 1.5..2, 1000)
+x = findmin(q)[2]
+q(x)
+
+
+U, Σ, V = svd(A[1:100,1:100])
+
+U*diagm(0=>Σ)*V'
+
+V[:,end]
+
+plot(abs.(U[:,end]) .+ eps(); yscale=:log10)
+
+ql(B[1:1000,1:1000]')
+
+x,y = it(c,a,b,[0 2.; 0 0], [1.98 0.5; x y])[2][2,:]
+
+x,y
+
+plot(q)
+
+f(1.5,1.0)
+xx = range(1.7,stop=1.72,length=100)
+yy = range(0.85,stop=0.9,length=100)
+contour(xx, yy, norm.(f.(xx', yy));nlevels=200)
+
+
+xx = range(-3,stop=3,length=101)
+yy = range(-3,stop=3,length=100)
+contour(xx, yy, norm.(f.(xx', yy));nlevels=200)
+f(0,0)
+f(0.0,0.0)
+f(1.9,0.0)
+
+f(-2.0,0.0)
+[1,2].-(3,4)
+
+
+c
+
+B
+ql((A+1.98I)[1:151,1:151]).L[1,1]
+ql((A)[1:300,1:300]).L[1,1]
+ql((T)[1:305,1:305]).L[1,1]
+
+
+
+ql(A')
+
+
+@time ql(A-0.1im*I).L[1,1]
+
+
+ql(A-3.5*I).L[1,1]
+import InfiniteBandedMatrices: _ql
+F, d, e = _ql(A-3.5*I, randn(2,2), randn(2,2))
+
+xx = range(-3,stop=3,length=101)
+yy = Vector{Float64}()
+
+for x in xx
+    @show x
+    B = BandedMatrix(Tridiagonal(Fill(2.0,∞), Fill(-x,∞), Fill(0.5,∞)))
+    Q,L = ql(B[1:100_000,1:100_000]);
+    d,e = (Q'*[[0 2.0; 0 0]; zeros(size(Q,1)-2,2)])[1:2,1:2],L[1:2,1:2]
+    d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
+    F,d,e = _ql(A'-x*I, d, e)
+    push!(yy, F.L[1,1])
+end
+
+
+
+
+
+
+eigvals((A'-x*I)[1:100,1:100])
+
+BandedMatrix(B[1:10000,1:10000]')
+x = -1.98
+
+plot(xx,yy)
+
+ql(A')
+
+ql((A')[1:100,1:100])
+A
+A'
+
+yy
+
+xx
+ql(A'-3.0*I)
+
+x = 1.92
+x = -1.98
+c,a,b = let A =  (A'-x*I)
+    N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+    c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
+end
+
+
+
+ql((A'-x*I)[1:100,1:100])
+
+
+
+ql(A'-x*I)
+
+plot(xx, yy)
+
+
+
+
+
+ql(A'+1.95*I)
+
+
+A = A'+1.95*I
+
+
+
+
+_ql(A, d, e)
+
+N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
+
+
+[c a b; z d e]
+
+ql(A[1:100,1:100])
+
+_ql(A, d, e)
+
+ql(A[1:200,1:00]'+1.95*I)
+
+x = -1.1608040201005025 + 1.0im
+
+c,a,b
+
+a = a-x*I
+A
+A-x*I
+
+ql(A-x*I)
+
+d,e
+x = -2.819095477386935
+_ql(A-x*I, randn(2,2), randn(2,2))
+_ql(A-x*I,)
+
+_ql(A-x*I
+
+ql(A-(-2.8I))
+
+_ql(A-3.2*I, d, e)
+F.L[1,1]
+
+ql(A).Q[1,1]
+
+
+
+ql(A[1:100,1:100])
+(10_000^2)
+
+
+
+scatter(reim(eigvals(A[1:1000,1:1000]))...)
+
+
+ql(A)
+
+ql(A[1:102,1:102])
 
 
 N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
@@ -82,11 +280,28 @@ X = [c a b z;
 
 ql!(X).τ
 
+c,a,b = [0 0.5; 0 0],[0 2.0; 0.5 0],[0 0.0; 2.0 0]; 
+A = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
+                Vcat([a], Fill(a,∞)), 
+                Vcat([b], Fill(b,∞)))
+A = A' + 0.1im*I
+N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
+
+Q,L = ql(A[1:100,1:100])
+
 d,e = (Q'*[c; zeros(100-2,2)])[1:2,1:2],L[1:2,1:2]
 d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
 
 
 blocktailiterate(c,a,b)
+
+[d e]
+[c a b;
+ z d e]
+
+
+blocktailiterate(c,a,b,d,e)
 A
 Q,L = ql(A)
 
