@@ -42,10 +42,8 @@ X, τ = InfiniteBandedMatrices.qltail(0.5,-3,2)
 
 τ
 
-using BandedMatrices
-F = ql(BandedMatrix(T-3I)[1:100,1:100])
-
-import MatrixFactorizations: reflectorApply!
+using BlockBandedMatrices, BlockArrays, BandedMatrices
+import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate
 reflectorApply!(F.factors[2:-1:1,2], F.τ[2], [0.0,0.5])
 
@@ -58,8 +56,109 @@ F.τ
 c,a,b = [0 0.5; 0 0],[0 2.0; 0.5 0],[0 0.0; 2.0 0]; 
 A = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
                 Vcat([a], Fill(a,∞)), 
-                Vcat([b], Fill(b,∞)))
+                Vcat([b], Fill(b,∞))) - 5im*I
 
+
+N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
+z = zero(c)
+
+function blocktailiterate2(c,b,a)
+    z = zero(c)
+    d,e = c,a
+    for _=1:1000
+        X = [b ; e]
+        F  = ql!(X)
+        P = PseudoBlockArray(F.Q'*[c a; z d], [2,2], [2,2])
+        P[Block(1,1)] == d && P[Block(1,2)] == e && return PseudoBlockArray([P X], fill(2,2), fill(2,3)), F.τ
+        d,e = P[Block(1,1)],P[Block(1,2)]
+    end
+    error("Did not converge")
+end
+z = zeros(2,2)
+X = [c a b z;
+     z c a b;
+     z z d e]
+
+ql!(X).τ
+
+d,e = (Q'*[c; zeros(100-2,2)])[1:2,1:2],L[1:2,1:2]
+d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
+
+
+blocktailiterate(c,a,b)
+A
+Q,L = ql(A)
+
+
+
+ql(A[1:100,1:100])
+
+
+c,b,a
+
+X = [c a b; z d e]
+F = ql!(X)
+d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
+d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ # undo last rotation
+
+
+d,e
+
+d̃ , d
+
+
+&& ẽ == e 
+X
+
+F.τ[3:end]
+X
+
+
+
+
+X
+
+F.L[1:2,1:2] == d
+
+ql(A[1:100,1:100]).factors
+
+
+
+
+
+z
+
+ m
+
+X, τ = blocktailiterate(c,a,b)
+X, τ = blocktailiterate2(c,a,b)
+X
+
+# reflector in two steps
+import MatrixFactorizations: reflector!
+x = randn(3)
+z = copy(x); reflector!(view(z,1:2)); reflector!(view(z, [1,3])); z
+
+
+y = copy(x); reflector!(y), y
+x
+
+Q,L = ql(A[1:100,1:100])
+
+
+
+l,m = L[3:4,1:2],L[3:4,3:4]
+L
+
+ql([b; e]).τ
+
+b
+e
+
+ql([c a b; z d e]).τ
+
+F = ql(BandedMatrix(T-3I)[1:100,1:100])
 imag.(ql((A-5im*I)[1:100,1:100]).L)
 blocktailiterate(c,a-5im*I,b)[1]
 

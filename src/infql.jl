@@ -170,26 +170,22 @@ function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector{S
 end
 
 
-function blocktailiterate(c,a,b,d=c,e=a)
+
+function blocktailiterate(c,a,b, d=c, e=b)
     z = zero(c)
-    for _=1:1_000_000
-        X = [c a b ; z d e]
-        F  = ql!(X)
-        P = PseudoBlockArray(F.L, [2,2], fill(2,3))
-        d̃, ẽ = P[Block(1,1)],P[Block(1,2)]
-        # standardise signs
-        σ = Diagonal(sign.(ẽ))
-        d̃, ẽ = σ*d̃, σ*ẽ
+    for _=1:100_000
+        X = [c a b; z d e]
+        F = ql!(X)
+        d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
+        # undo last rotation
+        d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ 
         if d̃ == d && ẽ == e 
-            # only want two τs
-            X2 = [b ; e]
-            F2  = ql!(X2)
-            P2 = F2.Q'*[c a; z d]
-            return PseudoBlockArray([P2 X2], fill(2,2), fill(2,3)), F2.τ
+            X[1:2,1:2] = d; X[1:2,3:4] = e # undo last rotation in x
+            return PseudoBlockArray(X,fill(2,2), fill(2,3)), F.τ[3:end]
         end
-        d,e = d̃, ẽ 
+        d,e = d̃,ẽ
     end
-    error("Did not converge for c=$c, a=$a, b=$b")
+    error("Did not converge")
 end
 
 
