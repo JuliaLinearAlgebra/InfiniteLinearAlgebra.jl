@@ -1,4 +1,4 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, LazyArrays, FillArrays, Plots
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, Plots
 
 # create a complex valued Toeplitz matrix
 T = Tridiagonal(Vcat(Float64[], Fill(1/2,∞)), 
@@ -44,7 +44,7 @@ X, τ = InfiniteBandedMatrices.qltail(0.5,-3,2)
 
 using BlockBandedMatrices, BlockArrays, BandedMatrices
 import MatrixFactorizations: reflectorApply!, QLPackedQ
-import InfiniteBandedMatrices: blocktailiterate
+import InfiniteBandedMatrices: blocktailiterate, _ql
 reflectorApply!(F.factors[2:-1:1,2], F.τ[2], [0.0,0.5])
 
 X
@@ -53,11 +53,63 @@ F.factors
 
 F.τ
 x = -1.98
-c,a,b = [0 2.0; 0 0],[0 0.5; 2.0 0] - x*I,[0 0.0; 0.5 0]; 
+c,a,b = [0 2.0; 0 0],[0 0.5; 2.0 0],[0 0.0; 0.5 0]; 
 T = BlockTridiagonal(Vcat([c], Fill(c,∞)), 
                 Vcat([copy(a)], Fill(a,∞)), 
                 Vcat([b], Fill(b,∞)))
-A = deepcopy(T); A[1,1] =  2+1.98; A
+A = deepcopy(T); A[1,1] =  2; A
+
+function fsde(A)
+    B = BandedMatrix(Tridiagonal(Fill(A[6,5],∞), Fill(A[6,6],∞), Fill(A[5,6],∞)))
+    Q,L = ql(B[1:1_000,1:1_000]);
+    d,e = (Q'*[[0 2.0; 0 0]; zeros(size(Q,1)-2,2)])[1:2,1:2],L[1:2,1:2]
+    d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
+end    
+
+xx = range(-3,3,length=40)
+yy = range(-3,3,length=40)
+
+q = (x,y) -> begin 
+    @show x,y
+    B = A - (x+im*y)*I; 
+    F,d,e = _ql(B, fsde(B)...);
+    F.L[1,1]
+end
+
+q(0.1,0.2)
+
+z = q.(xx', yy)
+
+contourf(xx, yy, abs.(z); nlevels=100, contours=false)
+
+contourf(xx, yy, abs.(z); nlevels=100, contours=false)
+
+collect(yy)
+
+
+B = A -(-1.98+0.0001im)*I;  F,d,e = _ql(B, fsde(B)...); F.L[1,1]
+
+
+xx = [-4:0.01:-2; 2:0.01:4]
+
+y = q.(xx, 0.0)
+
+plot(xx,real.(y))
+
+B = A -(-1.98+0.00000048im)*I;
+F,d,e = _ql(B, d, e); F.L[1,1]
+_ql
+
+_ql(B, d, e)
+
+_ql(B,d,e)
+
+d,e
+
+fsde(B)[2] -e 
+
+ql(B[1:200,1:200])
+
 function it(c, a, b, d, e)
     z = zero(c)
     X = [c a b; z d e]

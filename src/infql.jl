@@ -173,19 +173,19 @@ end
 
 function blocktailiterate(c,a,b, d=c, e=a)
     z = zero(c)
-    for _=1:1_000
+    for _=1:1_000_000
         X = [c a b; z d e]
         F = ql!(X)
         d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
         
         d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ  # undo last rotation
-        if ≈(d̃, d; atol=1E-5) && ≈(ẽ, e; atol=1E-5)
+        if ≈(d̃, d; atol=1E-10) && ≈(ẽ, e; atol=1E-10)
             X[1:2,1:2] = d̃; X[1:2,3:4] = ẽ
             return PseudoBlockArray(X,fill(2,2), fill(2,3)), F.τ[3:end]
         end
         d,e = d̃,ẽ
     end
-    blocktailiterate(c,a,b,randn(2,2),randn(2,2))
+    error("Did not converge")
 end
 
 
