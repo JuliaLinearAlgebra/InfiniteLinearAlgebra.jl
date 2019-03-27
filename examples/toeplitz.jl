@@ -70,12 +70,22 @@ T = BlockTridiagonal(Vcat([c], Fill(c,∞)),
                 Vcat([b], Fill(b,∞)))
 A = deepcopy(T); A[1,1] =  2; A
 
-function fsde(A)
+function fsde(A, n=10_000)
     B = BandedMatrix(Tridiagonal(Fill(A[6,5],∞), Fill(A[6,6],∞), Fill(A[5,6],∞)))
-    Q,L = ql(B[1:1_000,1:1_000]);
+    F = ql(B[1:n,1:n]);
+    Q = F.Q
     d,e = (Q'*[[0 2.0; 0 0]; zeros(size(Q,1)-2,2)])[1:2,1:2],L[1:2,1:2]
     d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
 end    
+
+B = A-1E-9.5I; F, d, e = _ql(B, d,e)
+B = A-(1E-9)I; (F, d, e) = _ql(B, fsde(B,100_000_000)...)
+100000eps()
+
+F.L
+
+d
+e
 
 import IntervalArithmetic: Interval
 import MatrixFactorizations: QLPackedQ, reflector!, reflectorApply!
@@ -85,7 +95,7 @@ using DualNumbers
 
 Base.copysign(a::Dual, b::Dual) = abs(a)*sign(b)
 
-
+A
 
 exp(Interval(0,1) + im*Interval(0,1))
 
@@ -122,7 +132,7 @@ rt = (x0,x1) -> fixed(c,a-0.001im*I,b,x0,x1) .- (x0,x1)
 rt2 = (x,y,z,w) -> vcat(SVector{2}.(reim.(rt(complex(x,y), complex(z,w))))...)
 rt3 = xyzw -> rt2(xyzw...)
 
-roots(rt3, x × y × z × w)
+roots(rt3, x × y × z × w, Newton, 1E-5)
 rt3((x,y,z,w))
 
 x,y,z,w = (1.718..1.719) , (0.21..0.22) , (0.1..0.11) , ((-0.86)..(-0.85))
