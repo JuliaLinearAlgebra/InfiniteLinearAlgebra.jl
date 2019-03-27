@@ -31,5 +31,6 @@ export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 include("infbanded.jl")
 include("infblocktridiagonal.jl")
 include("infql.jl")
+include("rigorous.jl")
 
 end # module

@@ -1,9 +1,12 @@
 
+mid(d) = (d.hi+d.lo)/2
+len(d) = d.hi-d.lo
+
 function rig_qltail(Z,A,B,d,e)
     X = [Z A B; 0 d e]; 
     ql!(X)
     d2,e2 = X[1,1] ∩ d, X[1,2] ∩ e
-    if isempty(d2) || isempty(e2) || abs(d2) < 1000eps() || abs(e2) < 1000eps()
+    if isempty(d2) || isempty(e2) || abs2(d2) < eps() || abs2(e2) < eps()
         return emptyinterval(),emptyinterval()
     end
     len(d2) < 100eps() && len(e2) < 100eps() && return d,e

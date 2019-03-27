@@ -47,6 +47,17 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql
 reflectorApply!(F.factors[2:-1:1,2], F.τ[2], [0.0,0.5])
 
+InfiniteBandedMatrices.rig_qltail(2.0,0.1,0.5)
+F = ql(BandedMatrix(T'-(0.1+0.000001im)I)[1:1_000_000,1:1_000_000]);
+plot(real.(F.factors[band(0)][1:100]))
+
+InfiniteBandedMatrices.rig_qltail(2.0,2.2,0.5)
+InfiniteBandedMatrices.rig_qltail(0.5,2.2,2.0)
+
+
+InfiniteBandedMatrices.qltail(2.0,2.7,0.5)
+InfiniteBandedMatrices.qltail(2.0,2.7,0.5)
+
 X
 
 F.factors
@@ -66,8 +77,131 @@ function fsde(A)
     d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
 end    
 
+import IntervalArithmetic: Interval
+import MatrixFactorizations: QLPackedQ, reflector!, reflectorApply!
+import InfiniteBandedMatrices: _ql
+using DualNumbers
+
+
+Base.copysign(a::Dual, b::Dual) = abs(a)*sign(b)
+
+
+
+exp(Interval(0,1) + im*Interval(0,1))
+
 xx = range(-3,3,length=40)
 yy = range(-3,3,length=40)
+λ = 0.001im
+B = A -λ*I
+_, d, e = _ql(B, fsde(B)...)
+d = [0 2; 0 0]
+e = [-λ 0.5; (1.718)+im*(0.21)  dual(0.1,1.0)+im*(-0.86)]
+X = [c a-λ*I b; zero(c) d e]
+ql!(X)
+X
+
+_, d, e = _ql(B, fsde(B)...)
+Z,A,B = c, a - 0.001im*I, b
+d = [0 2; 0 0]
+e = [-λ 0.5; Interval(1.718,1.719)+im*Interval(0.21,0.22)  Interval(0.1,0.11)+im*Interval(-0.86,-0.85)]
+lo = x -> x isa Interval ? x.lo : x
+hi = x -> x isa Interval ? x.hi : x
+e = [-λ 0.5; Interval(1.718,1.719)+im*Interval(0.21,0.22)  Interval(0.1,0.11)+im*Interval(-0.86,-0.85)]
+import IntervalArithmetic: ±
+
+reim.(e[2,1]) .± 0.0001
+
+h = 1E-7; e = [-λ 0.5; complex(real(e[2,1])±h,imag(e[2,1])±h)  complex(real(e[2,2])±h,imag(e[2,2])±h)]
+
+
+_, d, e = _ql(B, fsde(B)...)
+x0,x1 = e[2,1:2]
+(x0,x1) = fixed(c,a-0.001im*I,b,x0,x1) 
+
+rt = (x0,x1) -> fixed(c,a-0.001im*I,b,x0,x1) .- (x0,x1)
+rt2 = (x,y,z,w) -> vcat(SVector{2}.(reim.(rt(complex(x,y), complex(z,w))))...)
+rt3 = xyzw -> rt2(xyzw...)
+
+roots(rt3, x × y × z × w)
+rt3((x,y,z,w))
+
+x,y,z,w = (1.718..1.719) , (0.21..0.22) , (0.1..0.11) , ((-0.86)..(-0.85))
+rt(x+im*y,z+im*w)
+
+(x,y,z,w) = (reim(x0)..., reim(x1)...)
+
+x0,x1 = x0+0.01,x1+0.01
+J = epsilon.([rt(dual(x0,1),x1) rt(x0,dual(x1,1))])
+x0,x1 = [x0,x1] - (J \ rt(x0,x1))
+rt(x0,x1)
+
+
+rt = (x,y,s,t) -> fixed(c,a-0.001im*I,b,complex(x,y),complex(s,t)) .- (complex(x,y),complex(s,t))
+x0 = x0+0.001
+(x,y),(s,t) = reim(x0),reim(x1)
+rt(x,y,s,t)
+
+
+B
+a
+
+function fixed(c,a,b,x0,x1)
+    e = [a[1,1] 0.5; x0 x1]
+    d = [0 2; 0 0]
+    A = [c a b; zero(c) d e]
+    m,n = size(A)
+    τ = zeros(eltype(A), min(m,n))
+
+    for k = 6:-1:5
+        μ = m+k-n
+        x = view(A, μ:-1:1, k)
+        τk = reflector!(x)
+        τ[k-n+min(m,n)] = τk
+        reflectorApply!(x, τk, view(A, μ:-1:1, 1:k-1))
+    end
+    A[2,3:4]
+end
+real(A[2,3]).hi
+real(e[2,1]).hi
+
+A = X
+k = 5
+μ = m+k-n
+x = view(A, μ:-1:1, k)
+τk = reflector!(x)
+τ[k-n+min(m,n)] = τk
+reflectorApply!(x, τk, view(A, μ:-1:1, 1:k-1))
+A
+x
+
+A
+e
+
+
+x
+
+    @which ql!(X)
+x = X[end:-1:1,end]
+reflector!(x)
+x
+
+d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
+
+d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ  # undo last rotation
+ql!(X)
+
+@which _ql(B, fsde(B)...)
+λ = 0.0
+d = [0 2; 0 0]
+e = [-λ 0.5; Interval(1.7,1.8)+im*Interval(0.2,0.3)  Interval(0.1,0.2)+im*Interval(-0.9,-0.8)]
+X = [c a-λ*I b;
+    zero(c) d e]
+
+ql!(X)
+
+X = [c a b; zero(c) d 
+e
+
 
 q = (x,y) -> begin 
     @show x,y
