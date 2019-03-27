@@ -66,6 +66,7 @@ function qltail(Z::Number, A::Number, B::Number)
 end
 
 ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
+ql(A::SymTridiagonal{T}) where T = ql!(BandedMatrix(A, (2,1)))
 ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
 ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (2,1)))
 

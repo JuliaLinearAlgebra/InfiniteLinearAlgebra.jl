@@ -14,6 +14,9 @@ import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, 
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSizes, cumulsizes, _BlockSkylineMatrix, BlockSizes, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
 
+import IntervalArithmetic
+import IntervalArithmetic: Interval, emptyinterval
+
 if VERSION < v"1.2-"
     import Base: has_offset_axes
     require_one_based_indexing(A...) = !has_offset_axes(A...) || throw(ArgumentError("offset arrays are not supported but got an array with index other than 1"))

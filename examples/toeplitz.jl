@@ -90,11 +90,13 @@ collect(yy)
 B = A -(-1.98+0.0001im)*I;  F,d,e = _ql(B, fsde(B)...); F.L[1,1]
 
 
-xx = [-4:0.01:-2; 2:0.01:4]
+xx = -4:0.01:-2
 
 y = q.(xx, 0.0)
-
-plot(xx,real.(y))
+plot(xx,real.(y); legend=false)
+xx = 2:0.01:4
+y = q.(xx, 0.0)
+plot!(xx,real.(y); legend=false)
 
 B = A -(-1.98+0.00000048im)*I;
 F,d,e = _ql(B, d, e); F.L[1,1]
