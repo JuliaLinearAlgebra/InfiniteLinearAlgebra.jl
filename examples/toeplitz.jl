@@ -1,5 +1,3 @@
-
-
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
 using BlockBandedMatrices, BlockArrays, BandedMatrices
 import MatrixFactorizations: reflectorApply!, QLPackedQ
@@ -27,45 +25,142 @@ function combine_two_Q(σ, τ, v)
     β = (1-τ)
     γ = (1-τ)*σ-σ*τ*abs2(v) + 1
 
-    # companion matrix for α*conj(s)^2 + β*s^2 - γ. 
+    # companion matrix for β*z^2  - γ*z + α for z = s^2
     # Why [1]??
-    s2 = eigvals([0     1; -α/β   γ/β])[1]
+    s2 = (γ - sqrt(γ^2-4α*β))/(2β)
     s = sqrt(s2)
     t = 1-s^2*(1-τ)
     ω = τ/t*σ*v
-    s, t, ω
+    s, conj(t), -ω
 end
 
 
-Z,A,B=2,2.1+0.01im,0.5
+# this gives the d and e so that
+# [Z A B;
+#  0 d e]
+#
+# is the fixed point
+function tail_de(Z,A,B)
+    ñ1 = (A + sqrt(A^2-4B*Z))/2
+    ñ2 = (A - sqrt(A^2-4B*Z))/2
+    ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+    # ñ = ñ1
+    (n,σ) = (abs(ñ),conj(sign(ñ)))
+    e = -sqrt(n^2 - abs2(B))
+    d = σ*e*Z/n
+    d,e
+end
+
+# this gives the parameters of the QL decomposition tail
+function tail_stω!(X)
+    F = ql!(X)
+    σ = conj(F.τ[1]-1)
+    τ = F.τ[2]
+    v = F.factors[1,3]
+    combine_two_Q(σ, τ, v)
+end
+
+function tailql(Z,A,B)
+    T = promote_type(eltype(Z),eltype(A),eltype(B))
+    d,e = tail_de(Z,A,B)
+    X = [Z A B; zero(T) d e]
+    s,t,ω = tail_stω!(X)
+    QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(zero(T),Fill(t,∞)))
+end
+
+Z,A,B=2+0.0im,2.1+0.01im,0.5+0.0im
 n = 100_000; T = Tridiagonal(Fill(Z,n-1), Fill(A,n), Fill(B,n-1)); Q,L = ql(T);
-        
+d,e = tail_de(Z,A,B)
+@test L[1,1] ≈ e
+@test (Q'*[Z; zeros(n-1)])[1] ≈ d
+@test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
+@test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
+
+s,t,ω = tail_stω(Z,A,B,d,e)
+F = tailql(Z,A,B)
 
 
-ñ1 = (A + sqrt(A^2-4B*Z))/2
-ñ2 = (A - sqrt(A^2-4B*Z))/2
-ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
-# ñ = ñ1
-(n,σ) = (abs(ñ),conj(sign(ñ)))
-d = σ*e2*Z/n
-e = sqrt(n^2 - abs2(B))
+@test Q.τ[2] ≈ F.τ[2] ≈ t
+@test Q.factors[1,2] ≈ F.factors[1,2] ≈ ω
+
+Q∞,L∞ = QL(F.factors, Vcat(Q.τ[1], F.τ.arrays[2]))
+@test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
+
+Q∞,L∞ = F
+@test L∞[1:10,1:10] ≈ L[1:10,1:10]
+
+
+Z,A,B=2+0.0im,2.1+0.1im,0.5+0.0im
+n = 100_000; T = Tridiagonal(Fill(Z,n-1), Fill(A,n), Fill(B,n-1)); Q,L = ql(T);
+F = tailql(Z,A,B)
+Q∞,L∞ = QL(F.factors, Vcat(Q.τ[1], F.τ.arrays[2]))
+
+
+Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
+
+
+Q∞[1,1]*L[1,1] + Q∞[1,2]*L[2,1]
+
+
+
+@which Q∞[1,1]
+
+
+
+
+
+F = 
+
+T = ComplexF64
+
+
+Q.τ
+Q.factors
+Q[1:5,1:5]
+
+
+
+
+L
+
+L[1,1]
+
+Ht
+ql(X).τ[1]*s
+Q.τ[1]
+1+s
+
+e
+σ
+
+
+
+Q1 = (I-τ*[v,1]*[v,1]')
+Q2 = [σ 0; 0 1]
 X = [Z A B; 0 d e]
-F = ql!(X)
-@test conj(F.τ[1]-1) ≈ σ
+@test (Q2*Q1*X)[1,1:2]  ≈ [d;e]
 
-s,t, ω = combine_two_Q(σ, τ, v)
+
+
 @test Q.factors[5,6] ≈ ω
 
+n = 10_000; T = Tridiagonal(Fill(Z,n-1), Fill(A,n), Fill(B,n-1)); Q,L = ql(T);
+
+Q
+
+F = ql(BandedMatrix(T)[1:n,1:n]);
+ω = F.factors[1,2]
+t = conj(F.τ[3])
+Ht = I-t*[ω,1]*[ω,1]'
+
+s = sqrt((1-t)/(1-τ))
+[conj(s) 0;  0 s] * Q2*Q1 * [conj(s) 0 ; 0 s] - Ht
+
+Q = Q2*Q1
 
 
-
-
-
-
-
-
-
-
+combine_two_Q(σ, τ, v)
+t
 
 
 # create a complex valued Toeplitz matrix
