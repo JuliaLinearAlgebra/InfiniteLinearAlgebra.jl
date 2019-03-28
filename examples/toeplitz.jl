@@ -1,5 +1,8 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, Plots
-
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
+using BlockBandedMatrices, BlockArrays, BandedMatrices
+import MatrixFactorizations: reflectorApply!, QLPackedQ
+import InfiniteBandedMatrices: blocktailiterate, _ql
+import BandedMatrices: bandeddata,_BandedMatrix
 # create a complex valued Toeplitz matrix
 T = Tridiagonal(Vcat(Float64[], Fill(1/2,∞)), 
                 Vcat(Float64[], Fill(0.0,∞)), 
@@ -42,9 +45,7 @@ X, τ = InfiniteBandedMatrices.qltail(0.5,-3,2)
 
 τ
 
-using BlockBandedMatrices, BlockArrays, BandedMatrices
-import MatrixFactorizations: reflectorApply!, QLPackedQ
-import InfiniteBandedMatrices: blocktailiterate, _ql
+
 reflectorApply!(F.factors[2:-1:1,2], F.τ[2], [0.0,0.5])
 
 InfiniteBandedMatrices.rig_qltail(2.0,0.1,0.5)
@@ -71,15 +72,158 @@ T = BlockTridiagonal(Vcat([c], Fill(c,∞)),
 A = deepcopy(T); A[1,1] =  2; A
 
 function fsde(A, n=10_000)
-    B = BandedMatrix(Tridiagonal(Fill(A[6,5],∞), Fill(A[6,6],∞), Fill(A[5,6],∞)))
-    F = ql(B[1:n,1:n]);
-    Q = F.Q
+    B = BandedMatrix(Tridiagonal(Fill(A[6,5],n-1), Fill(A[6,6],n), Fill(A[5,6],n-1)))
+    Q,L = ql(B)
     d,e = (Q'*[[0 2.0; 0 0]; zeros(size(Q,1)-2,2)])[1:2,1:2],L[1:2,1:2]
     d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*d,QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:2])*e
 end    
 
+@time fsde(A-0.1I, 10_000_000)
+A = deepcopy(T); B = A+(0.5+0.001im)*I; (F, d, e) = _ql(B, fsde(B,1_000_000)...)
+
+B = A+(0.5+0.000009im)*I; (F, d, e) = _ql(B, d, e)
+
+A = deepcopy(T); B = A+(0.001im)*I; (F, d, e) = _ql(B, fsde(B,1_000_000)...)
+
+
+A = deepcopy(T); B = A+(0.0im)*I; (F, d, e) = _ql(B, fsde(B,1_000_000)...)
+
+
+F.L
+F.L[2,2]-F.L[3,3]
+c,a,b
+
+ñ1 = (A + sqrt(A^2-4B*Z))/2
+ñ2 = (A - sqrt(A^2-4B*Z))/2
+ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+ñ = ñ2
+(n,σ) = (abs(ñ),conj(sign(ñ)))
+if n^2 < abs2(B)
+    throw(ContinuousSpectrumError())
+end
+e = sqrt(n^2 - abs2(B))
+d = σ*e*Z/n
+
+A = deepcopy(T); B = A+(2.3)*I; (F, d, e) = _ql(B, fsde(B,1_000_000)...)
+
+d,e
+
+_ql(T +2.5I)
+
+T+2.5I
+
+T = Tridiagonal(Fill(2+0.0im,∞), Fill(2.1+0.000im,∞), Fill(0.5+0.0im,∞)); Q,L = ql(T)
+n = 10; Q[1:n,1:n+2]*L[1:n+2,1:n] - T[1:n,1:n] |> norm
+
+
+Z,A,B=2,2.1+0.01im,0.5
+ñ1 = (A + sqrt(A^2-4B*Z))/2
+ñ2 = (A - sqrt(A^2-4B*Z))/2
+ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+# ñ = ñ1
+(n,σ) = (abs(ñ),conj(sign(ñ)))
+if n^2 < abs2(B)
+    throw(ContinuousSpectrumError())
+end
+e2 = sqrt(n^2 - abs2(B))
+σ*e2*Z/n
+
+d,e
+
+sqrt(e^2+B^2)
+ñ
+n
+
+ InfiniteBandedMatrices.qltail(2,A,0.5)[1] 
+
+X = InfiniteBandedMatrices.qltail(2,A,0.5)[1]
+
+Q,L = ql(T+1.9I)
+
+
+
+
+L
+d, e = X[1,1:2]
+X = [2 A 0.5; 0 d    e] 
+x = view(X, 2:-1:1, 3)
+τ = LinearAlgebra.reflector!(x)
+reflectorApply!(x, τ, view(X,2:-1:1,1:2))
+d,e = X[1,1:2]
+
+
+B = BandedMatrix(T,(2,1))
+
+data = bandeddata(B).arrays[1]
+B̃ = _BandedMatrix(data, size(data,2), 2,1)
+B̃[end,end-1:end] .= (X[1,1], X[1,2])
+F = ql!(B̃)
+B̃.data[3:end,end] .= (X[2,2], X[2,1]) # fill in L
+B̃.data[4,end-1] = X[2,1] # fill in L
+H = Hcat(B̃.data, [X[1,3], X[2,3], X[2,2], X[2,1]] * Ones{eltype(X)}(1,∞))
+Q, L = QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ,Fill(τ,∞)))
+
+_BandedMatrix(H, ∞, 2, 1)
+
+
+typeof(H)
+
+d,e
+
+
+Q,L = ql!(X)
+d,e = (Q'*[2.0; zeros(size(Q,1)-1)])[1],L[1,1]
+
+(1-Q.τ[1])*d
+(1-Q.τ[1])*e
+
+d,e = X[1,1:2]
+
+d,e = QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:1])*[d;],QLPackedQ(Q.factors[1:2,1:2],Q.τ[1:1])*e
+d,e
+
+
+d
+d
+
+
+Q, L = ql(Tridiagonal(Fill(2+0.0im,∞), Fill(0.5+0.0im,∞), Fill(0.5+0.0im,∞)))
+
+Q[1:10,1:10]*L[1:10,1:10]
+
+Q.factors
+Q.τ
+
+X
+
+B
+
+A[1:100,1:100]
+
+e
+F
+
+d,e
+
+n = 100_000_000;  B = A+(0.5+0.0000001im)*I;  @time ql(BandedMatrix(Tridiagonal(Fill(B[6,5],n-1), Fill(B[6,6],n), Fill(B[5,6],n-1)))).L
+
+n = 10000; B = BandedMatrix(Tridiagonal(Fill(A[6,5],∞), Fill(A[6,6],∞), Fill(A[5,6],∞))); @time B[1:n,1:n]
+
+import IntervalArithmetic: Interval
+import MatrixFactorizations: QLPackedQ, reflector!, reflectorApply!
+import InfiniteBandedMatrices: _ql
+using DualNumbers
+
+n = 100
+B = BandedMatrix(Tridiagonal(Fill(A[6,5],∞), Fill(A[6,6],∞), Fill(A[5,6],∞)))
+n = 10_000; @time QL = ql(B[1:n,1:n]);
+
+@which MatrixFactorizations.getL(QL, axes(QL.factors))
+n = 1_000_000; @time tril!(B[1:n,1:n])
+@which
+
 B = A-1E-9.5I; F, d, e = _ql(B, d,e)
-B = A-(1E-9)I; (F, d, e) = _ql(B, fsde(B,100_000_000)...)
+
 100000eps()
 
 F.L
@@ -87,10 +231,6 @@ F.L
 d
 e
 
-import IntervalArithmetic: Interval
-import MatrixFactorizations: QLPackedQ, reflector!, reflectorApply!
-import InfiniteBandedMatrices: _ql
-using DualNumbers
 
 
 Base.copysign(a::Dual, b::Dual) = abs(a)*sign(b)
