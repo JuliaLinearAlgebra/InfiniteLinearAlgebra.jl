@@ -1,8 +1,73 @@
+
+
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
 using BlockBandedMatrices, BlockArrays, BandedMatrices
 import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql
 import BandedMatrices: bandeddata,_BandedMatrix
+
+
+
+###
+# We have a fixed point to normalized Householder
+#
+#   [σ 0; 0 1] * (I - τ*[v,1]*[v,1]')
+#  
+#  But ∞-QL needs to combine this into a single τ
+# 
+# Note because we are multiplying by an ∞-number of times
+# we can multiply each side by diagm(…conj(s),s,conj(s),s,…) without 
+# changing the matrix. This freedom allows us to reduce the above
+# to a single Householder.
+#
+# Through an annoying amount of algebra we get the following.
+#
+function combine_two_Q(σ, τ, v)
+    α = σ*(1-τ*abs2(v))
+    β = (1-τ)
+    γ = (1-τ)*σ-σ*τ*abs2(v) + 1
+
+    # companion matrix for α*conj(s)^2 + β*s^2 - γ. 
+    # Why [1]??
+    s2 = eigvals([0     1; -α/β   γ/β])[1]
+    s = sqrt(s2)
+    t = 1-s^2*(1-τ)
+    ω = τ/t*σ*v
+    s, t, ω
+end
+
+
+Z,A,B=2,2.1+0.01im,0.5
+n = 100_000; T = Tridiagonal(Fill(Z,n-1), Fill(A,n), Fill(B,n-1)); Q,L = ql(T);
+        
+
+
+ñ1 = (A + sqrt(A^2-4B*Z))/2
+ñ2 = (A - sqrt(A^2-4B*Z))/2
+ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+# ñ = ñ1
+(n,σ) = (abs(ñ),conj(sign(ñ)))
+d = σ*e2*Z/n
+e = sqrt(n^2 - abs2(B))
+X = [Z A B; 0 d e]
+F = ql!(X)
+@test conj(F.τ[1]-1) ≈ σ
+
+s,t, ω = combine_two_Q(σ, τ, v)
+@test Q.factors[5,6] ≈ ω
+
+
+
+
+
+
+
+
+
+
+
+
+
 # create a complex valued Toeplitz matrix
 T = Tridiagonal(Vcat(Float64[], Fill(1/2,∞)), 
                 Vcat(Float64[], Fill(0.0,∞)), 
@@ -112,35 +177,328 @@ _ql(T +2.5I)
 
 T+2.5I
 
-T = Tridiagonal(Fill(2+0.0im,∞), Fill(2.1+0.000im,∞), Fill(0.5+0.0im,∞)); Q,L = ql(T)
+Z,A,B=2,2.1+0.01im,0.5
+T = Tridiagonal(Fill(2+0.0im,∞), Fill(A,∞), Fill(0.5+0.0im,∞)); Q,L = ql(T)
+
 n = 10; Q[1:n,1:n+2]*L[1:n+2,1:n] - T[1:n,1:n] |> norm
 
 
-Z,A,B=2,2.1+0.01im,0.5
+
 ñ1 = (A + sqrt(A^2-4B*Z))/2
 ñ2 = (A - sqrt(A^2-4B*Z))/2
 ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
 # ñ = ñ1
 (n,σ) = (abs(ñ),conj(sign(ñ)))
+e = sqrt(n^2 - abs2(B))
+
 if n^2 < abs2(B)
     throw(ContinuousSpectrumError())
 end
-e2 = sqrt(n^2 - abs2(B))
-σ*e2*Z/n
+
+ql(T)
+d,e = qltail(Z,A,B)
+
+@which qltail(Z,A,B)
+
+1/sign(e*A-B*d)
 
 d,e
 
-sqrt(e^2+B^2)
+σ = 1/sign(e*A-B*d)
+n = sqrt(abs(e)^2+abs(B)^2)
+e2 = sqrt(n^2 - abs2(B))
+d2 = σ*e2*Z/n
+
+d,e
+
+d2-d
+
+e2 + e
+(abs(ñ),conj(sign(ñ)))
+ql([Z A B; 0 d e]).τ
+
+Q = ql([A B;d e]).Q
+Q'*[Z A B; 0 d e]
+τ
+Q = Q2*Q1
+
+Qm = (Q,m,n) -> [Eye(m) Zeros(m,2) Zeros(m,n); Zeros(2,m) Q zeros(2,n); Zeros(n,m) Zeros(n,2) Eye(n)]
+Qm(0,3)*Qm(1,2)*Qm(2,1)*Qm(3,0) |> Matrix
+n
+n = 100_000; ql(BandedMatrix(T)[1:n,1:n]).L
+Q
+abs(τ)
+ |> sign
+
+τ
+d,e
+1/σ
+
+τ = 1+e/sqrt(abs2(e)+abs2(B))
+v = B/(τ*sqrt(abs2(e)+abs2(B)))
+σ = -1/sign(e*A-B*d)
+
+Q2*(I - τ*[v,1]*[conj(v) 1]) - Q
+
+
+[σ*(1-τ*abs2(v)) -τ*σ*v;
+  -τ*conj(v)      1-τ      ]
+Q2
+σ
+H'
+
+Q2*(I - τ*[v,1]*[conj(v) 1])*[B; e]
+
+Q1
+
+Q1*[Z; 0]
+
+H'
+
+[σ 0; 0 1] * ( I-τ*[conj(v),1]*[v 1]) * [1 0; 0 σ]
+
+Qm(2,1)*Qm(3,0) |> Matrix
+v
+Q
+( I-τ*[conj(v),1]*[v 1]) * [1 0; 0 sqrt(σ)]
+Q
+Q
+
+abs2(F.factors[1,2])
+abs2(v)
+
+F = ql(BandedMatrix(T)[1:n,1:n]);
+ω = F.factors[1,2]
+t = conj(F.τ[3])
+H = I-t*[ω,1]*[ω,1]'
+Ht = I-t*[ω,1]*[ω,1]'
+Qm(Q,0,3)*Qm(Q,1,2)*Qm(Q,2,1)*Qm(Q,3,0) -Qm(H',0,3)*Qm(H',1,2)*Qm(H',2,1)*Qm(H',3,0) |> Matrix
+
+
+conj(s)^2*σ*(1-τ*abs2(v)) - (1-t*abs2(ω))
+s^2 *(1-τ) - (1-t)
+-τ*σ*v - (-t*ω)
+-τ*conj(v) - (-t*conj(ω))
+t^2*abs2(ω) - τ^2*σ*abs2(v)
+
+abs2(ω) - τ^2*σ*abs2(v)/t^2
+abs2(ω) - τ^2*σ*abs2(v)/(1-s^2*(1-τ))^2
+
+t - (1-s^2*(1-τ))
+
+
+conj(s)^2*σ*(1-τ*abs2(v)) - (1- (1-s^2*(1-τ))*abs2(ω))
+conj(s)^2*σ*(1-τ*abs2(v)) - (1- (1-s^2*(1-τ))*τ^2*σ*abs2(v)/(1-s^2*(1-τ))^2)
+(1-s^2*(1-τ))*conj(s)^2*σ*(1-τ*abs2(v)) - (1-s^2*(1-τ)) + τ^2*σ*abs2(v)
+
+
+
+α*conj(s)^2 + β*s^2 - γ
+
+
+z = s^2
+α/β + z^2 - γ/β*z
+
+[0     1; -α/β   γ/β] * [1,z] - z * [1,z]
+
+ - s^2
+
+using ApproxFun
+
+
+s2 = (rs2 + im*qs2); s2/abs(s2)
+
+M = [real(α)+real(β) imag(α)-imag(β) ; imag(α)+imag(β) -real(α)+real(β)]
+sol = -M  \ [real(γ); imag(γ)]
+κ = nullspace(M)
+
+(sol + c * κ)*
+M*(vcat(reim.(s^2)...) - sol)
+
+
+
+M* [real(s2); imag(s2)] - [-real(γ); -imag(γ)]
+
+sol = [rs2,qs2]
+
+
+
+
+
+
+[real(α)+real(β) imag(α)-imag(β) ;
+  imag(α)+imag(β) -real(α)+real(β)] |> nullspace
+
+s^2
+
+conj(s)^2 * σ*(1-τ*abs2(v))-(1-τ)*σ+σ*τ*abs2(v) - 1 + s^2*(1-τ)
+α*conj(s)^2 + β*s^2 + γ
+
+cond([real(α)+real(β) imag(α)-imag(β) ; imag(α)+imag(β) -real(α)+real(β)])
+[real(α)+real(β) imag(α)-imag(β) ;
+  imag(α)+imag(β) -real(α)+real(β)] * [real(s^2); imag(s^2)] - [-real(γ); -imag(γ)]
+
+real(β)*real(s^2)
+
+real(α)*real(s^2)+imag(α)*imag(s^2)
+
+
+
+α*conj(s)^2 + β*s^2 + γ + conj(α)*s^2 + conj(β)*conj(s)^2 + conj(γ)
+α*conj(s)^2 + β*s^2 + γ + conj(α)*s^2 + conj(β)*conj(s)^2 + conj(γ)
+
+α
+
+conj(s)^2 * σ*(1-τ*abs2(v))-(1-τ)*σ+σ*τ*abs2(v) - 1 + s^2*(1-τ) + s^2 * conj(σ)*conj(1-τ*abs2(v))-(1-τ)*σ+σ*τ*abs2(v) - 1 + s^2*(1-τ)
+
+
+s^2
+
+τ
+conj(t)
+
+Ht
+s = sqrt((1-t)/(1-τ))
+
+[conj(s) 0;  0 s] * Q * [conj(s) 0 ; 0 s] - Ht
+
+Ht
+
+abs2(s)
+
+1-τ
+
+Ht-H'
+t
+ω
+
+
+
+
+Qm(Q,0,3)*Qm(Q,1,2)*Qm(Q,2,1)*Qm(Q,3,0) |> Matrix
+Q*[B; e]
+
+abs.(H')
+
+abs.(Q)
+σ
+
+
+Q2
+H'
+
+H
+
+Q
+
+1-τ2 == σ*(1-τ)
+
+1-σ*(1-τ)
+
+(1-τ)
+
+
+Q1'
+
+1-τ
+
+
+
+1-τ = -conj(e)/...
+e/sqrt(abs2(e)+abs2(B))
+Q1'
+Q1'
+
+
+τ = conj(e)/sqrt(abs2(e)+abs2(B))
+
+I - τ*[v2 v;
+      
+
+τ = ql([B; e]).τ[1]; v = 
+
+
+I-τ*[
+
+abs(τ)
+
+-1/sign(e*A-B*d)
+
+1-σ
+
+Q1 = [e -B; -conj(B) -conj(e)]/sqrt(abs2(e)+abs2(B));  Q2 = diagm(0 => [-1/sign(e*A-B*d),1]); 
+X = [Z A B; 0 d e]; X = Q2*Q1*X; d,e = X[1,1:2]
+
+Q = [e -B; -conj(B) -conj(e)]/sqrt(abs2(e)+abs2(B));  Q2 = diagm(0 => [1,1]); 
+    X = [Z A B; 0 d e]; X = Q2*Q*X; d,e = X[1,1:2]
+
+d,e
+
+d,e = InfiniteBandedMatrices.tailiterate(Z,A,B).L[1,1:2]
+
+Q
+n = 2000; Q,L = ql(BandedMatrix(T)[1:n,1:n]); 
+    e = L[1,1]; d = (Q'*[2; Zeros(size(Q,1)-1)])[1,1]
+
+
+
+n = 1000; ql(BandedMatrix(T)[1:n,1:n]).τ
+ql([Z A B; 0 d e]).L[2,3]
+
+L
+
+e
+X
+
+A
+
+X = Q'*X; d,e = X[1,1:2]
+
+Q2,L2 = ql(X)
+
+Q2'X
+
+Q*X
+
+
+    X = Q2'*X; d,e = X[1,1:2]; X
+
+X = [Z A B; 0 d e]; ql(X)
+
+ql([B; e])
+
+X    
+
+n= 2000; ql(BandedMatrix(T)[1:n,1:n])
+
+X
+
+Q2
+
+
+
+
+Z,A,B    
+d,e
+X
+det(Q)
+
+
+B
+
+
+T
+
 ñ
 n
 
- InfiniteBandedMatrices.qltail(2,A,0.5)[1] 
+InfiniteBandedMatrices.qltail(2,A,0.5)[1] 
 
 X = InfiniteBandedMatrices.qltail(2,A,0.5)[1]
 
 Q,L = ql(T+1.9I)
 
-
+X
 
 
 L

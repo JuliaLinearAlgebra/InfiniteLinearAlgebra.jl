@@ -45,7 +45,7 @@ function qltail(Z::Number, A::Number, B::Number)
     ñ1 = (A + sqrt(A^2-4B*Z))/2
     ñ2 = (A - sqrt(A^2-4B*Z))/2
     ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
-    (n,σ) = (abs(ñ),conj(sign(ñ)))
+    (n,σ) = (abs(ñ),sign(ñ))
     if n^2 < abs2(B)
         throw(ContinuousSpectrumError())
     end
@@ -53,17 +53,9 @@ function qltail(Z::Number, A::Number, B::Number)
     e = sqrt(n^2 - abs2(B))
     d = σ*e*Z/n
 
-    X = [Z A B;
-         0 d e]
-    QL = _qlfactUnblocked!(X)
-
-    # two iterations to correct for sign
-    X[2,:] .= (zero(T), X[1,1], X[1,2]);
-    X[1,:] .= (Z,A,B);
-    QL = _qlfactUnblocked!(X)
-
-    X, QL.τ[end]         
+    ql!([Z A B; 0 d e])
 end
+
 
 ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
 ql(A::SymTridiagonal{T}) where T = ql!(BandedMatrix(A, (2,1)))
@@ -75,7 +67,7 @@ toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
 function ql!(B::InfBandedMatrix{T}) where T
     @assert bandwidths(B) == (2,1)
     b,a,c,_ = toeptail(B)
-    X, τ = qltail(c,a,b)
+    X,τ = qltail(c,a,b)
     data = bandeddata(B).arrays[1]
     B̃ = _BandedMatrix(data, size(data,2), 2,1)
     B̃[end,end-1:end] .= (X[1,1], X[1,2])
