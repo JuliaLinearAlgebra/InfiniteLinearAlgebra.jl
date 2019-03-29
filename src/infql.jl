@@ -53,6 +53,7 @@ function qltail(Z::Number, A::Number, B::Number)
     e = sqrt(n^2 - abs2(B))
     d = σ*e*Z/n
 
+    Q = 
     ql!([Z A B; 0 d e])
 end
 

@@ -1,5 +1,4 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
-using BlockBandedMatrices, BlockArrays, BandedMatrices
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
 import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql
 import BandedMatrices: bandeddata,_BandedMatrix
@@ -31,7 +30,7 @@ function combine_two_Q(σ, τ, v)
     s = sqrt(s2)
     t = 1-s^2*(1-τ)
     ω = τ/t*σ*v
-    s, conj(t), -ω
+    conj(t), -ω
 end
 
 
@@ -62,10 +61,12 @@ end
 
 function tailql(Z,A,B)
     T = promote_type(eltype(Z),eltype(A),eltype(B))
-    d,e = tail_de(Z,A,B)
+    d,e = tail_de(Z,A,B) # fixed point of QL but with two Qs, one that changes sign
     X = [Z A B; zero(T) d e]
-    s,t,ω = tail_stω!(X)
-    QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(zero(T),Fill(t,∞)))
+    t,ω = tail_stω!(X)    # combined two Qs into one, these are the parameteris
+    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+    τ1 = 1 - (A -t*ω * X[2,2])/(Q∞11 * e) # Choose τ[1] so that (Q*L)[1,1] = A
+    QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(τ1,Fill(t,∞)))
 end
 
 Z,A,B=2+0.0im,2.1+0.01im,0.5+0.0im
@@ -76,62 +77,23 @@ d,e = tail_de(Z,A,B)
 @test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
 @test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
 
-s,t,ω = tail_stω(Z,A,B,d,e)
-F = tailql(Z,A,B)
+t,ω = tail_stω!([Z A B; 0 d e])
+@test Q.τ[2] ≈ t
+@test Q.factors[1,2] ≈ ω
 
+Q∞,L∞ = F = tailql(Z,A,B)
 
 @test Q.τ[2] ≈ F.τ[2] ≈ t
 @test Q.factors[1,2] ≈ F.factors[1,2] ≈ ω
-
-Q∞,L∞ = QL(F.factors, Vcat(Q.τ[1], F.τ.arrays[2]))
-@test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
-
-Q∞,L∞ = F
+@test Q∞[1:10,1:10] ≈ Q[1:10,1:10]
 @test L∞[1:10,1:10] ≈ L[1:10,1:10]
-
+@test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
 
 Z,A,B=2+0.0im,2.1+0.1im,0.5+0.0im
 n = 100_000; T = Tridiagonal(Fill(Z,n-1), Fill(A,n), Fill(B,n-1)); Q,L = ql(T);
-F = tailql(Z,A,B)
-Q∞,L∞ = QL(F.factors, Vcat(Q.τ[1], F.τ.arrays[2]))
+Q,L = tailql(Z,A,B)
+@test Q[1:10,1:12] * L[1:12,1:10] ≈ T[1:10,1:10]
 
-
-Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
-
-
-Q∞[1,1]*L[1,1] + Q∞[1,2]*L[2,1]
-
-
-
-@which Q∞[1,1]
-
-
-
-
-
-F = 
-
-T = ComplexF64
-
-
-Q.τ
-Q.factors
-Q[1:5,1:5]
-
-
-
-
-L
-
-L[1,1]
-
-Ht
-ql(X).τ[1]*s
-Q.τ[1]
-1+s
-
-e
-σ
 
 
 
