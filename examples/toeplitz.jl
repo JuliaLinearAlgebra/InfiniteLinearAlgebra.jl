@@ -22,11 +22,18 @@ x = range(-4,stop=0,length=100); y = range(-2,stop=2,length=100);
     contourf(x, y, abs.(ℓ.(x',y)))
 
 
-Q, L = ql(A - (-3.0+0.0im)*I)
-Q[1:10,1:12]*L[1:12,1:10]
 
-Q, L = ql(A - (-2.1+0.0im)*I)
-Q[1:10,1:12]*L[1:12,1:10]
+ℓ = (x,y) -> real(ql(A - (x+y*im)*I).L[1,1])
+
+
+x = range(-4,stop=0,length=100); y = range(-2,stop=2,length=100); 
+ε = 3.0
+A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
+                Vcat(Float64[-ε], Fill(0.0,∞)), 
+                Vcat(Float64[], Fill(0.5,∞)))
+
+contourf(x, y, abs.(ℓ.(x',y)); title="e = $ε")
+
 
 
 
