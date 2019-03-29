@@ -65,18 +65,34 @@ ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (2,1)))
 
 toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
 
-function ql!(B::InfBandedMatrix{T}) where T
+function ql!(B::InfBandedMatrix{TT}) where TT
     @assert bandwidths(B) == (2,1)
     b,a,c,_ = toeptail(B)
-    X,τ = qltail(c,a,b)
+    # Tail QL
+    T = Tridiagonal(Fill(c,∞),Fill(a,∞),Fill(b,∞))
+    F∞ = ql(T)
+
+    # Unwind sign change
+    σ = 1- F∞.τ[1]
+    F∞.factors[1,1] *= σ
+    F∞ = QL(F∞.factors, Vcat(zero(ComplexF64),F∞.τ.arrays[2]))
+    Q∞, L∞ = F∞
+
+    # populate finite data and do ql!
     data = bandeddata(B).arrays[1]
+    e = F∞.factors[1,1]  # tail d,e
+    d = conj(F∞.Q[1,1]*c)
     B̃ = _BandedMatrix(data, size(data,2), 2,1)
-    B̃[end,end-1:end] .= (X[1,1], X[1,2])
+    B̃[end,end-1:end] .= (d,e)
     F = ql!(B̃)
-    B̃.data[3:end,end] .= (X[2,2], X[2,1]) # fill in L
-    B̃.data[4,end-1] = X[2,1] # fill in L
-    H = Hcat(B̃.data, [X[1,3], X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞))
-    QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ,Fill(τ,∞)))
+    
+    # fill in data with L∞
+    B̃.data[3:end,end] .= (L∞[2,1], L∞[3,1]) 
+    B̃.data[4,end-1] = L∞[3,1] # fill in L
+
+    # combine finite and infinite data
+    H = Hcat(B̃.data, F∞.factors[1:4,2] * Ones{TT}(1,∞))
+    QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ, F∞.τ.arrays[2]))
 end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =

@@ -1,8 +1,8 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
 import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
-
-
+import MatrixFactorizations: QLPackedQ
+import BandedMatrices: bandeddata, _BandedMatrix
 
 #####
 # BlockTridiagonal Algebra
@@ -31,29 +31,31 @@ A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matri
 # Toeplitz tail
 ####
 
+for (Z,A,B) in ((2,2.1+0.01im,0.5),) # (2,-0.1+0.1im,0.5))
+    n = 100_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
+    d,e = tail_de(Z,A,B)
+    @test L[1,1] ≈ e
+    @test (Q'*[Z; zeros(n-1)])[1] ≈ d
+    @test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
+    @test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
 
-Z,A,B=2+0.0im,2.1+0.01im,0.5+0.0im
-n = 100_000; T = Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
-d,e = tail_de(Z,A,B)
-@test L[1,1] ≈ e
-@test (Q'*[Z; zeros(n-1)])[1] ≈ d
-@test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
-@test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
+    t,ω = tail_stω!([Z A B; 0 d e])
+    @test Q.τ[2] ≈ t
+    @test Q.factors[1,2] ≈ ω
 
-t,ω = tail_stω!([Z A B; 0 d e])
-@test Q.τ[2] ≈ t
-@test Q.factors[1,2] ≈ ω
+    Q∞,L∞ = F = ql(T)
 
-Q∞,L∞ = F = ql(T)
+    @test Q.τ[2] ≈ F.τ[2] ≈ t
+    @test Q.factors[1,2] ≈ F.factors[1,2] ≈ ω
+    @test Q∞[1:10,1:10] ≈ Q[1:10,1:10]
+    @test L∞[1:10,1:10] ≈ L[1:10,1:10]
+    @test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
+end
 
-@test Q.τ[2] ≈ F.τ[2] ≈ t
-@test Q.factors[1,2] ≈ F.factors[1,2] ≈ ω
-@test Q∞[1:10,1:10] ≈ Q[1:10,1:10]
-@test L∞[1:10,1:10] ≈ L[1:10,1:10]
-@test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
 
 for (Z,A,B)  in ((2,5.0im,0.5),
                  (2,2.1+0.1im,0.5),
+                 (2,2.1-0.1im,0.5),
                  (2,1.5+0.1im,0.5),
                  (2,1.5+0.0im,0.5),
                  (2,1.5-0.0im,0.5),
@@ -64,6 +66,86 @@ for (Z,A,B)  in ((2,5.0im,0.5),
 end
 
 
+####
+# PertToeplitz QL
+####
+
+A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
+                Vcat(Float64[2.0], Fill(0.0,∞)), 
+                Vcat(Float64[], Fill(0.5,∞)))
+λ = -2.1-0.01im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -2.1+0.01im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -2.1+eps()im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -2.1-eps()im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -2.1+0.0im
+Q, L = ql(A - λ*I)
+@test_broken Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -2.1-0.0im
+Q, L = ql(A - λ*I)
+@test_broken Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -1.0+im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -3.0+im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+λ = -3.0-im
+Q, L = ql(A - λ*I)
+@test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+
+# test construction
+c,a,b =  (2,0.0+0.0im,0.5)
+J = Tridiagonal(Vcat(ComplexF64[], Fill(ComplexF64(c),∞)), 
+                    Vcat(ComplexF64[2], Fill(ComplexF64(a),∞)),
+                    Vcat(ComplexF64[], Fill(ComplexF64(b),∞)))
+A = J + (2.1+0.01im)I
+B = BandedMatrix(A,(2,1))
+b,a,c,_ = toeptail(B)
+T = Tridiagonal(Fill(c,∞),Fill(a,∞),Fill(b,∞))
+F∞ = ql(T)
+σ = 1- F∞.τ[1]
+F∞.factors[1,1] *= σ
+F∞ = QL(F∞.factors, Vcat(zero(ComplexF64),F∞.τ.arrays[2]))
+Q∞, L∞ = F∞
+@test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
+
+n = 100_000; Q,L = ql(B[1:n,1:n]);
+@test Q.τ[3] ≈ F∞.τ[2]
+
+data = bandeddata(B).arrays[1]
+e = F∞.factors[1,1]
+d = conj(F∞.Q[1,1]*c)
+@test d == (F∞.Q'*Vcat(c,Zeros(∞)))[1]
+B̃ = _BandedMatrix(data, size(data,2), 2,1)
+B̃[end,end-1:end] .= (d,e)
+F = ql!(B̃)
+@test Q.τ[1] ≈ F.τ[1]
+B̃.data[3:end,end] .= (L∞[2,1], L∞[3,1]) # fill in L
+B̃.data[4,end-1] = L∞[3,1] # fill in L
+H = Hcat(B̃.data, F∞.factors[1:4,2] * Ones{eltype(F∞)}(1,∞))
+@test Q.τ[1:10] ≈ Vcat(F.τ, F∞.τ.arrays[2])[1:10]
+
+
+Q2,L2 = ql(A)
+
+@test Q.τ[1:10] ≈ Q2.τ[1:10]
+@test Q2[1:10,1:12]*L2[1:12,1:10] ≈ A[1:10,1:10]
 
 # periodic
 A = BlockTridiagonal(Vcat([[0. 1.; 0. 0.]],Fill([0. 1.; 0. 0.], ∞)), 

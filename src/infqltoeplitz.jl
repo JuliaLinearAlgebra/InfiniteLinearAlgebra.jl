@@ -1,4 +1,19 @@
 
+# this gives the d and e so that
+# [Z A B;
+#  0 d e]
+#
+# is the fixed point
+function tail_de(Z,A,B)
+    ñ1 = (A + sqrt(A^2-4B*Z))/2
+    ñ2 = (A - sqrt(A^2-4B*Z))/2
+    ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+    # ñ = ñ1
+    (n,σ) = (abs(ñ),conj(sign(ñ)))
+    e = -sqrt(n^2 - abs2(B))
+    d = σ*e*Z/n
+    d,e
+end
 
 ###
 # We have a fixed point to normalized Householder
@@ -29,21 +44,7 @@ function combine_two_Q(σ, τ, v)
 end
 
 
-# this gives the d and e so that
-# [Z A B;
-#  0 d e]
-#
-# is the fixed point
-function tail_de(Z,A,B)
-    ñ1 = (A + sqrt(A^2-4B*Z))/2
-    ñ2 = (A - sqrt(A^2-4B*Z))/2
-    ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
-    # ñ = ñ1
-    (n,σ) = (abs(ñ),conj(sign(ñ)))
-    e = -sqrt(n^2 - abs2(B))
-    d = σ*e*Z/n
-    d,e
-end
+
 
 # this gives the parameters of the QL decomposition tail
 function tail_stω!(X)

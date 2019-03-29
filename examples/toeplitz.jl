@@ -4,6 +4,31 @@ import InfiniteBandedMatrices: blocktailiterate, _ql
 import BandedMatrices: bandeddata,_BandedMatrix
 
 
+A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
+                Vcat(Float64[2.0], Fill(0.0,∞)), 
+                Vcat(Float64[], Fill(0.5,∞)))
+Q, L = ql(A - (-2.1+0.0im)*I)
+Q[1:10,1:12]*L[1:12,1:10]
+
+
+A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
+                Vcat(Float64[-2.0], Fill(0.0,∞)), 
+                Vcat(Float64[], Fill(0.5,∞)))
+
+
+ℓ = (x,y) -> real(ql(A - (x+y*im)*I).L[1,1])
+x = range(-4,stop=0,length=1000); plot(x, ℓ.(x,eps()); legend=false)
+x = range(-4,stop=0,length=100); y = range(-2,stop=2,length=100); 
+    contourf(x, y, abs.(ℓ.(x',y)))
+
+
+Q, L = ql(A - (-3.0+0.0im)*I)
+Q[1:10,1:12]*L[1:12,1:10]
+
+Q, L = ql(A - (-2.1+0.0im)*I)
+Q[1:10,1:12]*L[1:12,1:10]
+
+
 
 Z,A,B=2+0.0im,0.0+0.0im,0.5+0.0im
 n = 100_000; T = Tridiagonal(Fill(Z,n-1), Fill(A,n), Fill(B,n-1)); Q,L = ql(T);
@@ -1171,3 +1196,46 @@ sz[1]
 cumsum(sz[1])
 
 cumsum.(sz)
+
+
+
+
+
+####
+# Fuck its periodic
+###
+
+(Z,A,B) = (2,-0.1+0.1im,0.5)
+
+@which tail_de(Z,A,B)
+n = 100_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
+d,e = tail_de(Z,A,B)
+@test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
+@test L[1,1] ≈ sign(real(A))*e
+@test ql([Z A B; 0 d e]).L[2,:] ≈ -sign(real(A))*L[3,1:3]
+ t,ω = tail_stω!([Z A B; 0 d e])
+
+ @which tail_stω!([Z A B; 0 d e])
+
+X = [Z A B; 0 d e]
+
+F = ql!(X)
+σ = conj(F.τ[1]-1)
+τ = F.τ[2]
+v = F.factors[1,3]
+
+α = σ*(1-τ*abs2(v))
+β = (1-τ)
+γ = (1-τ)*σ-σ*τ*abs2(v) + 1
+
+# companion matrix for β*z^2  - γ*z + α for z = s^2
+# Why -??
+s2 = (γ - sqrt(γ^2-4α*β))/(2β)
+s = sqrt(s2)
+t = 1-s^2*(1-τ)
+ω = τ/t*σ*v
+conj(t), -ω
+
+Q.τ
+
+combine_two_Q(σ, τ, v)
