@@ -1,6 +1,13 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
+
+
+
+#####
+# BlockTridiagonal Algebra
+#### 
+
 
 A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
                        Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
@@ -17,6 +24,44 @@ A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matri
 @test (A + I)[1:100,1:100] == A[1:100,1:100]+I
 @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
 @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
+
+
+
+####
+# Toeplitz tail
+####
+
+
+Z,A,B=2+0.0im,2.1+0.01im,0.5+0.0im
+n = 100_000; T = Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
+d,e = tail_de(Z,A,B)
+@test L[1,1] ≈ e
+@test (Q'*[Z; zeros(n-1)])[1] ≈ d
+@test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
+@test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
+
+t,ω = tail_stω!([Z A B; 0 d e])
+@test Q.τ[2] ≈ t
+@test Q.factors[1,2] ≈ ω
+
+Q∞,L∞ = F = ql(T)
+
+@test Q.τ[2] ≈ F.τ[2] ≈ t
+@test Q.factors[1,2] ≈ F.factors[1,2] ≈ ω
+@test Q∞[1:10,1:10] ≈ Q[1:10,1:10]
+@test L∞[1:10,1:10] ≈ L[1:10,1:10]
+@test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
+
+for (Z,A,B)  in ((2,5.0im,0.5),
+                 (2,2.1+0.1im,0.5),
+                 (2,1.5+0.1im,0.5),
+                 (2,1.5+0.0im,0.5),
+                 (2,1.5-0.0im,0.5),
+                 (2,0.0+0.0im,0.5))
+    T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(A,∞), Fill(ComplexF64(B),∞));
+    Q,L = ql(T)
+    @test Q[1:10,1:12] * L[1:12,1:10] ≈ T[1:10,1:10]
+end
 
 
 
