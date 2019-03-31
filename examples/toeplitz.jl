@@ -22,6 +22,44 @@ x = range(-4,stop=0,length=100); y = range(-2,stop=2,length=100);
     contourf(x, y, abs.(ℓ.(x',y)))
 
 
+### Large Bands
+
+n = 100;(z,c,a,b) = 1,2,5,2; A = BandedMatrix(2 => Fill(1,n-2), 1 => Fill(b,n-1), 0=>Fill(a,n), -1 => Fill(c,n-1), -2=>Fill(z,n-2));
+    Q,L = A  |> ql
+
+D = [(Q'*[z c; 0 z; zeros(n-2,2)])[1:2,:] L[1:2,1:2]]
+
+X = [Matrix(A[3:4,1:6]); zeros(2,2) Matrix(D)]
+
+ql(X)
+A
+
+D
+
+
+A
+
+D
+
+[z c a b 1 0
+ 0 z c a b 1;
+ 
+
+
+(BandedMatrix(1 => Fill(1,n-2), 0 => Fill(b,n-1), -1=>Fill(a,n), -2 => Fill(c,n-1), -3=>Fill(z,n-2))  |> ql)
+
+n = 100;(z,c,a,b) = 1,2,5,1; Q,L = (BandedMatrix(1 => Fill(b,n-1), 0=>Fill(a,n), -1 => Fill(c,n-1), -2=>Fill(z,n-2))  |> ql)
+D = [(Q' * [BandedMatrix(0=>Fill(z,2), 1=>Fill(c,1)); Zeros(n-2,2)])[1,1:2]; L[1,1]]
+
+n = sqrt(abs2(D[end])+1)
+[a -1 0;
+ c 0  -1;
+ z 0  0] * reverse(D) - n*reverse(D)
+
+λ, V = eigen([a -1 0; c 0  -1; z 0  0])
+V[:,1]/V[1,1] * sqrt(λ[1]^2-1)
+
+D
 
 ℓ = (x,y) -> real(ql(A - (x+y*im)*I).L[1,1])
 
