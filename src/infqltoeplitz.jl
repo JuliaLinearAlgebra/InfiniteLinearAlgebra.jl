@@ -16,7 +16,7 @@ end
 
 function tail_de(a::AbstractVector{T}) where T
     m = length(a)
-    C = [view(a,m-1:-1:1) [-a[end]; zero(T)]]
+    C = [view(a,m-1:-1:1) Vcat(-a[end]*Eye(m-2), Zeros{T}(1,m-2))]
     λ, V = eigen(C)
     n2, j = findmax(abs2.(λ))
     c_abs = sqrt((n2 - abs2(a[end]))/abs2(V[1,j]))
@@ -60,7 +60,7 @@ function tail_stω!(X)
     F = ql!(X)
     σ = conj(F.τ[1]-1)
     τ = F.τ[2]
-    v = F.factors[1,3]
+    v = F.factors[1,end]
     combine_two_Q(σ, τ, v)
 end
 
@@ -74,7 +74,7 @@ function ql(Op::TriToeplitz{T}) where T
     QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(τ1,Fill(t,∞)))
 end
 
-function ql(A::InfToeplitz{T}) where T
+function ql(A::InfToeplitz{T}) where T<:Real
     l,u = bandwidths(A)
     @assert u == 1
     a = reverse(A.data.applied.args[1])
@@ -85,4 +85,19 @@ function ql(A::InfToeplitz{T}) where T
     ω = X[1,end] # reflector v
     QL(_BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [ω; X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
         Vcat(zero(T), Fill(F.τ[2], ∞)))
+end
+
+function ql(A::InfToeplitz{T}) where T
+    l,u = bandwidths(A)
+    @assert u == 1
+    a = reverse(A.data.applied.args[1])
+    de = tail_de(a)
+    X = [transpose(a); zero(T) transpose(de)]
+    t,ω = tail_stω!(X)    # combined two Qs into one, these are the parameteris
+    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+    τ1 = 1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+    # second row of X contains L, first row contains factors. 
+    # TODO: Why -X?
+    QL(_BandedMatrix(Hcat([zero(T); X[1,end-1]; -X[2,end-1:-1:1]], [ω; -X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
+        Vcat(τ1, Fill(t, ∞)))
 end

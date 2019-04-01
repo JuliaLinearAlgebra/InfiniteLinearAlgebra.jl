@@ -160,6 +160,43 @@ end
     @test F.L[1:10,1:10] ≈ L[1:10,1:10]
     @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
     @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
+
+    a = [1,2,3+im,0.5] 
+    T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 1)
+    @test T isa InfToeplitz
+    n = 100_000; Q, L = ql(T[1:n,1:n])
+
+    de = tail_de(a)
+    @test L[1,1] ≈ de[end]
+    @test vec((Q')[1:1,1:2]*T[3:4,1:2]) ≈ de[1:end-1]
+
+    X = [transpose(a); [0 transpose(de)]]
+    @test ql(X).L[1,1:3] ≈ de
+
+    t,ω = tail_stω!(X)    # combined two Qs into one, these are the parameteris
+    @test t ≈ Q.τ[2]
+    @test ω ≈ Q.factors[1,2]
+    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+    @test abs(Q∞11) ≈ Q[1,1]
+    τ1 = 1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+    @test τ1 ≈ Q.τ[1]
+    
+    F = ql(T)
+    @test F.factors[1:10,1:10] ≈ Q.factors[1:10,1:10]
+    @test F.τ[1:10] ≈ Q.τ[1:10]
+    @test F.L[1:10,1:10] ≈ L[1:10,1:10]
+    @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
+    @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
+end
+
+@testset "Pentadiagonal Toeplitz" begin
+    a = [1,2,5,0.5,0.2]
+    T = _BandedMatrix(reverse(a) * Ones(1,∞), ∞, 2, 2)
+
+    n = 100_000; Q, L = ql(T[1:n,1:n])
+    H = _BandedMatrix(T.data, ∞, 3, 1)
+    Q1,H1 = ql(H)
+    T[:,2:end]
 end
 
 # periodic
