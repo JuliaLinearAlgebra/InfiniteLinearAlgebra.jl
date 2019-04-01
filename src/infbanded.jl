@@ -1,5 +1,6 @@
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
 const InfToeplitz{T} = BandedMatrix{T,<:ApplyMatrix{T,<:VecMulMat{DenseColumnMajor,FillLayout,T,T}},OneToInf{Int}}
+const PertToeplitz{T} = BandedMatrix{T,<:Hcat{T,<:Tuple{Matrix{T},ApplyMatrix{T,<:VecMulMat{DenseColumnMajor,FillLayout,T,T}}}},OneToInf{Int}}
 
 const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}

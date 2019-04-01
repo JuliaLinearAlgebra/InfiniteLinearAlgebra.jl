@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, InfToeplitz
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, InfToeplitz, PertToeplitz
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -190,13 +190,22 @@ end
 end
 
 @testset "Pentadiagonal Toeplitz" begin
-    a = [1,2,5,0.5,0.2]
-    T = _BandedMatrix(reverse(a) * Ones(1,∞), ∞, 2, 2)
+    a = [1,2,5+0im,0.5,0.2]
+    T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 2)
 
     n = 100_000; Q, L = ql(T[1:n,1:n])
     H = _BandedMatrix(T.data, ∞, 3, 1)
-    Q1,H1 = ql(H)
-    T[:,2:end]
+    F1 = ql(H)
+    Q1,L1 = F1
+    @test Q1[1:10,1:11]*L1[1:11,1:10] ≈ H[1:10,1:10]
+
+    d = Q1[1:3,1]'T[1:1+T.l,1]
+    ℓ = F1.factors.data.arrays[2].applied.args[1][2:end]
+    @test Vcat(zero(d), d, ℓ[3:end])[2:end] ≈ (Q1')[1:4,1:3]*T[1:3,1]
+
+    T2 = _BandedMatrix(Hcat([[zero(d); d; ℓ[3:end]] L1[1:5,1]], ℓ*Ones{eltype(a)}(1,∞)), ∞, 3, 1)
+    @test T2 isa PertToeplitz
+    ql(T2)
 end
 
 # periodic
