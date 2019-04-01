@@ -4,15 +4,24 @@
 #  0 d e]
 #
 # is the fixed point
-function tail_de(Z,A,B)
-    ñ1 = (A + sqrt(A^2-4B*Z))/2
-    ñ2 = (A - sqrt(A^2-4B*Z))/2
-    ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
-    # ñ = ñ1
-    (n,σ) = (abs(ñ),conj(sign(ñ)))
-    e = -sqrt(n^2 - abs2(B))
-    d = σ*e*Z/n
-    d,e
+function tail_de(a::AbstractVector{T}) where T<:Real
+    m = length(a)
+    C = [view(a,m-1:-1:1) [-a[end]; zero(T)]]
+    λ, V = eigen(C)
+    n, j = findmax(real.(λ))
+    isreal(λ[j]) || throw(DomainError(a))
+    c = sqrt((n^2 - a[end]^2)/real(V[1,j])^2)
+    c*real(V[end:-1:1,j])
+end
+
+function tail_de(a::AbstractVector{T}) where T
+    m = length(a)
+    C = [view(a,m-1:-1:1) [-a[end]; zero(T)]]
+    λ, V = eigen(C)
+    j = 1 # why 1 ? 
+    c_abs = sqrt((abs2(λ[j]) - abs2(a[end]))/abs2(V[1,j]))
+    c_sgn = -sign(λ[j])/sign(V[1,j]*a[end-1] - V[2,j]*a[end])
+    c_sgn*c_abs*V[end:-1:1,j]    
 end
 
 ###
@@ -35,7 +44,7 @@ function combine_two_Q(σ, τ, v)
     γ = (1-τ)*σ-σ*τ*abs2(v) + 1
 
     # companion matrix for β*z^2  - γ*z + α for z = s^2
-    # Why [1]??
+    # Why sign??
     s2 = (γ - sqrt(γ^2-4α*β))/(2β)
     s = sqrt(s2)
     t = 1-s^2*(1-τ)
@@ -57,7 +66,7 @@ end
 
 function ql(Op::TriToeplitz{T}) where T
     Z,A,B = Op.dl.value, Op.d.value, Op.du.value
-    d,e = tail_de(Z,A,B) # fixed point of QL but with two Qs, one that changes sign
+    d,e = tail_de([Z,A,B]) # fixed point of QL but with two Qs, one that changes sign
     X = [Z A B; zero(T) d e]
     t,ω = tail_stω!(X)    # combined two Qs into one, these are the parameteris
     Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction

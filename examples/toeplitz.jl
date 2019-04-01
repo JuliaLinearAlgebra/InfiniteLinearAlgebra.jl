@@ -1,8 +1,83 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
 import MatrixFactorizations: reflectorApply!, QLPackedQ
-import InfiniteBandedMatrices: blocktailiterate, _ql
+import InfiniteBandedMatrices: blocktailiterate, _ql, qltail
 import BandedMatrices: bandeddata,_BandedMatrix
 
+a = [2,3,0.5]
+
+
+a = [2,3+im,0.5]; T = eltype(a)
+
+d,e
+
+c*V[end:-1:1,j]
+d,e
+
+ * V[:,j]
+
+c = e/V[1,j]
+c_abs
+
+d,e = tail_de(a...)
+C*[e; d] - λ[1]* [e; d]
+n = sqrt(
+
+abs(λ[j])  == sqrt(abs2(a[end]) + abs2(c*V[1,j]))
+sign(λ[j]) == -sign(e*a[end-1] - d*a[end])
+
+
+sign(c)
+
+abs.(λ)
+σ = -1/sign(e*a[end-1] - d*a[end])
+1/σ
+
+sign.(λ)
+abs.(λ)
+Z,A,B
+B
+Q = [σ 0; 0 1] * 1/n * [e -B; -conj(B) -conj(e)]
+X = [transpose(a); [0 d e]]
+Q*X
+
+d,e
+
+ql(X)
+
+X
+
+d,e
+
+ql()
+
+
+function tail_de(Z,A,B)
+    ñ1 = (A + sqrt(A^2-4B*Z))/2
+    ñ2 = (A - sqrt(A^2-4B*Z))/2
+    ñ = abs(ñ1) > abs(ñ2) ? ñ1 : ñ2
+    # ñ = ñ1
+    (n,σ) = (abs(ñ),conj(sign(ñ)))
+    e = -sqrt(n^2 - abs2(B))
+    d = σ*e*Z/n
+    d,e
+end
+
+
+
+
+n = λ[1]
+
+sqrt(e^2+B^2)
+V[:,1] * e/V[1,1]
+a[end]
+
+c = e/V[1,1]
+c^2
+
+d,e
+
+n == sqrt((c*V[1,1])^2 + a[end]^2)
+ == c^2
 
 A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
                 Vcat(Float64[2.0], Fill(0.0,∞)), 
@@ -30,6 +105,14 @@ n = 100;(z,c,a,b) = 1,2,5,2; A = BandedMatrix(2 => Fill(1,n-2), 1 => Fill(b,n-1)
 D = [(Q'*[z c; 0 z; zeros(n-2,2)])[1:2,:] L[1:2,1:2]]
 
 X = [Matrix(A[3:4,1:6]); zeros(2,2) Matrix(D)]
+
+X[[1,3],1:end-1] |>ql
+
+
+
+D[1,1:3]
+
+A
 
 ql(X)
 A
