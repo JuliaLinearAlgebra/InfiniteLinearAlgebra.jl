@@ -3,11 +3,25 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql, qltail
 import BandedMatrices: bandeddata,_BandedMatrix
 
-a = [2,3,0.5]
 
 
 a = [2,3+im,0.5]; T = eltype(a)
+a = [2,-3+im,0.5]
+d,e = tail_de(a)
+X = [transpose(a); [0 d e]]
+ql(X)
+d,e
 
+m = length(a)
+C = [view(a,m-1:-1:1) [-a[end]; zero(T)]]
+λ, V = eigen(C)
+j = 2 # why 1 ? 
+c_abs = sqrt((abs2(λ[j]) - abs2(a[end]))/abs2(V[1,j])+0im)
+c_sgn = -sign(λ[j])/sign(V[1,j]*a[end-1] - V[2,j]*a[end])
+d, e = c_sgn*c_abs*V[end:-1:1,j]    
+
+X = [transpose(a); [0 d e]]
+ql(X)
 d,e
 
 c*V[end:-1:1,j]

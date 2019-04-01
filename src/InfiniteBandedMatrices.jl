@@ -6,7 +6,7 @@ import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular
-import LazyArrays: CachedArray
+import LazyArrays: CachedArray, VecMulMat, DenseColumnMajor, FillLayout, ApplyMatrix
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks

@@ -6,7 +6,7 @@
 # is the fixed point
 function tail_de(a::AbstractVector{T}) where T<:Real
     m = length(a)
-    C = [view(a,m-1:-1:1) [-a[end]; zero(T)]]
+    C = [view(a,m-1:-1:1) Vcat(-a[end]*Eye(m-2), Zeros{T}(1,m-2))]
     λ, V = eigen(C)
     n, j = findmax(real.(λ))
     isreal(λ[j]) || throw(DomainError(a))
@@ -18,8 +18,8 @@ function tail_de(a::AbstractVector{T}) where T
     m = length(a)
     C = [view(a,m-1:-1:1) [-a[end]; zero(T)]]
     λ, V = eigen(C)
-    j = 1 # why 1 ? 
-    c_abs = sqrt((abs2(λ[j]) - abs2(a[end]))/abs2(V[1,j]))
+    n2, j = findmax(abs2.(λ))
+    c_abs = sqrt((n2 - abs2(a[end]))/abs2(V[1,j]))
     c_sgn = -sign(λ[j])/sign(V[1,j]*a[end-1] - V[2,j]*a[end])
     c_sgn*c_abs*V[end:-1:1,j]    
 end
@@ -72,4 +72,17 @@ function ql(Op::TriToeplitz{T}) where T
     Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
     τ1 = 1 - (A -t*ω * X[2,2])/(Q∞11 * e) # Choose τ[1] so that (Q*L)[1,1] = A
     QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(τ1,Fill(t,∞)))
+end
+
+function ql(A::InfToeplitz{T}) where T
+    l,u = bandwidths(A)
+    @assert u == 1
+    a = reverse(A.data.applied.args[1])
+    de = tail_de(a)
+    X = [transpose(a); zero(T) transpose(de)]
+    F = ql!(X)
+    # second row of X contains L, first row contains factors. 
+    ω = X[1,end] # reflector v
+    QL(_BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [ω; X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
+        Vcat(zero(T), Fill(F.τ[2], ∞)))
 end

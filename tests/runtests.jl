@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, InfToeplitz
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -136,6 +136,30 @@ end
 
     @test Q.τ[1:10] ≈ Q2.τ[1:10]
     @test Q2[1:10,1:12]*L2[1:12,1:10] ≈ A[1:10,1:10]
+end
+
+@testset "Hessenberg Toeplitz" begin
+    a = [1,2,3,0.5]
+    T = _BandedMatrix(reverse(a) * Ones(1,∞), ∞, 2, 1)
+    n = 100_000; Q, L = ql(T[1:n,1:n])
+
+    de = tail_de(a)
+    @test L[1,1] ≈ de[end]
+    @test vec((Q')[1:1,1:2]*T[3:4,1:2]) ≈ de[1:end-1]
+
+    X = [transpose(a); [0 transpose(de)]]
+    @test ql(X).L[1,1:3] ≈ de
+    @test ql(X).τ[1] == 0
+    @test ql(X).τ[2] ≈ Q.τ[2]
+
+    @test T isa InfToeplitz
+    
+    F = ql(T)
+    @test F.factors[1:10,1:10] ≈ Q.factors[1:10,1:10]
+    @test F.τ[1:10] ≈ Q.τ[1:10]
+    @test F.L[1:10,1:10] ≈ L[1:10,1:10]
+    @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
+    @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
 end
 
 # periodic

@@ -58,10 +58,10 @@ function qltail(Z::Number, A::Number, B::Number)
 end
 
 
-ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
-ql(A::SymTridiagonal{T}) where T = ql!(BandedMatrix(A, (2,1)))
-ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (2,1)))
-ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (2,1)))
+ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
+ql(A::SymTridiagonal{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
+ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
+ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
 
 toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
 
@@ -100,10 +100,13 @@ getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
 
 getL(Q::QL, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
 
-# number of structural non-zeros
+# number of structural non-zeros in axis k
 nzzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
 nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
-
+function nzzeros(B::AbstractMatrix, k) 
+    l,u = bandwidths(B)
+    k == 1 ? size(B,2) + l : size(B,1) + u
+end
 
 function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     require_one_based_indexing(B)
