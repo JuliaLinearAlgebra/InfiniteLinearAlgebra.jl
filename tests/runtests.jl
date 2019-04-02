@@ -23,6 +23,14 @@ import BandedMatrices: bandeddata, _BandedMatrix
 end
 
 @testset "Toeplitz" begin
+    for (Z,A,B) in ((2.0,5.1,0.5), (2.0,2.2,0.5), (2.0,-2.2,0.5), (2.0,-5.1,0.5))
+        n = 100_000; T = Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)); Qn,Ln = ql(BandedMatrix(T)[1:n,1:n]);
+        Q,L = ql(T)
+        @test L[1:10,1:10] ≈ Ln[1:10,1:10]
+        @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
+        @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
+    end
+
     for (Z,A,B) in ((2,2.1+0.01im,0.5),) # (2,-0.1+0.1im,0.5))
         n = 100_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
         d,e = tail_de([Z,A,B])
@@ -50,11 +58,18 @@ end
                     (2,1.5+0.1im,0.5),
                     (2,1.5+0.0im,0.5),
                     (2,1.5-0.0im,0.5),
-                    (2,0.0+0.0im,0.5))
-        T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(A,∞), Fill(ComplexF64(B),∞));
+                    (2,0.0+0.0im,0.5),
+                    (2,-0.1+0.1im,0.5),
+                    (2,-1.1+0.1im,0.5),
+                    (2,-0.1-0.1im,0.5))
+        T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞))
         Q,L = ql(T)
         @test Q[1:10,1:12] * L[1:12,1:10] ≈ T[1:10,1:10]
     end
+
+    (Z,A,B) = (0.5,2.1,2.0)
+    @test_throws DomainError ql(Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)))
+    
 end
 
 
