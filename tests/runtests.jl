@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, InfToeplitz, PertToeplitz
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -23,7 +23,8 @@ import BandedMatrices: bandeddata, _BandedMatrix
 end
 
 @testset "Toeplitz" begin
-    for (Z,A,B) in ((2.0,5.1,0.5), (2.0,2.2,0.5), (2.0,-2.2,0.5), (2.0,-5.1,0.5))
+    for (Z,A,B) in ((2.0,5.1,0.5), (2.0,2.2,0.5), (2.0,-2.2,0.5), (2.0,-5.1,0.5),
+                    (0.5,5.1,2.0),  (0.5,-5.1,2.0))
         n = 100_000; T = Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)); Qn,Ln = ql(BandedMatrix(T)[1:n,1:n]);
         Q,L = ql(T)
         @test L[1:10,1:10] ≈ Ln[1:10,1:10]
@@ -39,7 +40,7 @@ end
         @test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
         @test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
 
-        t,ω = tail_stω!([Z A B; 0 d e])
+        t,ω = tail_stω!(ql_X!([Z A B; 0 d e]))
         @test Q.τ[2] ≈ t
         @test Q.factors[1,2] ≈ ω
 
@@ -67,9 +68,9 @@ end
         @test Q[1:10,1:12] * L[1:12,1:10] ≈ T[1:10,1:10]
     end
 
-    (Z,A,B) = (0.5,2.1,2.0)
-    @test_throws DomainError ql(Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)))
-    
+    for (Z,A,B) in ((0.5,2.1,2.0),(0.5,-1.1,2.0))
+        @test_throws DomainError ql(Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞))) 
+    end
 end
 
 

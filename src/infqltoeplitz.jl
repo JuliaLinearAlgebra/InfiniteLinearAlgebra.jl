@@ -8,10 +8,10 @@ function tail_de(a::AbstractVector{T}) where T<:Real
     m = length(a)
     C = [view(a,m-1:-1:1) Vcat(-a[end]*Eye(m-2), Zeros{T}(1,m-2))]
     λ, V = eigen(C)
-    n, j = findmax(real.(λ))
+    n2, j = findmax(abs2.(λ))
     isreal(λ[j]) || throw(DomainError(a, "Real-valued QL factorization does not exist. Try ql(complex(A)) to see if a complex-valued QL factorization exists."))
-    n^2 ≥ a[end]^2 || throw(DomainError(a, "QL factorization does not exist. This could indicate that the operator is not Fredholm or that the dimension of the kernel exceeds that of the co-kernel. Try again with the adjoint."))
-    c = sqrt((n^2 - a[end]^2)/real(V[1,j])^2)
+    n2 ≥ a[end]^2 || throw(DomainError(a, "QL factorization does not exist. This could indicate that the operator is not Fredholm or that the dimension of the kernel exceeds that of the co-kernel. Try again with the adjoint."))
+    c = sqrt((n2 - a[end]^2)/real(V[1,j])^2)
     c*real(V[end:-1:1,j])
 end
 
@@ -81,7 +81,7 @@ function ql(Op::TriToeplitz{T}) where T<:Real
     X = [Z A B; zero(T) d e]
     F = ql_X!(X)
     t,ω = F.τ[2],X[1,end]
-    QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(zero(T),Fill(t,∞)))
+    QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
 end
 
 function ql(Op::TriToeplitz{T}) where T
@@ -113,7 +113,7 @@ function ql(A::InfToeplitz{T}) where T
     a = reverse(A.data.applied.args[1])
     de = tail_de(a)
     X = [transpose(a); zero(T) transpose(de)]
-    t,ω = tail_stω!(X)    # combined two Qs into one, these are the parameteris
+    t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
     Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
     τ1 = 1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
     # second row of X contains L, first row contains factors. 

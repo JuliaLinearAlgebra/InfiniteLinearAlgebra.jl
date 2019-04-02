@@ -3,6 +3,29 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql, qltail
 import BandedMatrices: bandeddata,_BandedMatrix
 
+ℓ = λ -> ql(Tridiagonal(Fill(2.0+0im,∞), Fill(-λ,∞), Fill(0.5+0im,∞))).L[1,1]
+
+x,y = range(-4,4; length=100),range(-3,3;length=100)
+    z = abs.(ℓ.(x' .+ y.*im))
+
+contourf(x,y,z)    
+
+ℓ = λ -> try
+        ql(Tridiagonal(Fill(0.5+0im,∞), Fill(-λ,∞), Fill(2.0+0im,∞))).L[1,1]
+    catch DomainError  
+        NaN
+    end
+
+x,y = range(-4,4; length=100),range(-3,3;length=100)
+    z = abs.(ℓ.(x' .+ y.*im))
+
+contourf(x,y,z; title = "1/2z + 2z")
+
+
+ℓ = λ ->  ql(_BandedMatrix(reverse([1,2,-λ,0.5]) * Ones{eltype(λ)}(1,∞), ∞, 2, 1)).L[1,1]
+
+z = abs.(ℓ.(x' .+ y.*im))
+contourf(x,y,z)    
 
 
 a = [2,3+im,0.5]; T = eltype(a)
