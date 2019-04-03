@@ -176,9 +176,19 @@ end
 
 @testset "Pert Hessenberg Toeplitz" begin
     a = [1,2,3,0.5]
-    A = _BandedMatrix(Hcat([0.5 0.5; -1 3; 2 2; 1 1], reverse(a) * Ones(1,∞)), ∞, 2, 1)
+    A = _BandedMatrix(Hcat(randn(4,2), reverse(a) * Ones(1,∞)), ∞, 2, 1)
     @test A isa PertToeplitz
     @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
+    Q,L = ql(A)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
+
+    a = [0.1,1,2,3,0.5]
+    A = _BandedMatrix(Hcat([0.5 0.5; -1 3; 2 2; 1 1; 0.1 0.1], reverse(a) * Ones(1,∞)), ∞, 3, 1)
+    @test A isa PertToeplitz
+    @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
+
+    B = BandedMatrix(A, (3,1))
+    @test B[1:10,1:10] == A[1:10,1:10]
     Q,L = ql(A)
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
 end
@@ -199,7 +209,9 @@ end
 
     T2 = _BandedMatrix(Hcat([[zero(d); d; ℓ[3:end]] L1[1:5,1]], ℓ*Ones{eltype(a)}(1,∞)), ∞, 3, 1)
     @test T2 isa PertToeplitz
-    ql(T2)
+    Q2,L2 = ql(T2)
+    @test Q2[1:10,1:11]*L2[1:11,1:10] ≈ T2[1:10,1:10]
+    @test Q1[1:10,1:11]*Q2[1:11,1:12]*L2[1:12,1:10] ≈ T[1:10,1:10]
 end
 
 # periodic
