@@ -63,36 +63,38 @@ ql(A::SymTridiagonal{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth
 ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
 ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
 
-toeptail(B::BandedMatrix) = B.data.arrays[end].applied.args[1]
+toeptail(B::BandedMatrix{T}) where T = 
+    _BandedMatrix(B.data.arrays[end].applied.args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
 
 function ql!(B::InfBandedMatrix{TT}) where TT
-    @assert bandwidths(B) == (2,1)
-    b,a,c,_ = toeptail(B)
+    l,u = bandwidths(B)
+    @assert u == 1
+    T = toeptail(B)
     # Tail QL
-    T = Tridiagonal(Fill(c,∞),Fill(a,∞),Fill(b,∞))
     F∞ = ql(T)
 
     # Unwind sign change
     σ = 1- F∞.τ[1]
     F∞.factors[1,1] *= σ
-    F∞ = QL(F∞.factors, Vcat(zero(ComplexF64),F∞.τ.arrays[2]))
+    F∞ = QL(F∞.factors, Vcat(zero(TT),F∞.τ.arrays[2]))
     Q∞, L∞ = F∞
 
     # populate finite data and do ql!
     data = bandeddata(B).arrays[1]
-    e = F∞.factors[1,1]  # tail d,e
-    d = conj(F∞.Q[1,1]*c)
-    B̃ = _BandedMatrix(data, size(data,2), 2,1)
-    B̃[end,end-1:end] .= (d,e)
+    B̃ = _BandedMatrix(data, size(data,2), l,u)
+    B̃[end,end] = L∞[1,1]
+    B̃[end:end,end-l+1:end-1] = adjoint(Q∞)[1:1,1:l-1]*T[l:2(l-1),1:l-1]
     F = ql!(B̃)
     
     # fill in data with L∞
-    B̃.data[3:end,end] .= (L∞[2,1], L∞[3,1]) 
+    B̃ = _BandedMatrix(B̃.data, size(data,2)+l, l,u)
+    B̃[size(data,2)+1:end,end-l+1:end] = L∞[l+1:2l,1:l]
     B̃.data[4,end-1] = L∞[3,1] # fill in L
 
+    
     # combine finite and infinite data
-    H = Hcat(B̃.data, F∞.factors[1:4,2] * Ones{TT}(1,∞))
-    QL(_BandedMatrix(H, ∞, 2, 1), Vcat(F.τ, F∞.τ.arrays[2]))
+    H = Hcat(B̃.data, F∞.factors.data.arrays[2])
+    QL(_BandedMatrix(H, ∞, l, 1), Vcat(F.τ, F∞.τ.arrays[2]))
 end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =

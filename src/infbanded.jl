@@ -62,6 +62,14 @@ end
 # Conversions to BandedMatrix
 ####        
 
+function BandedMatrix(A::PertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
+    @assert A.u == u # Not implemented
+    a, b = A.data.arrays
+    t = b.applied.args[1] # topelitz part
+    t_pad = vcat(t,Zeros(l-A.l))
+    data = Hcat([vcat(a,Zeros{T}(l-A.l,size(a,2))) t_pad], t_pad * Ones{T}(1,∞))
+    _BandedMatrix(data, ∞, l, u)
+end
 
 function BandedMatrix(A::SymTriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     a,a∞ = A.dv.arrays

@@ -74,45 +74,14 @@ end
 end
 
 
-@testset "PertToeplitz QL" begin
+@testset "PertTriToeplitz QL" begin
     A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
                     Vcat(Float64[2.0], Fill(0.0,∞)), 
                     Vcat(Float64[], Fill(0.5,∞)))
-    λ = -2.1-0.01im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -2.1+0.01im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -2.1+eps()im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -2.1-eps()im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -2.1+0.0im
-    Q, L = ql(A - λ*I)
-    @test_broken Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -2.1-0.0im
-    Q, L = ql(A - λ*I)
-    @test_broken Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -1.0+im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -3.0+im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
-
-    λ = -3.0-im
-    Q, L = ql(A - λ*I)
-    @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+    for λ in (-2.1-0.01im,-2.1+0.01im,-2.1+eps()im,-2.1-eps()im,-2.1+0.0im,-2.1-0.0im,-1.0+im,-3.0+im,-3.0-im)
+        Q, L = ql(A - λ*I)
+        @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10] - λ*I
+    end
 end
 
 @testset "QL Construction" begin
@@ -203,6 +172,15 @@ end
     @test F.L[1:10,1:10] ≈ L[1:10,1:10]
     @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
     @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
+end
+
+@testset "Pert Hessenberg Toeplitz" begin
+    a = [1,2,3,0.5]
+    A = _BandedMatrix(Hcat([0.5 0.5; -1 3; 2 2; 1 1], reverse(a) * Ones(1,∞)), ∞, 2, 1)
+    @test A isa PertToeplitz
+    @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
+    Q,L = ql(A)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
 end
 
 @testset "Pentadiagonal Toeplitz" begin
