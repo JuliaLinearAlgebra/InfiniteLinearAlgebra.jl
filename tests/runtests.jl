@@ -191,6 +191,11 @@ end
     @test B[1:10,1:10] == A[1:10,1:10]
     Q,L = ql(A)
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
+
+    A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)), 
+                      0 => Vcat([0.0], Fill(1/2,∞)),
+                      1 => Vcat([1/4], Fill(1/4,∞)))
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
 end
 
 @testset "Pentadiagonal Toeplitz" begin

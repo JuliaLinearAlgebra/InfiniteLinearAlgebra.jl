@@ -11,6 +11,24 @@ n = 20; A = BandedMatrix(2 => Fill(1,n-2), -1=> Fill(1/4,n-1))
 λ = eigvals(Matrix(A))
 
 
+
+
+ℓ = λ -> abs(ql(A(λ)).L[1,1])                            
+x,y = range(-2,2; length=200),range(-2,2;length=200)
+    z = abs.(ℓ.(x' .+ y.*im))
+contourf(x,y,log10.(abs.(z)); nlevels=50, title="z^2 + 1/(4z)", linewidth=0.0)
+
+Q,L = ql(A(-0.5))
+
+n = 20; A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)), 
+                                0 => Vcat([0.0], Fill(1/2,∞)),
+                            1=> Vcat([1/4], Fill(1/4,∞)))
+Q[1:10,1:11]*L[1:11,1:10]
+
+A
+
+    scatter!(eigvals(Matrix(A(0.0)[1:30,1:30])); label="finite section")
+
 ℓ = λ -> abs(ql(BandedMatrix(-2 => Fill(1,∞), 0=>Fill(-λ,∞), 1=> Fill(1/4,∞))).L[1,1])
 x,y = range(-2,2; length=100),range(-2,2;length=100)
     z = abs.(ℓ.(x' .+ y.*im))

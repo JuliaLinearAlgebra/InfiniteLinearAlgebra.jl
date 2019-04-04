@@ -17,14 +17,35 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Fill{<:Any,1,Tuple{On
     t = zeros(T, u+l+1)
     for (k,v) in kv
         p = length(v)
-        if k ≤ 0
-            t[u-k+1] = v.value
-        else
-            t[u-k+1] = v.value
-        end
+        t[u-k+1] = v.value
     end
 
     return _BandedMatrix(t * Ones{T}(1,∞), m, l, u)
+end
+
+function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{<:AbstractVector,Fill{<:Any,1,Tuple{OneToInf{Int}}}}}}}},
+                         mn::NTuple{2,Integer},
+                         lu::NTuple{2,Integer}) where T
+    m,n = mn
+    @assert isinf(n)
+    l,u = lu
+    M = mapreduce(x -> length(x.second.arrays[1]) + max(0,x.first), max, kv) # number of data rows
+    data = zeros(T, u+l+1, M)
+    t = zeros(T, u+l+1)
+    for (k,v) in kv
+        a,b = v.arrays
+        p = length(a)
+        t[u-k+1] = b.value
+        if k ≤ 0
+            data[u-k+1,1:p] = a
+            data[u-k+1,p+1:end] .= b.value
+        else
+            data[u-k+1,k+1:k+p] = a
+            data[u-k+1,k+p+1:end] .= b.value
+        end
+    end
+
+    return _BandedMatrix(Hcat(data, t * Ones{T}(1,∞)), m, l, u)
 end
 
 
