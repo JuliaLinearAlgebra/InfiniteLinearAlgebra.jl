@@ -7,6 +7,26 @@ const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple
 const AdjTriPertToeplitz{T} = Adjoint{T,Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}}
 const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
 
+# Construct InfToeplitz
+function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Fill{<:Any,1,Tuple{OneToInf{Int}}}}}},
+                         mn::NTuple{2,Integer},
+                         lu::NTuple{2,Integer}) where T
+    m,n = mn
+    @assert isinf(n)
+    l,u = lu
+    t = zeros(T, u+l+1)
+    for (k,v) in kv
+        p = length(v)
+        if k ≤ 0
+            t[u-k+1] = v.value
+        else
+            t[u-k+1] = v.value
+        end
+    end
+
+    return _BandedMatrix(t * Ones{T}(1,∞), m, l, u)
+end
+
 
 for op in (:-, :+)
     @eval begin

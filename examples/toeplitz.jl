@@ -3,6 +3,31 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql, qltail
 import BandedMatrices: bandeddata,_BandedMatrix
 
+using Plots, Pseudospectra, LinearAlgebra
+
+
+# Triangle
+n = 20; A = BandedMatrix(2 => Fill(1,n-2), -1=> Fill(1/4,n-1))
+λ = eigvals(Matrix(A))
+
+
+ℓ = λ -> abs(ql(BandedMatrix(-2 => Fill(1,∞), 0=>Fill(-λ,∞), 1=> Fill(1/4,∞))).L[1,1])
+x,y = range(-2,2; length=100),range(-2,2;length=100)
+    z = abs.(ℓ.(x' .+ y.*im))
+    contour(x,y,z; nlevels=50, title="z^2 + 1/(4z)")
+    scatter!(eigvals(Matrix(A[1:30,1:30])); label="finite section")
+
+θ = 2π*(0:0.001:1); a = z -> z^2 + 1/(4z); plot!(a.(exp.(im.*θ)); linestyle=:dot, linewidth=3.0, linecolor=:black, label="essential")
+ℓ(0.0+0.2im)    
+
+BandedMatrix(2 => Fill(1,∞), -1=> Fill(1/4,∞))
+
+
+
+n=150å
+B=diagm(1 => fill(2im,n-1), 2 => fill(-1,n-2), 3 => fill(2,n-3), -2 => fill(-4,n-2), -3 => fill(-2im, n-3));
+spectralportrait(B)
+
 ℓ = λ -> ql(Tridiagonal(Fill(2.0+0im,∞), Fill(-λ,∞), Fill(0.5+0im,∞))).L[1,1]
 
 x,y = range(-4,4; length=100),range(-3,3;length=100)
@@ -18,6 +43,8 @@ contourf(x,y,z)
 
 x,y = range(-4,4; length=100),range(-3,3;length=100)
     z = abs.(ℓ.(x' .+ y.*im))
+
+# z^2 + 1/(4z)    
 
 contourf(x,y,z; title = "1/2z + 2z")
 
