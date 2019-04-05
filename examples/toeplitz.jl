@@ -3,27 +3,65 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql, qltail
 import BandedMatrices: bandeddata,_BandedMatrix
 
-using Plots, Pseudospectra, LinearAlgebra
 
 
 # Triangle
-n = 20; A = BandedMatrix(2 => Fill(1,n-2), -1=> Fill(1/4,n-1))
-λ = eigvals(Matrix(A))
+a = randn(0)
+A = λ -> BandedMatrix(-2 => Vcat([1], Fill(1,∞)),  0 => Vcat(a .- λ, Fill(-λ,∞)), 1 => Vcat([1/4], Fill(1/4,∞)))
+A(0.0+0.1im)
+scatter(eigvals(Matrix(A(0.0)[1:100,1:100])))
 
-
-
-
-ℓ = λ -> abs(ql(A(λ)).L[1,1])                            
+ℓ = λ -> ql(A(λ)).L[1,1]
 x,y = range(-2,2; length=200),range(-2,2;length=200)
     z = abs.(ℓ.(x' .+ y.*im))
-contourf(x,y,log10.(abs.(z)); nlevels=50, title="z^2 + 1/(4z)", linewidth=0.0)
+contour(x,y,z; nlevels=50, title="z^2 + 1/(4z)")
+scatter(λ; label="finite section")
+
+
+
+
+x = range(-2,2,length=1_000)
+plot(x, abs.(ℓ.(x.+eps()im)); label="abs(L[1,1])")
+λ = filter!(isreal, eigvals(Matrix(A(0.0)[1:300,1:300]')))
+scatter!(λ; label="finite section A'")
+# plot(x, real.(ℓ.(x.+eps()im)); label="real(L[1,1])")
+λ = filter!(isreal, eigvals(Matrix(A(0.0)[1:300,1:300])))
+scatter!(λ; label="finite section A")
+
+λ,V = eigen(Matrix(A(0.0)[1:300,1:300]))
+findall(x -> isreal(x) && 0.99 < real(x) < 1,λ)
+
+λ[101]
+V[:,101]
+
+x = range(0.99,1.0,length=1_000)
+plot(x, abs.(ℓ.(x.-eps()im)))
+
+)
+
+
+ql(A(maximum(real(λ))))
+λ, V = eigen(Matrix(A(0.0)[1:100,1:100]'))
+findmax(real.(λ))
+A(λ[1])[1:100,1:100]*V[:,1]
+
+A(λ[1])[100,100]
+λ[1]
+plot(abs.(V[:,1]); yscale=:log10)
+
+Q,L = ql(A(maximum(real(λ))))
+Q[1:10,1:11]*L[1:11,1:10] - A[
+
 
 Q,L = ql(A(-0.5))
 
-n = 20; A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)), 
-                                0 => Vcat([0.0], Fill(1/2,∞)),
-                            1=> Vcat([1/4], Fill(1/4,∞)))
-Q[1:10,1:11]*L[1:11,1:10]
+A = BandedMatrix(-2 => Vcat(randn(50), Fill(1,∞)),  0 => Vcat(randn(50), Fill(0.0,∞)), 1 => Vcat(randn(50), Fill(1/4,∞)))
+
+
+
+n = 100;
+    A = diagm(-2 => fill(1,n-2),  0 => fill(0.0,n), 1 => fill(1/4,n-1))
+    eigvals(A)
 
 A
 

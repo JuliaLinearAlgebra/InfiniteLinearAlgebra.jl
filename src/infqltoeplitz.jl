@@ -59,7 +59,7 @@ end
 function ql_X!(X)
     s = sign(real(X[2,end])) 
     F = ql!(X)
-    if s ≠ sign(real(X[1,2])) # we need to normalise the sign if ql! flips it
+    if s ≠ sign(real(X[1,end-1])) # we need to normalise the sign if ql! flips it
         F.τ[1] = 2 - F.τ[1] # 1-F.τ[1] is the sign so this flips it
         X[1,1:end-1] *= -1
     end
@@ -92,19 +92,6 @@ function ql(Op::TriToeplitz{T}) where T
     Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
     τ1 = 1 - (A -t*ω * X[2,2])/(Q∞11 * e) # Choose τ[1] so that (Q*L)[1,1] = A
     QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(τ1,Fill(t,∞)))
-end
-
-function ql(A::InfToeplitz{T}) where T<:Real
-    l,u = bandwidths(A)
-    @assert u == 1
-    a = reverse(A.data.applied.args[1])
-    de = tail_de(a)
-    X = [transpose(a); zero(T) transpose(de)]
-    F = ql!(X)
-    # second row of X contains L, first row contains factors. 
-    ω = X[1,end] # reflector v
-    QL(_BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [ω; X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
-        Vcat(zero(T), Fill(F.τ[2], ∞)))
 end
 
 function ql(A::InfToeplitz{T}) where T

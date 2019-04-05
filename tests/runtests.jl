@@ -172,10 +172,21 @@ end
     @test F.L[1:10,1:10] ≈ L[1:10,1:10]
     @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
     @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
+
+    T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5+eps()im,∞), 1 => Fill(0.25,∞))
+    Q,L = ql(T)
+    Qn,Ln = ql(T[1:1000,1:1000])
+    @test Qn.τ[1:10] ≈ Q.τ[1:10]
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
+
+    T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5,∞), 1 => Fill(0.25,∞))
+    Q,L = ql(T)
+    Qn,Ln = ql(T[1:1000,1:1000])
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
 end
 
 @testset "Pert Hessenberg Toeplitz" begin
-    a = [1,2,3,0.5]
+    a = [1,2,5,0.5]
     A = _BandedMatrix(Hcat(randn(4,2), reverse(a) * Ones(1,∞)), ∞, 2, 1)
     @test A isa PertToeplitz
     @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
@@ -195,6 +206,7 @@ end
     A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)), 
                       0 => Vcat([0.0], Fill(1/2,∞)),
                       1 => Vcat([1/4], Fill(1/4,∞)))
+    Q,L = ql(A)                      
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
 end
 
