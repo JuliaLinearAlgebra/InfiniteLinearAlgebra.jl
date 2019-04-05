@@ -94,6 +94,43 @@ for op in (:-, :+)
                         Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
                         Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.arrays))...))
         end
+
+        function $op(λ::UniformScaling, A::InfToeplitz{V}) where V
+            l,u = bandwidths(A)
+            TV = promote_type(eltype(λ),V)
+            a = convert(AbstractVector{TV}, $op.(A.data.applied.args[1]))
+            a[u+1] += λ.λ
+            _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
+        end
+
+        function $op(A::InfToeplitz{T}, λ::UniformScaling) where T
+            l,u = bandwidths(A)
+            TV = promote_type(T,eltype(λ))
+            a = AbstractVector{TV}(A.data.applied.args[1])
+            a[u+1] = $op(a[u+1], λ.λ)
+            _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
+        end
+
+        function $op(λ::UniformScaling, A::PertToeplitz{V}) where V
+            l,u = bandwidths(A)
+            TV = promote_type(eltype(λ),V)
+            a, t = convert.(AbstractVector{TV}, A.data.arrays)
+            b = $op.(t.applied.args[1])
+            a[u+1,:] += λ.λ
+            b[u+1] += λ.λ
+            _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ∞, l, u)
+        end
+
+        function $op(A::PertToeplitz{T}, λ::UniformScaling) where T
+            l,u = bandwidths(A)
+            TV = promote_type(T,eltype(λ))
+            ã, t = A.data.arrays
+            a = AbstractArray{TV}(ã)
+            b = AbstractVector{TV}(t.applied.args[1])
+            a[u+1,:] .= $op.(a[u+1,:],λ.λ)
+            b[u+1] = $op(b[u+1], λ.λ)
+            _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ∞, l, u)
+        end
     end
 end
 

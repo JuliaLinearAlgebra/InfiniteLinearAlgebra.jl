@@ -41,17 +41,10 @@ end
 # Through an annoying amount of algebra we get the following.
 #
 function combine_two_Q(σ, τ, v)
-    α = σ*(1-τ*abs2(v))
-    β = (1-τ)
-    γ = (1-τ)*σ-σ*τ*abs2(v) + 1
-
-    # companion matrix for β*z^2  - γ*z + α for z = s^2
-    # Why sign??
-    s2 = (γ - sqrt(γ^2-4α*β))/(2β)
-    s = sqrt(s2)
-    t = 1-s^2*(1-τ)
-    ω = τ/t*σ*v
-    conj(t), -ω
+    β = -((1-τ)*σ*(1-τ*abs2(v))+1-abs2(v)*σ*τ^2); γ = -abs2(v)*σ*τ^2;
+    t = ((-β + sqrt(β^2 - 4γ))/2)'
+    ω = σ*τ*v/t'
+    t, ω
 end
 
 
@@ -66,14 +59,16 @@ function ql_X!(X)
     F
 end
 
+# gives parameters for 2x2 Householder Q'
+function householderparams(F)
+    σ = conj(1 - F.τ[1])
+    τ = conj(F.τ[2])
+    v = F.factors[1,end]
+    σ, τ, v
+end
 
 # this gives the parameters of the QL decomposition tail
-function tail_stω!(F)
-    σ = conj(F.τ[1]-1)
-    τ = F.τ[2]
-    v = F.factors[1,end]
-    combine_two_Q(σ, τ, v)
-end
+tail_stω!(F) = combine_two_Q(householderparams(F)...)
 
 function ql(Op::TriToeplitz{T}) where T<:Real
     Z,A,B = Op.dl.value, Op.d.value, Op.du.value

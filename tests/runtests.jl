@@ -1,8 +1,65 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, InfBandedMatrix, householderparams, combine_two_Q
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
+
+function householderiterate(Q::AbstractMatrix{T}, n) where T
+    ret = Matrix{T}(I,n,n)
+    for j = n-1:-1:1
+        ret[j:j+1,:] = Q*ret[j:j+1,:]
+    end
+    ret
+end
+
+@testset "Householder combine" begin
+    σ = -0.9998783597231515 + 0.01559697910943707im
+    v = -0.18889614060709453 + 7.427756729736341e-19im
+    τ = 1.9310951421717215 - 7.593434620701001e-18im
+    Z,A,B = 2,2.1+0.01im,0.5
+    X =  [Z A B;        
+          0 -1.8619637670017095+0.02904454296270131im -1.2762545663512712-1.0408340855860843e-17im]
+    H = I - τ *[v,1]*[v,1]'   
+    Qt = -[σ 0; 0 1] * H *[1 0; 0 -1]
+    @test Q*X  ≈ -ql(X).L 
+
+    n = 1_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Qn,Ln = ql(BandedMatrix(T)[1:n,1:n]);
+    
+    t, ω = Qn.τ[2], Qn.factors[1,2]
+    Q̃ = QLPackedQ([NaN ω; NaN NaN], [0, t])
+    @test I - t*[ω,1]*[ω,1]' ≈ Q̃
+    @test I - t'*[ω,1]*[ω,1]' ≈ Q̃'
+    @test Q̃'[1,2] ≈ Qt[1,2]
+    @test Q̃'[2,1] ≈ Qt[2,1]
+    # (1-τ)/z == Qt[2,2]
+    z = (1-τ)/conj(Q̃[2,2])
+    s = sqrt(z)
+    @test abs(z) ≈ 1
+    @test [s 0; 0 1/s] * Qt * [s 0 ; 0 1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
+
+    [-σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) 1-τ]
+    [-z*σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) (1-τ)/z]
+
+    @test (1-τ) ≈ (1-t')*z
+    @test -z*σ*(1-τ*abs2(v)) ≈ 1-t'*abs2(ω)
+    @test -σ*τ*v ≈ -t'*ω
+    @test τ*v' ≈ -t'*ω'
+
+    @test (1-τ) ≈ (1-t')*z
+
+    @test -z*σ*(1-τ*abs2(v)) ≈ 1-σ*τ*v*ω'
+    @test -z*σ*(1-τ*abs2(v))*t' ≈ t'-σ*τ*v*ω'*t'
+    @test -z*σ*(1-τ*abs2(v))*t' ≈ t'+τ*conj(v)*σ*τ*v
+    @test (-(1-t')*z*σ*(1-τ*abs2(v))-(1-t'))*t' ≈ (1-t')*τ*conj(v)*σ*τ*v
+    @test -t'*(1-τ)*σ*(1-τ*abs2(v))-(1-t')*t' ≈ (1-t')*abs2(v)*σ*τ^2
+    @test -t'*((1-τ)*σ*(1-τ*abs2(v))+1-abs2(v)*σ*τ^2) + t'*t' ≈ abs2(v)*σ*τ^2
+
+    β = -((1-τ)*σ*(1-τ*abs2(v))+1-abs2(v)*σ*τ^2); γ = -abs2(v)*σ*τ^2;
+    @test t' ≈ (-β + sqrt(β^2 - 4γ))/2
+    @test ω ≈ σ*τ*v/t'
+
+    @test all(combine_two_Q(σ,τ,v) .≈ (t,ω))
+end
 
 @testset "BlockTridiagonal Algebra" begin 
     A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
@@ -33,14 +90,26 @@ end
     end
 
     for (Z,A,B) in ((2,2.1+0.01im,0.5),) # (2,-0.1+0.1im,0.5))
-        n = 100_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
+        n = 1_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
         d,e = tail_de([Z,A,B])
         @test L[1,1] ≈ e
         @test (Q'*[Z; zeros(n-1)])[1] ≈ d
         @test ql([Z A B; 0 d e]).L[1,1:2] ≈ [d;e]
         @test ql([Z A B; 0 d e]).L[2,:] ≈ -L[3,1:3]
+        
+        F = ql_X!([Z A B; 0 d e])
+        @test F.Q'*[Z A B; 0 d e] ≈ F.L
 
-        t,ω = tail_stω!(ql_X!([Z A B; 0 d e]))
+        σ,τ,v = householderparams(F)
+        @test [σ 0; 0 1] * (I - τ*[v,1]*[v,1]') ≈  F.Q'
+
+
+        ql!([Z A B; 0 d e]).Q'
+        householderiterate(F.Q', 100)[1:10,1:10]
+        [σ/sqrt(σ) 0; 0 sqrt(σ)] * (I - τ*[v,1]*[v,1]') * [sqrt(σ) 0 ; 0 1/sqrt(σ)]
+
+
+        t,ω = combine_two_Q(σ,τ,v)
         @test Q.τ[2] ≈ t
         @test Q.factors[1,2] ≈ ω
 
@@ -73,7 +142,6 @@ end
     end
 end
 
-
 @testset "PertTriToeplitz QL" begin
     A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
                     Vcat(Float64[2.0], Fill(0.0,∞)), 
@@ -91,8 +159,7 @@ end
                         Vcat(ComplexF64[], Fill(ComplexF64(b),∞)))
     A = J + (2.1+0.01im)I
     B = BandedMatrix(A,(2,1))
-    b,a,c,_ = toeptail(B)
-    T = Tridiagonal(Fill(c,∞),Fill(a,∞),Fill(b,∞))
+    T = toeptail(B)
     F∞ = ql(T)
     σ = 1- F∞.τ[1]
     F∞.factors[1,1] *= σ
@@ -115,7 +182,6 @@ end
     B̃.data[4,end-1] = L∞[3,1] # fill in L
     H = Hcat(B̃.data, F∞.factors[1:4,2] * Ones{eltype(F∞)}(1,∞))
     @test Q.τ[1:10] ≈ Vcat(F.τ, F∞.τ.arrays[2])[1:10]
-
 
     Q2,L2 = ql(A)
 
@@ -187,6 +253,7 @@ end
 
 @testset "Pert Hessenberg Toeplitz" begin
     a = [1,2,5,0.5]
+    Random.seed!(0)
     A = _BandedMatrix(Hcat(randn(4,2), reverse(a) * Ones(1,∞)), ∞, 2, 1)
     @test A isa PertToeplitz
     @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
@@ -208,6 +275,21 @@ end
                       1 => Vcat([1/4], Fill(1/4,∞)))
     Q,L = ql(A)                      
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
+    a = [-0.1,0.2,0.3]
+    A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)),  0 => Vcat(a, Fill(0,∞)), 1 => Vcat([1/4], Fill(1/4,∞)))
+    λ = 0.5+0.1im
+
+    B = BandedMatrix(A-λ*I, (3,1))
+    T = toeptail(B) 
+    Q,L = ql(T)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
+
+    Q,L = ql(A-λ*I)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ (A-λ*I)[1:10,1:10]
+    
+
+
+    
 end
 
 @testset "Pentadiagonal Toeplitz" begin
