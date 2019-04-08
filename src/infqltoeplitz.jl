@@ -79,15 +79,7 @@ function ql(Op::TriToeplitz{T}) where T<:Real
     QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
 end
 
-function ql(Op::TriToeplitz{T}) where T
-    Z,A,B = Op.dl.value, Op.d.value, Op.du.value
-    d,e = tail_de([Z,A,B]) # fixed point of QL but with two Qs, one that changes sign
-    X = [Z A B; zero(T) d e]
-    t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
-    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
-    τ1 = 1 - (A -t*ω * X[2,2])/(Q∞11 * e) # Choose τ[1] so that (Q*L)[1,1] = A
-    QL(_BandedMatrix(Hcat([zero(T), e, -X[2,2], -X[2,1]], [ω, -X[2,3], -X[2,2], -X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(τ1,Fill(t,∞)))
-end
+ql(Op::TriToeplitz{T}) where T = InfToeplitz(Op)
 
 function ql(A::InfToeplitz{T}) where T
     l,u = bandwidths(A)

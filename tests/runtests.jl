@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, InfBandedMatrix, householderparams, combine_two_Q
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -17,13 +17,17 @@ end
     v = -0.18889614060709453 + 7.427756729736341e-19im
     τ = 1.9310951421717215 - 7.593434620701001e-18im
     Z,A,B = 2,2.1+0.01im,0.5
-    X =  [Z A B;        
-          0 -1.8619637670017095+0.02904454296270131im -1.2762545663512712-1.0408340855860843e-17im]
-    H = I - τ *[v,1]*[v,1]'   
-    Qt = -[σ 0; 0 1] * H *[1 0; 0 -1]
-    @test Q*X  ≈ -ql(X).L 
-
     n = 1_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Qn,Ln = ql(BandedMatrix(T)[1:n,1:n]);
+    @test T isa TriToeplitz
+    @test InfToeplitz(T) isa InfToeplitz
+
+
+    d,e =tail_de([Z,A,B])
+    X =  [Z A B; 0 d e]
+    H = I - τ *[v,1]*[v,1]'   
+    Qt = [σ 0; 0 -1] * H
+    @test (householderiterate(Qt, 11)')[1:10,1:10] ≈ Qn[1:10,1:10]
+    @test Qt*X  ≈ [1 0; 0 -1] * ql(X).L 
     
     t, ω = Qn.τ[2], Qn.factors[1,2]
     Q̃ = QLPackedQ([NaN ω; NaN NaN], [0, t])
@@ -35,10 +39,10 @@ end
     z = (1-τ)/conj(Q̃[2,2])
     s = sqrt(z)
     @test abs(z) ≈ 1
-    @test [s 0; 0 1/s] * Qt * [s 0 ; 0 1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
+    @test [-s 0; 0 1/s] * Qt * [s 0 ; 0 -1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
 
-    [-σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) 1-τ]
-    [-z*σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) (1-τ)/z]
+    # [-σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) 1-τ]
+    # [-z*σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) (1-τ)/z]
 
     @test (1-τ) ≈ (1-t')*z
     @test -z*σ*(1-τ*abs2(v)) ≈ 1-t'*abs2(ω)
@@ -59,6 +63,20 @@ end
     @test ω ≈ σ*τ*v/t'
 
     @test all(combine_two_Q(σ,τ,v) .≈ (t,ω))
+
+    X = [transpose(a); 0 d e]
+    t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
+    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+    Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
+    @test Q∞11 ≈ Q̃n[1,1]
+    τ1 = 1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+    @test τ1 ≈ Qn.τ[1]
+
+    M = BandedMatrix(0 => Fill(A,∞), -1 => Fill(Z,∞), 1 => Fill(B,∞))
+    Q∞, L∞ = ql(M)
+    @test Q∞[1:10,1:10] ≈ Qn[1:10,1:10]
+    @test L∞[1:10,1:10] ≈ Ln[1:10,1:10]
+    @test Q∞[1:10,1:11]*L∞[1:11,1:10] ≈ M[1:10,1:10]
 end
 
 @testset "BlockTridiagonal Algebra" begin 
