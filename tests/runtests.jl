@@ -17,12 +17,12 @@ end
     v = -0.18889614060709453 + 7.427756729736341e-19im
     τ = 1.9310951421717215 - 7.593434620701001e-18im
     Z,A,B = 2,2.1+0.01im,0.5
+    a = [Z,A,B]
     n = 1_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Qn,Ln = ql(BandedMatrix(T)[1:n,1:n]);
     @test T isa TriToeplitz
     @test InfToeplitz(T) isa InfToeplitz
 
-
-    d,e =tail_de([Z,A,B])
+    de = d,e =tail_de([Z,A,B])
     X =  [Z A B; 0 d e]
     H = I - τ *[v,1]*[v,1]'   
     Qt = [σ 0; 0 -1] * H
@@ -77,6 +77,19 @@ end
     @test Q∞[1:10,1:10] ≈ Qn[1:10,1:10]
     @test L∞[1:10,1:10] ≈ Ln[1:10,1:10]
     @test Q∞[1:10,1:11]*L∞[1:11,1:10] ≈ M[1:10,1:10]
+
+    T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(-0.5-0.1im, ∞), 1 => Fill(0.25, ∞));  Qn,Ln = ql(T[1:n,1:n]);
+    a = reverse(T.data.applied.args[1])
+    de = tail_de(a)
+    X =  [transpose(a); 0 transpose(de)]
+    F = ql_X!(copy(X))
+    v,τ = F.factors[1,end], F.τ[2]
+    H = I - τ *[v,1]*[v,1]'   
+    @test (H*X)[2,:] ≈ F.factors[2,:] ≈ Ln[4,1:4]
+    Qt = [σ 0; 0 -1] * H
+    @test (householderiterate(Qt, 11)')[1:10,1:10] ≈ Qn[1:10,1:10]
+    @test Qt*X  ≈ [1 0; 0 -1] * ql(X).L 
+
 end
 
 @testset "BlockTridiagonal Algebra" begin 
@@ -121,11 +134,9 @@ end
         σ,τ,v = householderparams(F)
         @test [σ 0; 0 1] * (I - τ*[v,1]*[v,1]') ≈  F.Q'
 
-
         ql!([Z A B; 0 d e]).Q'
         householderiterate(F.Q', 100)[1:10,1:10]
         [σ/sqrt(σ) 0; 0 sqrt(σ)] * (I - τ*[v,1]*[v,1]') * [sqrt(σ) 0 ; 0 1/sqrt(σ)]
-
 
         t,ω = combine_two_Q(σ,τ,v)
         @test Q.τ[2] ≈ t
@@ -304,10 +315,6 @@ end
 
     Q,L = ql(A-λ*I)
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ (A-λ*I)[1:10,1:10]
-    
-
-
-    
 end
 
 @testset "Pentadiagonal Toeplitz" begin

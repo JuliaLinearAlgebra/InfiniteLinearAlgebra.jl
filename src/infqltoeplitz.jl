@@ -79,7 +79,7 @@ function ql(Op::TriToeplitz{T}) where T<:Real
     QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
 end
 
-ql(Op::TriToeplitz{T}) where T = InfToeplitz(Op)
+ql(Op::TriToeplitz{T}) where T = ql(InfToeplitz(Op))
 
 function ql(A::InfToeplitz{T}) where T
     l,u = bandwidths(A)
