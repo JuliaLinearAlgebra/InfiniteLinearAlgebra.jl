@@ -34,17 +34,30 @@ end
 #  But ∞-QL needs to combine this into a single τ
 # 
 # Note because we are multiplying by an ∞-number of times
-# we can multiply each side by diagm(…conj(s),s,conj(s),s,…) without 
+# we can multiply each side by 
+#       diagm(…conj(s),s,conj(s),s,…) 
+# or
+#       diagm(…conj(s),-s,conj(s),-s,…) 
+# without 
 # changing the matrix. This freedom allows us to reduce the above
 # to a single Householder.
 #
-# Through an annoying amount of algebra we get the following.
+# Through an annoying amount of algebra we get the following, see tests
 #
 function combine_two_Q(σ, τ, v)
-    β = -((1-τ)*σ*(1-τ*abs2(v))+1-abs2(v)*σ*τ^2); γ = -abs2(v)*σ*τ^2;
-    t = ((-β + sqrt(β^2 - 4γ))/2)'
+    # two possibilities 
+    β =σ-τ*σ-σ*τ*abs2(v)-1; γ = abs2(v)*σ*τ^2;
+    tt = (-β + sqrt(β^2 - 4γ))/2
+    s = 1
+    if !(abs2((1-τ)/(1-tt)) ≈ 1)
+         β = -(σ*(1-τ*abs2(v))-σ*τ+1); γ = -abs2(v)*σ*τ^2;
+         tt = (-β + sqrt(β^2 - 4γ))/2
+         s = -1
+         @assert abs2((1-τ)/(1-tt)) ≈ 1
+    end
+    t = tt'
     ω = σ*τ*v/t'
-    t, ω
+    s, t, ω
 end
 
 
@@ -87,11 +100,15 @@ function ql(A::InfToeplitz{T}) where T
     a = reverse(A.data.applied.args[1])
     de = tail_de(a)
     X = [transpose(a); zero(T) transpose(de)]
-    t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
+    s,t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
     Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
-    τ1 = 1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+    τ1 = if s == 1
+        (a[end-1] +t*ω * X[2,end-1])/(Q∞11 * de[end])+1
+    else
+        1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+    end
     # second row of X contains L, first row contains factors. 
     # TODO: Why -X?
-    QL(_BandedMatrix(Hcat([zero(T); X[1,end-1]; -X[2,end-1:-1:1]], [ω; -X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
+    QL(_BandedMatrix(Hcat([zero(T); -s*X[1,end-1]; s*X[2,end-1:-1:1]], [ω; s*X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
         Vcat(τ1, Fill(t, ∞)))
 end

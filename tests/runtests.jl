@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Qm, householderparams
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -24,22 +24,26 @@ end
 
     de = d,e =tail_de([Z,A,B])
     X =  [Z A B; 0 d e]
+    F = ql_X!(copy(X))
     H = I - τ *[v,1]*[v,1]'   
-    Qt = [σ 0; 0 -1] * H
-    @test (householderiterate(Qt, 11)')[1:10,1:10] ≈ Qn[1:10,1:10]
-    @test Qt*X  ≈ [1 0; 0 -1] * ql(X).L 
+    @test H ≈ QLPackedQ([NaN v; NaN NaN], [0,τ])
+    Qt = [σ 0; 0 1] * H
+    @test Qt ≈ F.Q'
+    Qt2 = [1 0; 0 -1] * Qt
+    @test (householderiterate(Qt2, 11)')[1:10,1:10] ≈ Qn[1:10,1:10]
+    @test Qt2*X  ≈ [1 0; 0 -1] * ql(X).L 
     
     t, ω = Qn.τ[2], Qn.factors[1,2]
     Q̃ = QLPackedQ([NaN ω; NaN NaN], [0, t])
     @test I - t*[ω,1]*[ω,1]' ≈ Q̃
     @test I - t'*[ω,1]*[ω,1]' ≈ Q̃'
-    @test Q̃'[1,2] ≈ Qt[1,2]
-    @test Q̃'[2,1] ≈ Qt[2,1]
+    @test Q̃'[1,2] ≈ Qt2[1,2]
+    @test Q̃'[2,1] ≈ Qt2[2,1]
     # (1-τ)/z == Qt[2,2]
-    z = (1-τ)/conj(Q̃[2,2])
+    z = (1-τ)/(1-t')
     s = sqrt(z)
     @test abs(z) ≈ 1
-    @test [-s 0; 0 1/s] * Qt * [s 0 ; 0 -1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
+    @test [-s 0; 0 1/s] * Qt2 * [s 0 ; 0 -1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
 
     # [-σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) 1-τ]
     # [-z*σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) (1-τ)/z]
@@ -58,14 +62,21 @@ end
     @test -t'*(1-τ)*σ*(1-τ*abs2(v))-(1-t')*t' ≈ (1-t')*abs2(v)*σ*τ^2
     @test -t'*((1-τ)*σ*(1-τ*abs2(v))+1-abs2(v)*σ*τ^2) + t'*t' ≈ abs2(v)*σ*τ^2
 
-    β = -((1-τ)*σ*(1-τ*abs2(v))+1-abs2(v)*σ*τ^2); γ = -abs2(v)*σ*τ^2;
+    β = -(σ*(1-τ*abs2(v))-σ*τ+1); γ = -abs2(v)*σ*τ^2;
     @test t' ≈ (-β + sqrt(β^2 - 4γ))/2
     @test ω ≈ σ*τ*v/t'
+    @test abs2((1-τ)/(1-t')) ≈ 1
 
-    @test all(combine_two_Q(σ,τ,v) .≈ (t,ω))
+    # Check other sign choice fails
+    β2 =σ-τ*σ-σ*τ*abs2(v)-1; γ2 = abs2(v)*σ*τ^2;    
+    t2t = (-β2 + sqrt(β2^2 - 4γ2))/2
+    @test !(abs2((1-τ)/(1-t2t)) ≈ 1)
+
+    @test all(householderparams(ql_X!(copy(X))) .≈ (σ,τ,v))
+    @test all(combine_two_Q(σ,τ,v) .≈ (-1,t,ω))
 
     X = [transpose(a); 0 d e]
-    t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
+    s,t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
     Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
     Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
     @test Q∞11 ≈ Q̃n[1,1]
@@ -83,13 +94,59 @@ end
     de = tail_de(a)
     X =  [transpose(a); 0 transpose(de)]
     F = ql_X!(copy(X))
-    v,τ = F.factors[1,end], F.τ[2]
+    @test F.factors[1,1:3] ≈ de
+    @test F.factors[2,:] ≈ Ln[4,1:4]
+    (σ,τ,v) = householderparams(F)
     H = I - τ *[v,1]*[v,1]'   
-    @test (H*X)[2,:] ≈ F.factors[2,:] ≈ Ln[4,1:4]
-    Qt = [σ 0; 0 -1] * H
-    @test (householderiterate(Qt, 11)')[1:10,1:10] ≈ Qn[1:10,1:10]
-    @test Qt*X  ≈ [1 0; 0 -1] * ql(X).L 
+    @test H ≈ QLPackedQ([NaN v; NaN NaN], [0,τ])
+    Qt = [σ 0; 0 1] * H
+    @test Qt ≈ F.Q'
+    @test ((diagm(0 => [-1; Ones(10)]) * householderiterate(Qt, 11))')[1:10,1:10] ≈ Qn[1:10,1:10]
 
+    t, ω = Qn.τ[2], Qn.factors[1,2]
+    Q̃ = QLPackedQ([NaN ω; NaN NaN], [0, t])
+
+    z = (1-τ)/(1-t')
+    @test z ≈ (1-τ)/conj(Q̃[2,2])
+    s = sqrt(z)
+    @test [s 0; 0 1/s] * Qt * [s 0 ; 0 1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
+    @test z*σ*(1-τ*abs2(v)) ≈ 1-t'*abs2(ω)
+    @test τ*v' ≈ t'*ω'
+
+    # this derivation reduces to quadratic equation for t' in terms of knowns v, σ, and τ
+    @test z*σ*(1-τ*abs2(v)) ≈ 1-σ*τ*v*ω'               ≈  Q̃[1,1]'
+    @test z*σ*(1-τ*abs2(v))*t' ≈ t'-σ*τ*v*ω'*t'         ≈  Q̃[1,1]' * t'
+    @test z*σ*(1-τ*abs2(v))*t' ≈ t'-σ*τ*v*τ*v'          ≈ Q̃[1,1]' * t'
+    @test (1-τ)*σ*(1-τ*abs2(v))*t' ≈ (1-t')*(t'-σ*τ*v*τ*v')          ≈ (1-t')*Q̃[1,1]' * t'
+    @test (t')^2 + ((1-τ)*σ*(1-τ*abs2(v))-1-σ*τ*v*τ*v')*t' + σ*τ^2*abs2(v) ≈  0  atol=1E-14  # simplify to stabndard form
+
+    β =σ-τ*σ-σ*τ*abs2(v)-1; γ = abs2(v)*σ*τ^2;
+    @test t' ≈ (-β + sqrt(β^2 - 4γ))/2
+    @test ω ≈ σ*τ*v/t'
+    @test abs2((1-τ)/(1-t')) ≈ 1
+
+    β1 = -(σ*(1-τ*abs2(v))-σ*τ+1); γ1 = -abs2(v)*σ*τ^2;
+    t1t = (-β1 + sqrt(β1^2 - 4γ1))/2
+    @test !(abs2((1-τ)/(1-t1t)) ≈ 1)
+
+    @test all(householderparams(ql_X!(copy(X))) .≈ (σ,τ,v))
+    @test all(combine_two_Q(σ,τ,v) .≈ (1,t,ω))    
+    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+    Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
+    @test Q∞11 ≈ Q̃n[1,1]
+    @test  -t*ω ≈ Q̃n[1,2]
+    @test de[end] ≈ -Ln[1,1]
+    @test (Q̃n*diagm(0 => [1-Qn.τ[1]; Ones(n-1)]))[1:10,1:10] ≈ Qn[1:10,1:10]
+    @test Qn[1,1] * Ln[1,1] + Qn[1,2] * Ln[2,1] ≈ T[1,1]
+    @test Q∞11 * (Qn.τ[1]-1) * de[end] - t*ω * F.factors[2,end-1] ≈ T[1,1]
+
+    τ1 = (a[end-1] +t*ω * F.factors[2,end-1])/(Q∞11 * de[end])+1 # Choose τ[1] so that (Q*L)[1,1] = A
+    @test τ1 ≈ Qn.τ[1]
+
+    Q, L = ql(T)
+    @test L[1,1] ≈ Ln[1,1] ≈ -de[end]
+    @test L[1:10,1:10] ≈  Ln[1:10,1:10]
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
 end
 
 @testset "BlockTridiagonal Algebra" begin 
@@ -138,7 +195,7 @@ end
         householderiterate(F.Q', 100)[1:10,1:10]
         [σ/sqrt(σ) 0; 0 sqrt(σ)] * (I - τ*[v,1]*[v,1]') * [sqrt(σ) 0 ; 0 1/sqrt(σ)]
 
-        t,ω = combine_two_Q(σ,τ,v)
+        s,t,ω = combine_two_Q(σ,τ,v)
         @test Q.τ[2] ≈ t
         @test Q.factors[1,2] ≈ ω
 
@@ -221,7 +278,7 @@ end
 @testset "Hessenberg Toeplitz" begin
     a = [1,2,3,0.5]
     T = _BandedMatrix(reverse(a) * Ones(1,∞), ∞, 2, 1)
-    n = 100_000; Q, L = ql(T[1:n,1:n])
+    n = 10_000; Q, L = ql(T[1:n,1:n])
 
     de = tail_de(a)
     @test L[1,1] ≈ de[end]
@@ -235,38 +292,13 @@ end
     @test T isa InfToeplitz
     
     F = ql(T)
-    @test F.factors[1:10,1:10] ≈ Q.factors[1:10,1:10]
-    @test F.τ[1:10] ≈ Q.τ[1:10]
-    @test F.L[1:10,1:10] ≈ L[1:10,1:10]
-    @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
     @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
 
     a = [1,2,3+im,0.5] 
     T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 1)
+    Q,L = ql(T)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
     @test T isa InfToeplitz
-    n = 100_000; Q, L = ql(T[1:n,1:n])
-
-    de = tail_de(a)
-    @test L[1,1] ≈ de[end]
-    @test vec((Q')[1:1,1:2]*T[3:4,1:2]) ≈ de[1:end-1]
-
-    X = [transpose(a); [0 transpose(de)]]
-    @test ql(X).L[1,1:3] ≈ de
-
-    t,ω = tail_stω!(X)    # combined two Qs into one, these are the parameteris
-    @test t ≈ Q.τ[2]
-    @test ω ≈ Q.factors[1,2]
-    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
-    @test abs(Q∞11) ≈ Q[1,1]
-    τ1 = 1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
-    @test τ1 ≈ Q.τ[1]
-    
-    F = ql(T)
-    @test F.factors[1:10,1:10] ≈ Q.factors[1:10,1:10]
-    @test F.τ[1:10] ≈ Q.τ[1:10]
-    @test F.L[1:10,1:10] ≈ L[1:10,1:10]
-    @test F.Q[1:10,1:10] ≈ Q[1:10,1:10]
-    @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
 
     T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5+eps()im,∞), 1 => Fill(0.25,∞))
     Q,L = ql(T)
