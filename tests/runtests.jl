@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Qm, householderparams
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, householderparams
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -8,6 +8,14 @@ function householderiterate(Q::AbstractMatrix{T}, n) where T
     ret = Matrix{T}(I,n,n)
     for j = n-1:-1:1
         ret[j:j+1,:] = Q*ret[j:j+1,:]
+    end
+    ret
+end
+
+function householderiterate(Q1::AbstractMatrix{T}, Q2::AbstractMatrix{T}, n) where T
+    ret = Matrix{T}(I,n,n)
+    for j = n-1:-1:1
+        ret[j:j+1,:] = (iseven(j) ? Q1 : Q2)*ret[j:j+1,:]
     end
     ret
 end
@@ -152,7 +160,52 @@ end
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
     end
     @testset "to be determined error" begin
-        @test_broken ql(A - im*I)
+        A = BandedMatrix(-2 => Fill(1/4,∞), 1 => Fill(1,∞))-im*I
+        n = 1000; Qn,Ln = ql(A[1:n,1:n])
+        a = reverse(A.data.applied.args[1])
+        de = tail_de(a)
+        X =  [transpose(a); 0 transpose(de)]
+        F = ql_X!(copy(X))
+        @test F.factors[1,1:3] ≈ de
+        @test F.factors[2,:] ≈ -Ln[4,1:4]
+        @test F.factors[2,:] ≈ Ln[5,2:5]
+
+        (σ,τ,v) = householderparams(F)
+        H = I - τ *[v,1]*[v,1]'   
+        @test H ≈ QLPackedQ([NaN v; NaN NaN], [0,τ])
+        Qt = [σ 0; 0 1] * H
+        @test Qt ≈ F.Q'
+        @test  (householderiterate(Qt, 11)' * diagm(0 => [-1; (-1).^(1:10)]))[1:10,1:10] ≈ Qn[1:10,1:10]
+
+        t1, ω1 = Qn.τ[2], Qn.factors[1,2]
+        Q1 = QLPackedQ([NaN ω1; NaN NaN], [0, t1])
+        t2, ω2 = Qn.τ[3], Qn.factors[2,3]
+        Q2 = QLPackedQ([NaN ω2; NaN NaN], [0, t2])
+
+        @test abs.(householderiterate(Q2', Q1', 11)')[1:10,1:10] ≈ abs.(Qn[1:10,1:10])
+
+        Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
+        @test Q̃n[1:10,1:10] ≈ (householderiterate(Q2', Q1', 11)')[1:10,1:10]
+        
+        S1 = [-1 0; 0 1] * Qt 
+        @test S1 ≈ [-σ 0; 0 1] * H
+        S2 = [1 0; 0 -1] * Qt * [1 0; 0 -1]
+        @test S2 ≈ [σ 0; 0 1] * (I - τ *[-v,1]*[-v,1]')
+        @test (diagm(0 => [-1; Ones(10)]) * householderiterate(S1, S2, 11))'[1:10,1:10] ≈ Qn[1:10,1:10]
+
+        s1 = sign(S1[1,1]/Q2[1,1]')
+        s2 = sign(Q2[2,2]')
+        @test [s1 0; 0 1] * Q2' * [1 0; 0 -1/s2] ≈ S1
+        @test [-s2 0; 0 1] * Q1' * [1 0 ; 0 1/s1] ≈ S2
+
+        @test (1-τ)*(-s2) ≈ 1-t2'  # [2,2] entry
+        @test (1-τ)*s1 ≈ 1-t1'
+        @test 1/s1 * (-σ) * (1-τ*abs2(v)) ≈ 1-t2' * abs2(ω2) # [1,1] entry
+        @test -1/s2 * (σ) * (1-τ*abs2(v)) ≈ 1-t1' * abs2(ω1) # [1,1] entry
+        @test 1/s1 * (-s2) * (σ*τ*v) ≈ -t2' * ω2
+        @test τ*v ≈ t2'*ω2'
+        @test -1/s2 * (s1) * (σ*τ*v) ≈ -t1' * ω1
+        @test τ*v ≈ -t1'*ω1'
     end
 end
 
