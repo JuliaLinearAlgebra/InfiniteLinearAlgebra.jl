@@ -170,12 +170,16 @@ end
         @test F.factors[2,:] ≈ -Ln[4,1:4]
         @test F.factors[2,:] ≈ Ln[5,2:5]
 
+        # @test F.factors[2,:] ≈ Ln[4,1:4]
+        # @test F.factors[2,:] ≈ -Ln[5,2:5]
+
         (σ,τ,v) = householderparams(F)
         H = I - τ *[v,1]*[v,1]'   
         @test H ≈ QLPackedQ([NaN v; NaN NaN], [0,τ])
         Qt = [σ 0; 0 1] * H
         @test Qt ≈ F.Q'
         @test  (householderiterate(Qt, 11)' * diagm(0 => [-1; (-1).^(1:10)]))[1:10,1:10] ≈ Qn[1:10,1:10]
+        # @test  (householderiterate(Qt, 11)' * diagm(0 => [1; 1; (-1).^(1:9)]))[1:10,1:10] ≈ Qn[1:10,1:10]
 
         t1, ω1 = Qn.τ[2], Qn.factors[1,2]
         Q1 = QLPackedQ([NaN ω1; NaN NaN], [0, t1])
@@ -192,6 +196,7 @@ end
         S2 = [1 0; 0 -1] * Qt * [1 0; 0 -1]
         @test S2 ≈ [σ 0; 0 1] * (I - τ *[-v,1]*[-v,1]')
         @test (diagm(0 => [-1; Ones(10)]) * householderiterate(S1, S2, 11))'[1:10,1:10] ≈ Qn[1:10,1:10]
+        # @test (diagm(0 => [1; -Ones(10)]) * householderiterate(S1, S2, 11))'[1:10,1:10] ≈ Qn[1:10,1:10]
 
         s1 = sign(S1[1,1]/Q2[1,1]')
         s2 = sign(Q2[2,2]')
@@ -206,6 +211,42 @@ end
         @test τ*v ≈ t2'*ω2'
         @test -1/s2 * (s1) * (σ*τ*v) ≈ -t1' * ω1
         @test τ*v ≈ -t1'*ω1'
+
+        @test (-σ) * (1-τ*abs2(v)) ≈ s1 - s2 * (σ*τ*v) * ω2' # remove abs2
+        @test -σ * (1-τ*abs2(v)) ≈ s2- (s1) * (σ*τ*v) * ω1'
+        @test -σ * (1-τ*abs2(v)) * t2' ≈ s1 * t2' - s2 * (σ*τ*v) * τ*v  # remove abs2
+        @test -σ * (1-τ*abs2(v)) * t1' ≈ s2 * t1' + (s1) * (σ*τ*v) * τ*v 
+
+        @test -σ * (1-τ*abs2(v)) * (1-(1-τ)*(-s2)) ≈ s1 * (1-(1-τ)*(-s2)) - s2 * (σ*τ*v) * τ*v  # remove abs2
+        @test -σ * (1-τ*abs2(v)) * (1-(1-τ)*s1) ≈ s2 * (1-(1-τ)*s1 ) + (s1) * (σ*τ*v) * τ*v 
+
+        α = -σ * (1-τ*abs2(v)) 
+        β =  (α*(1-τ)+σ*(τ*v)^2)
+        @test α + β*s2 ≈ s1 + (1-τ)*s1*s2   # remove abs2
+        @test α - β*s1 ≈ s2  - (1-τ)*s1*s2
+
+        @test α + β*s2 - s1 ≈ s2 - α + β*s1 
+        @test 2α + (β-1)*s2  ≈  (β+1)*s1 
+
+        @test (β+1)*α - 2α  + (β^2+1)*s2 ≈   (1-τ)*2α*s2 + (1-τ)*(β-1)*s2^2   # remove abs2
+        a,b,c = (1-τ)*(β-1), (1-τ)*2α-(β^2+1), 2α- (β+1)*α
+        @test a*s2^2 + b*s2 ≈ -c
+
+        @test s2 ≈ (-b - sqrt(b^2-4a*c))/(2a) 
+        @test s1 ≈ (2α + (β-1)*s2)/(β+1)
+        @test t1' ≈ 1-(1-τ)*s1
+        @test ω1' ≈ -τ*v/t1'
+        @test t2' ≈ 1-(1-τ)*(-s2)
+        @test ω2' ≈ τ*v / t2'
+
+        X = F.factors
+        m = size(X,2)
+        data = Hcat([-X[1,end-1]; (-1).^(1:m-1) .* X[2,end-1:-1:1]], 
+                    ApplyArray(*, ((-1).^(1:m) .* X[2,end:-1:1]), ((-1).^(0:∞))'))
+        L∞ = _BandedMatrix(data,∞,m-1,0)
+        @test L∞[1:10,1:10] ≈ Ln[1:10,1:10]
+        Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+        (a[end-1] +t*ω * X[2,end-1])/(Q∞11 * de[end])+1
     end
 end
 

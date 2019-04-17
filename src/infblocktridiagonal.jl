@@ -32,6 +32,12 @@ end
 
 
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = BlockSizes((Vcat(1, 1 .+ cumsum(length.(A))),))
+function sizes_from_blocks(A::AbstractMatrix, ::Tuple{OneTo{Int}, OneToInf{Int}})
+    @assert size(A,1) == 1 
+    R,C = vec(size.(A,1)[:,1]), vec(size.(A,2))
+    BlockSizes((vcat(1, 1 .+ cumsum(R)), Vcat(1, 1 .+ cumsum(C))))
+end
+
 
 function sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) 
     sz = size.(A.d, 1), size.(A.d,2)
