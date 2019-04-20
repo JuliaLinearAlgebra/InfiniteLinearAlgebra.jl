@@ -1,5 +1,6 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!, InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, householderparams
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!,
+                    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -21,7 +22,7 @@ function householderiterate(Q1::AbstractMatrix{T}, Q2::AbstractMatrix{T}, n) whe
 end
 
 @testset "Householder combine" begin
-    @testset "sign = -1"
+    @testset "sign = -1" begin
         σ = -0.9998783597231515 + 0.01559697910943707im
         v = -0.18889614060709453 + 7.427756729736341e-19im
         τ = 1.9310951421717215 - 7.593434620701001e-18im
@@ -100,6 +101,7 @@ end
     end
 
     @testset "sign = +1" begin
+        n = 1000
         T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(-0.5-0.1im, ∞), 1 => Fill(0.25, ∞));  Qn,Ln = ql(T[1:n,1:n]);
         a = reverse(T.data.applied.args[1])
         de = tail_de(a)
@@ -245,8 +247,26 @@ end
                     ApplyArray(*, ((-1).^(1:m) .* X[2,end:-1:1]), ((-1).^(0:∞))'))
         L∞ = _BandedMatrix(data,∞,m-1,0)
         @test L∞[1:10,1:10] ≈ Ln[1:10,1:10]
-        Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
-        (a[end-1] +t*ω * X[2,end-1])/(Q∞11 * de[end])+1
+
+        Q∞11 = 1 - ω1*t1*conj(ω1)  # Q[1,1] without the callowing correction
+        Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
+        @test Q∞11 ≈ Q̃n[1,1]
+
+        data2 = Vcat(Hcat(0.0+0im, mortar(Fill([ω1 ω2],1,∞))), data)
+        factors = _BandedMatrix(data2,∞,m-1,1)
+        Q̃∞ = QLPackedQ(factors, Vcat(0.0+0im,mortar(Fill([t1,t2],∞))))
+        @test Q̃∞[1:10,1:10] ≈ Q̃n[1:10,1:10]
+
+        @test Q̃∞[1:10,1:11]*L∞[1:11,2:10] ≈ A[1:10,2:10]
+
+        @test (1-Qn.τ[1])*Q̃∞[1,1] * L∞[1,1] + Q̃∞[1,2] * L∞[2,1] ≈ A[1,1]
+        L∞11 = -X[1,end-1]
+        L∞21 = -X[2,end-1]
+        Q∞12 = -t1*ω1
+        @test Qn.τ[1] ≈ (Q∞12 * L∞21 - A[1,1])/(L∞11*Q∞11) + 1
+
+        Q∞, L∞ = ql(A)
+        @test Q∞[1:10,1:11] * L∞[1:11,1:10] ≈ A[1:10,1:10]
     end
 end
 

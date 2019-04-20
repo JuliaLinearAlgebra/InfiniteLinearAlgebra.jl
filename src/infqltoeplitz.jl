@@ -53,11 +53,26 @@ function combine_two_Q(σ, τ, v)
          β = -(σ*(1-τ*abs2(v))-σ*τ+1); γ = -abs2(v)*σ*τ^2;
          tt = (-β + sqrt(β^2 - 4γ))/2
          s = -1
-         @assert abs2((1-τ)/(1-tt)) ≈ 1
+         if !(abs2((1-τ)/(1-tt)) ≈ 1)
+            tt *= NaN
+         end
     end
     t = tt'
     ω = σ*τ*v/t'
     s, t, ω
+end
+
+function periodic_combine_two_Q(σ,τ,v)
+    α = -σ * (1-τ*abs2(v)) 
+    β =  (α*(1-τ)+σ*(τ*v)^2)
+    a,b,c = (1-τ)*(β-1), (1-τ)*2α-(β^2+1), 2α- (β+1)*α
+    s2 = (-b - sqrt(b^2-4a*c))/(2a) 
+    s1 = (2α + (β-1)*s2)/(β+1)
+    t1 = 1-(1-τ')*s1'
+    ω1 = -τ'*v'/t1
+    t2 = 1+(1-τ')*s2'
+    ω2 = τ'*v' / t2
+    t1,t2,ω1,ω2
 end
 
 
@@ -80,8 +95,6 @@ function householderparams(F)
     σ, τ, v
 end
 
-# this gives the parameters of the QL decomposition tail
-tail_stω!(F) = combine_two_Q(householderparams(F)...)
 
 function ql(Op::TriToeplitz{T}) where T<:Real
     Z,A,B = Op.dl.value, Op.d.value, Op.du.value
@@ -100,15 +113,32 @@ function ql(A::InfToeplitz{T}) where T
     a = reverse(A.data.applied.args[1])
     de = tail_de(a)
     X = [transpose(a); zero(T) transpose(de)]
-    s,t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
-    Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
-    τ1 = if s == 1
-        (a[end-1] +t*ω * X[2,end-1])/(Q∞11 * de[end])+1
+    F = ql_X!(X) # calculate data for fixed point
+    σ,τ,v = householderparams(F) # parameters for fixed point householder
+    s,t,ω = combine_two_Q(σ,τ,v) # combined two Qs into one, these are the parameteris
+    if isnan(t) || isnan(ω) # NaN is returned if can't be combined as Toeplitz, so we try periodic Toeplitz
+        t1,t2,ω1,ω2 = periodic_combine_two_Q(σ,τ,v)
+        Q∞11 = 1 - ω1*t1*conj(ω1)  # Q[1,1] without the callowing correction
+        data = Hcat([-X[1,end-1]; (-1).^(1:l+u) .* X[2,end-1:-1:1]], 
+                    ApplyArray(*, ((-1).^(1:l+u+1) .* X[2,end:-1:1]), ((-1).^(0:∞))'))
+        
+        
+        data2 = Vcat(Hcat(zero(T), mortar(Fill([ω1 ω2],1,∞))), data)
+        factors = _BandedMatrix(data2,∞,l+u,1)
+        L∞11 = -X[1,end-1]
+        L∞21 = -X[2,end-1]
+        Q∞12 = -t1*ω1
+        τ1 = (Q∞12 * L∞21 - A[1,1])/(L∞11*Q∞11) + 1
+        QL(factors, Vcat(τ1, mortar(Fill([t1,t2],∞))))
     else
-        1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+        Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
+        τ1 = if s == 1
+            (a[end-1] +t*ω * X[2,end-1])/(Q∞11 * de[end])+1
+        else
+            1 - (a[end-1] -t*ω * X[2,end-1])/(Q∞11 * de[end]) # Choose τ[1] so that (Q*L)[1,1] = A
+        end
+        # second row of X contains L, first row contains factors. 
+        factors = _BandedMatrix(Hcat([zero(T); -s*X[1,end-1]; s*X[2,end-1:-1:1]], [ω; s*X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1)
+        QL(factors, Vcat(τ1, Fill(t, ∞)))
     end
-    # second row of X contains L, first row contains factors. 
-    # TODO: Why -X?
-    QL(_BandedMatrix(Hcat([zero(T); -s*X[1,end-1]; s*X[2,end-1:-1:1]], [ω; s*X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1), 
-        Vcat(τ1, Fill(t, ∞)))
 end
