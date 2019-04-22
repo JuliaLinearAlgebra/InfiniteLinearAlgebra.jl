@@ -1,5 +1,5 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, tail_stω!, ql_X!,
+import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
@@ -86,7 +86,8 @@ end
         @test all(combine_two_Q(σ,τ,v) .≈ (-1,t,ω))
 
         X = [transpose(a); 0 d e]
-        s,t,ω = tail_stω!(ql_X!(X))    # combined two Qs into one, these are the parameteris
+        ql_X!(X)
+        s,t,ω = combine_two_Q(σ,τ,v) # combined two Qs into one, these are the parameteris
         Q∞11 = 1 - ω*t*conj(ω)  # Q[1,1] without the callowing correction
         Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
         @test Q∞11 ≈ Q̃n[1,1]
@@ -427,10 +428,12 @@ end
     @test Qn.τ[1:10] ≈ Q.τ[1:10]
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
 
-    T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5,∞), 1 => Fill(0.25,∞))
-    Q,L = ql(T)
-    Qn,Ln = ql(T[1:1000,1:1000])
-    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
+    for T in (BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5,∞), 1 => Fill(0.25,∞)),
+                BandedMatrix(-2 => Fill(1/4,∞), 1 => Fill(1,∞))-im*I)
+        Q,L = ql(T)
+        Qn,Ln = ql(T[1:1000,1:1000])
+        @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
+    end
 end
 
 @testset "Pert Hessenberg Toeplitz" begin
@@ -481,7 +484,7 @@ end
     a = [1,2,5+0im,0.5,0.2]
     T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 2)
 
-    n = 100_000; Q, L = ql(T[1:n,1:n])
+    n = 1_000; Q, L = ql(T[1:n,1:n])
     H = _BandedMatrix(T.data, ∞, 3, 1)
     F1 = ql(H)
     Q1,L1 = F1
@@ -496,6 +499,18 @@ end
     Q2,L2 = ql(T2)
     @test Q2[1:10,1:11]*L2[1:11,1:10] ≈ T2[1:10,1:10]
     @test Q1[1:10,1:11]*Q2[1:11,1:12]*L2[1:12,1:10] ≈ T[1:10,1:10]
+end
+
+@testset "bi-infinite" begin
+    Δ = BandedMatrix(-2 => Vcat(Float64[],Fill(1.0,∞)), -1 =>Vcat([1.0], Fill(0.0,∞)), 1 => Vcat([1.0], Fill(0.0,∞)), 2 => Vcat(Float64[],Fill(1.0,∞)))
+    A = (Δ - 4I)
+    B = BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2)))
+    T = toeptail(B)
+    H = _BandedMatrix(T.data, ∞, bandwidth(T,1)+bandwidth(T,2)-1, 1)
+    Q,L = ql(H)
+
+    A2 = Q'A
+    L
 end
 
 # periodic
