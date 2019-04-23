@@ -66,6 +66,10 @@ ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidt
 toeptail(B::BandedMatrix{T}) where T = 
     _BandedMatrix(B.data.arrays[end].applied.args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
 
+# asymptotics of A[:,j:end] as j -> ∞  
+rightasymptotics(d::Hcat) = last(d.arrays)
+rightasymptotics(d::Vcat) = Vcat(rightasymptotics.(d.arrays)...)
+
 function ql!(B::InfBandedMatrix{TT}) where TT
     l,u = bandwidths(B)
     @assert u == 1
@@ -88,12 +92,11 @@ function ql!(B::InfBandedMatrix{TT}) where TT
     
     # fill in data with L∞
     B̃ = _BandedMatrix(B̃.data, size(data,2)+l, l,u)
-    B̃[size(data,2)+1:end,end-l+1:end] = L∞[l+1:2l,1:l]
-    B̃.data[4,end-1] = L∞[3,1] # fill in L
+    B̃[size(data,2)+1:end,end-l+1:end] = adjoint(Q∞)[2:l+1,1:l+1] * T[l:2l,1:l]
 
     
     # combine finite and infinite data
-    H = Hcat(B̃.data, F∞.factors.data.arrays[2])
+    H = Hcat(B̃.data, rightasymptotics(F∞.factors.data))
     QL(_BandedMatrix(H, ∞, l, 1), Vcat(F.τ, F∞.τ.arrays[2]))
 end
 

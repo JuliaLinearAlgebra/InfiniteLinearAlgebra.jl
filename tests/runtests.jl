@@ -480,6 +480,42 @@ end
     end
 end
 
+
+@testset "Pert faux-periodic QL" begin
+    a = [0.5794879759059747 + 0.0im,0.538107104952824 - 0.951620830938543im,-0.19352887774167749 - 0.3738926065520737im,0.4314153362874331,0.0]
+    T = _BandedMatrix(a*Ones{ComplexF64}(1,∞), ∞, 3,1)
+    Q,L = ql(T)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
+    Qn,Ln = ql(T[1:1001,1:1001])
+    @test Qn[1:10,1:10] ≈ Q[1:10,1:10]
+    @test Ln[1:10,1:10] ≈ L[1:10,1:10]
+
+    f =  [0.0+0.0im        0.522787+0.0im     ; 0.59647-1.05483im    0.538107-0.951621im; -0.193529-0.373893im  -0.193529-0.373893im;
+               0.431415+0.0im        0.431415+0.0im; 0.0+0.0im             0.0+0.0im]
+    A = _BandedMatrix(Hcat(f, a*Ones{ComplexF64}(1,∞)), ∞, 3,1)
+    Q,L = ql(A)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
+    Qn,Ln = ql(A[1:1000,1:1000])
+    @test Qn[1:10,1:10] ≈ Q[1:10,1:10]
+    @test Ln[1:10,1:10] ≈ L[1:10,1:10]
+end
+
+function Toep_L11(T)
+    l,u = bandwidths(T)
+    @assert u == 2
+    # shift by one
+    H = _BandedMatrix(T.data, ∞, l+1, 1)
+    Q1,L1 = ql(H)
+
+    d = Q1[1:3,1]'T[1:1+l,1]
+    ℓ = Q1.factors.data.arrays[2].applied.args[1][2:end] # new L
+    T2 = _BandedMatrix(Hcat([[zero(d); d; ℓ[3:end]] L1[1:5,1]], ℓ*Ones{eltype(T)}(1,∞)), ∞, 3, 1)
+    Q2,L2 = ql(T2)
+    D = (Q2')[1:5,1:4] * (Q1')[1:4,1:3] * T[3:5,1:3]
+    X = [Matrix(T[3:4,1:6]); [zeros(2,2) [-1 0; 0 1]*D[1:2,:] [-1 0; 0 1]*L2[1:2,2]]]
+    ql(X).L[1,3]
+end
+
 @testset "Pentadiagonal Toeplitz" begin
     a = [1,2,5+0im,0.5,0.2]
     T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 2)
@@ -499,7 +535,27 @@ end
     Q2,L2 = ql(T2)
     @test Q2[1:10,1:11]*L2[1:11,1:10] ≈ T2[1:10,1:10]
     @test Q1[1:10,1:11]*Q2[1:11,1:12]*L2[1:12,1:10] ≈ T[1:10,1:10]
+
+    D = (Q2')[1:5,1:4] * (Q1')[1:4,1:3] * T[3:5,1:3]
+    X = real([Matrix(T[3:4,1:6]); [zeros(2,2) [-1 0; 0 1]*D[1:2,:] [-1 0; 0 1]*L2[1:2,2]]])
+    @test ql(X).L[1:2,1:4] ≈ X[3:4,3:end]
+
+    @test L[1,1] ≈ -ql(X).L[1,3]
+    
+    @test abs(L[1,1]) ≈ abs(Toep_L11(T))
+
+
+    a = [1,2,0,0.5,0.2]
+    T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 2)
+    A = T+(5+0im)I
+    @test abs(ql((A)[1:1000,1:100]).L[1,1]) ≈ abs(Toep_L11(A))
+    A = T+(-5+0im)I
+    @test abs(ql((A)[1:1000,1:100]).L[1,1]) ≈ abs(Toep_L11(A))
+
+    A = T+(-5+1im)I
+    @test abs(ql((A)[1:1000,1:100]).L[1,1]) ≈ abs(Toep_L11(A))
 end
+
 
 @testset "bi-infinite" begin
     Δ = BandedMatrix(-2 => Vcat(Float64[],Fill(1.0,∞)), -1 =>Vcat([1.0], Fill(0.0,∞)), 1 => Vcat([1.0], Fill(0.0,∞)), 2 => Vcat(Float64[],Fill(1.0,∞)))
