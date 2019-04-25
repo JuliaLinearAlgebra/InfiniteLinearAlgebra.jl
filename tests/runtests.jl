@@ -1,6 +1,7 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
 import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
-                    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams
+                    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams,
+                    rightasymptotics
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -554,6 +555,63 @@ end
 
     A = T+(-5+1im)I
     @test abs(ql((A)[1:1000,1:100]).L[1,1]) ≈ abs(Toep_L11(A))
+end
+
+function reduceband(A)
+    l,u = bandwidths(A)
+    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+    Q1,L1 = ql(H)
+    D = Q1[1:l+u+1,1:1]'A[1:l+u+1,1:u-1]
+    D, Q1, L1
+end
+
+@testset "3-diagonals" begin
+    A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(5,∞), -1 => Fill(2im,∞))
+    l,u = bandwidths(A)
+    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+    Q1,L1 = ql(H)
+    @test Q1[1:10,1:11] * L1[1:11,1:10] ≈ H[1:10,1:10]
+    @test L1[1:10,1:10] ≈ Q1[1:13,1:10]'H[1:13,1:10]
+
+    @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
+    # to the left of H
+    D1, Q1, L1 = reduceband(A)
+    T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+    l1 = L1[1,1]
+    
+
+    A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
+    @test Q1[1:13,1:10]'A[1:13,1:10] ≈ A2
+    
+
+    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+    D2, Q2, L2 = reduceband(B2)
+    l2 = L2[1,1]
+    T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
+    A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
+    @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
+
+    n,m = 10,10
+    Q̃2 = [1 zeros(1,m-1);  zeros(n-1,1) Q2[1:n-1,1:m-1]]
+    @test norm((Q̃2'A2[:,1:end-2])[band(2)][2:end]) ≤ 10eps() # banded apart from (1,1) entry
+    @test (Q̃2'A2[:,1:end-2])[2:end,2:end] ≈ A3[1:9,1:7]
+    @test (Q̃2'A2[:,1:end-2])[3:end,1] ≈ A3[3:10,1]
+    @test (Q̃2'A2[:,1:end-2])[1:5,1:2] ≈  Q̃2[1:4,1:5]' * [D1; T2[1:size(D1,2)+1,1:2]]
+    @test (Q̃2'A2[:,1:end-2]) ≈ [A2[1,1] A2[1:1,2:8]; [Q2[1:3,1:3]' * T2[1:3,1]; Zeros(10-4)]  A3[1:end-1,1:7] ]
+
+    # fix last entry
+    @test (Q̃2'A2[:,1:3])[1:2,1:3] ≈ [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]] 
+    Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
+    Q̃3 = [Q3 zeros(2, n-2); zeros(n-2,2) I]
+    @test norm((Q̃3'Q̃2'A2[:,1:end-2])[band(2)]) ≤ 10eps()
+
+    @test Q̃3'Q̃2'A2[:,1:end-2] ≈ [L3 zeros(2,8-3); [[Q2[1:3,2:3]' * T2[1:3,1]; Zeros(10-4)] A3[2:end-1,1:7] ] ]
+    
+    fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
+    B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
+    @test B3[1:10,1:8] ≈ Q̃3'Q̃2'A2[:,1:end-2]
+
+    @test ql(B3).L[1,1] ≈ ql(A[1:1000,1:1000]).L[1,1]
 end
 
 
