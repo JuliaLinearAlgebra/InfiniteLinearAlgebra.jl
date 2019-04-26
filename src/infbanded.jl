@@ -49,6 +49,20 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{
 end
 
 
+function BandedMatrix(Ac::Adjoint{T,<:InfToeplitz}) where T
+    A = parent(Ac)
+    l,u = bandwidths(A)
+    a = A.data.applied.args[1]
+    _BandedMatrix(reverse(conj(a)) * Ones{T}(1,∞), ∞, u, l)
+end
+
+function BandedMatrix(Ac::Transpose{T,<:InfToeplitz}) where T
+    A = parent(Ac)
+    l,u = bandwidths(A)
+    a = A.data.applied.args[1]
+    _BandedMatrix(reverse(a) * Ones{T}(1,∞), ∞, u, l)
+end
+
 for op in (:-, :+)
     @eval begin
         function $op(A::SymTriPertToeplitz{T}, λ::UniformScaling) where T 

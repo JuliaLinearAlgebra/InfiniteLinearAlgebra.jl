@@ -1,10 +1,18 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations, Plots
+using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations
 import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams,
                     rightasymptotics
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
+
+function reduceband(A)
+    l,u = bandwidths(A)
+    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+    Q1,L1 = ql(H)
+    D = Q1[1:l+u+1,1:1]'A[1:l+u+1,1:u-1]
+    D, Q1, L1
+end
 
 function householderiterate(Q::AbstractMatrix{T}, n) where T
     ret = Matrix{T}(I,n,n)
@@ -272,7 +280,7 @@ end
     end
 end
 
-@testset "BlockTridiagonal Algebra" begin 
+@testset "Algebra" begin 
     A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
                         Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
                         Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
@@ -288,6 +296,12 @@ end
     @test (A + I)[1:100,1:100] == A[1:100,1:100]+I
     @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
     @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
+
+    A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
+    Ac = BandedMatrix(A')
+    At = BandedMatrix(transpose(A))
+    @test Ac[1:10,1:10] ≈ (A')[1:10,1:10] ≈ A[1:10,1:10]'
+    @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 end
 
 @testset "Toeplitz" begin
@@ -557,27 +571,131 @@ end
     @test abs(ql((A)[1:1000,1:100]).L[1,1]) ≈ abs(Toep_L11(A))
 end
 
-function reduceband(A)
-    l,u = bandwidths(A)
-    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
-    Q1,L1 = ql(H)
-    D = Q1[1:l+u+1,1:1]'A[1:l+u+1,1:u-1]
-    D, Q1, L1
+@testset "3-diagonals" begin
+    @testset "No periodic" begin
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(5,∞), -1 => Fill(2im,∞))
+        l,u = bandwidths(A)
+        H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+        Q1,L1 = ql(H)
+        @test Q1[1:10,1:11] * L1[1:11,1:10] ≈ H[1:10,1:10]
+        @test L1[1:10,1:10] ≈ Q1[1:13,1:10]'H[1:13,1:10]
+
+        @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
+        # to the left of H
+        D1, Q1, L1 = reduceband(A)
+        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+        l1 = L1[1,1]
+        
+
+        A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
+        @test Q1[1:13,1:10]'A[1:13,1:10] ≈ A2
+        
+
+        B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+        D2, Q2, L2 = reduceband(B2)
+        l2 = L2[1,1]
+        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
+        A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
+        @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
+
+        n,m = 10,10
+        Q̃2 = [1 zeros(1,m-1);  zeros(n-1,1) Q2[1:n-1,1:m-1]]
+        @test norm((Q̃2'A2[:,1:end-2])[band(2)][2:end]) ≤ 10eps() # banded apart from (1,1) entry
+        @test (Q̃2'A2[:,1:end-2])[2:end,2:end] ≈ A3[1:9,1:7]
+        @test (Q̃2'A2[:,1:end-2])[3:end,1] ≈ A3[3:10,1]
+        @test (Q̃2'A2[:,1:end-2])[1:5,1:2] ≈  Q̃2[1:4,1:5]' * [D1; T2[1:size(D1,2)+1,1:2]]
+        @test (Q̃2'A2[:,1:end-2]) ≈ [A2[1,1] A2[1:1,2:8]; [Q2[1:3,1:3]' * T2[1:3,1]; Zeros(10-4)]  A3[1:end-1,1:7] ]
+
+        # fix last entry
+        @test (Q̃2'A2[:,1:3])[1:2,1:3] ≈ [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]] 
+        Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
+        Q̃3 = [Q3 zeros(2, n-2); zeros(n-2,2) I]
+        @test norm((Q̃3'Q̃2'A2[:,1:end-2])[band(2)]) ≤ 10eps()
+
+        @test Q̃3'Q̃2'A2[:,1:end-2] ≈ [L3 zeros(2,8-3); [[Q2[1:3,2:3]' * T2[1:3,1]; Zeros(10-4)] A3[2:end-1,1:7] ] ]
+        
+        fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
+        B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
+        @test B3[1:10,1:8] ≈ Q̃3'Q̃2'A2[:,1:end-2]
+
+        @test ql(B3).L[1,1] ≈ ql(A[1:1000,1:1000]).L[1,1]
+    end
+    @testset "periodic" begin
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(0.5-0.1im,∞), -1 => Fill(-2im,∞))
+        l,u = bandwidths(A)
+        H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+        Q1,L1 = ql(H)
+        @test Q1[1:10,1:11] * L1[1:11,1:10] ≈ H[1:10,1:10]
+        @test L1[1:10,1:10] ≈ Q1[1:13,1:10]'H[1:13,1:10]
+
+        @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
+        # to the left of H
+        D1, Q1, L1 = reduceband(A)
+        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+        l1 = L1[1,1]
+        
+        A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
+        @test Q1[1:13,1:10]'A[1:13,1:10] ≈ A2
+        
+        B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+        D2, Q2, L2 = reduceband(B2)
+        l2 = L2[1,1]
+
+        # peroidic tail
+        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).arrays[2], ∞, l+1, u-1)
+        A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
+        @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
+
+        n,m = 10,10
+        Q̃2 = [1 zeros(1,m-1);  zeros(n-1,1) Q2[1:n-1,1:m-1]]
+        @test norm((Q̃2'A2[:,1:end-2])[band(2)][2:end]) ≤ 20eps() # banded apart from (1,1) entry
+        @test (Q̃2'A2[:,1:end-2])[2:end,2:end] ≈ A3[1:9,1:7]
+        @test (Q̃2'A2[:,1:end-2])[3:end,1] ≈ -A3[3:10,1]
+        @test (Q̃2'A2[:,1:end-2])[1:5,1:2] ≈  Q̃2[1:4,1:5]' * [D1; T2[1:size(D1,2)+1,1:2]]
+        @test (Q̃2'A2[:,1:end-2]) ≈ [A2[1,1] A2[1:1,2:8]; [Q2[1:3,1:3]' * T2[1:3,1]; Zeros(10-4)]  A3[1:end-1,1:7] ]
+
+        # fix last entry
+        @test (Q̃2'A2[:,1:3])[1:2,1:3] ≈ [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]] 
+        Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
+        Q̃3 = [Q3 zeros(2, n-2); zeros(n-2,2) I]
+        @test norm((Q̃3'Q̃2'A2[:,1:end-2])[band(2)]) ≤ 50eps()
+
+        @test Q̃3'Q̃2'A2[:,1:end-2] ≈ [L3 zeros(2,8-3); [[Q2[1:3,2:3]' * T2[1:3,1]; Zeros(10-4)] A3[2:end-1,1:7] ] ]
+        
+        fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
+        B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
+        @test B3[1:10,1:8] ≈ Q̃3'Q̃2'A2[:,1:end-2]
+
+        # remove oscillation
+
+        fd_data_s = diagm(0 => (-1).^(0:size(fd_data,1)-1)) * (fd_data * diagm(0 => (-1).^(1:size(fd_data,2))))
+        T3_data_s = (-1)^size(fd_data,2) * (-1).^(1:u+l+1) .* T3.data[:,1]
+        B3_s = _BandedMatrix(Hcat(fd_data_s, T3_data_s*Ones{ComplexF64}(1,∞)), ∞, l+u-1, 1)
+
+        @test diagm(0 => (-1).^(0:9)) * B3[1:10,1:10] ≈ B3_s[1:10,1:10]
+
+        @test ql(B3_s).L[1,1] ≈ ql(A[1:1000,1:1000]).L[1,1]
+    end
 end
+
+_Lrightasymptotics(D::Vcat) = D.arrays[2]
+_Lrightasymptotics(D::ApplyArray) = D.applied.args[1][2:end] * Ones{ComplexF64}(1,∞)
+Lrightasymptotics(L) = _Lrightasymptotics(rightasymptotics(parent(L).data))
 
 function qdL(A)
     l,u = bandwidths(A)
     H = _BandedMatrix(A.data, ∞, l+u-1, 1)
     Q1,L1 = ql(H)
     D1, Q1, L1 = reduceband(A)
-    T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+    T2 = _BandedMatrix(Lrightasymptotics(L1), ∞, l, u)
     l1 = L1[1,1]
     A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]] # TODO: remove
     B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
     B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
     D2, Q2, L2 = reduceband(B2)
     l2 = L2[1,1]
-    T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
+    # peroidic tail
+    T3 = _BandedMatrix(Lrightasymptotics(L2), ∞, l+1, u-1)
     A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]] # TODO: remove
 
     Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
@@ -585,63 +703,33 @@ function qdL(A)
     fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
     B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
 
-    ql(B3).L
+    if T3 isa InfToeplitz
+        ql(B3).L
+    else
+        # remove periodicity
+        fd_data_s = diagm(0 => (-1).^(0:size(fd_data,1)-1)) * (fd_data * diagm(0 => (-1).^(1:size(fd_data,2))))
+        T3_data_s = (-1)^size(fd_data,2) * (-1).^(1:u+l+1) .* T3.data[:,1]
+        B3_s = _BandedMatrix(Hcat(fd_data_s, T3_data_s*Ones{ComplexF64}(1,∞)), ∞, l+u-1, 1)
+        ql(B3_s).L
+    end
 end
 
-@testset "3-diagonals" begin
-    A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(5,∞), -1 => Fill(2im,∞))
-    l,u = bandwidths(A)
-    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
-    Q1,L1 = ql(H)
-    @test Q1[1:10,1:11] * L1[1:11,1:10] ≈ H[1:10,1:10]
-    @test L1[1:10,1:10] ≈ Q1[1:13,1:10]'H[1:13,1:10]
-
-    @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
-    # to the left of H
-    D1, Q1, L1 = reduceband(A)
-    T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
-    l1 = L1[1,1]
-    
-
-    A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
-    @test Q1[1:13,1:10]'A[1:13,1:10] ≈ A2
-    
-
-    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
-    D2, Q2, L2 = reduceband(B2)
-    l2 = L2[1,1]
-    T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
-    A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
-    @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
-
-    n,m = 10,10
-    Q̃2 = [1 zeros(1,m-1);  zeros(n-1,1) Q2[1:n-1,1:m-1]]
-    @test norm((Q̃2'A2[:,1:end-2])[band(2)][2:end]) ≤ 10eps() # banded apart from (1,1) entry
-    @test (Q̃2'A2[:,1:end-2])[2:end,2:end] ≈ A3[1:9,1:7]
-    @test (Q̃2'A2[:,1:end-2])[3:end,1] ≈ A3[3:10,1]
-    @test (Q̃2'A2[:,1:end-2])[1:5,1:2] ≈  Q̃2[1:4,1:5]' * [D1; T2[1:size(D1,2)+1,1:2]]
-    @test (Q̃2'A2[:,1:end-2]) ≈ [A2[1,1] A2[1:1,2:8]; [Q2[1:3,1:3]' * T2[1:3,1]; Zeros(10-4)]  A3[1:end-1,1:7] ]
-
-    # fix last entry
-    @test (Q̃2'A2[:,1:3])[1:2,1:3] ≈ [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]] 
-    Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
-    Q̃3 = [Q3 zeros(2, n-2); zeros(n-2,2) I]
-    @test norm((Q̃3'Q̃2'A2[:,1:end-2])[band(2)]) ≤ 10eps()
-
-    @test Q̃3'Q̃2'A2[:,1:end-2] ≈ [L3 zeros(2,8-3); [[Q2[1:3,2:3]' * T2[1:3,1]; Zeros(10-4)] A3[2:end-1,1:7] ] ]
-    
-    fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
-    B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
-    @test B3[1:10,1:8] ≈ Q̃3'Q̃2'A2[:,1:end-2]
-
-    @test ql(B3).L[1,1] ≈ ql(A[1:1000,1:1000]).L[1,1]
-
-
-    L∞ = qdL(A)[1:10,1:10]
-    Ln = ql(A[1:1000,1:1000]).L[1:10,1:10]
-    @test L∞ .* sign.(diag(L∞)) ≈ Matrix(Ln) .* sign.(diag(Ln))
+@testset "quick-and-dirty L" begin
+    for λ in (5,1,0.1+0.1im,-0.5-0.1im), A in (BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-λ,∞), -1 => Fill(2im,∞)),
+                                        BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-conj(λ),∞), -1 => Fill(-2im,∞)))
+        L∞ = qdL(A)[1:10,1:10]
+        Ln = ql(A[1:1000,1:1000]).L[1:10,1:10]
+        @test L∞ .* sign.(diag(L∞)) ≈ Matrix(Ln) .* sign.(diag(Ln))
+    end
+    for λ in (-3-0.1im, 0.0, -1im)
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-conj(λ),∞), -1 => Fill(-2im,∞))
+        @test abs(qdL(A)[1,1]) ≈ abs(ql(A[1:1000,1:1000]).L[1,1])
+    end
+    for λ in (1+2im,)
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-λ,∞), -1 => Fill(2im,∞))
+        @test_throws DomainError qdL(A)
+    end
 end
-
 
 @testset "bi-infinite" begin
     Δ = BandedMatrix(-2 => Vcat(Float64[],Fill(1.0,∞)), -1 =>Vcat([1.0], Fill(0.0,∞)), 1 => Vcat([1.0], Fill(0.0,∞)), 2 => Vcat(Float64[],Fill(1.0,∞)))

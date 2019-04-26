@@ -1,15 +1,72 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
 import MatrixFactorizations: reflectorApply!, QLPackedQ
-import InfiniteBandedMatrices: blocktailiterate, _ql, qltail
+import InfiniteBandedMatrices: blocktailiterate, _ql, qltail, rightasymptotics
 import BandedMatrices: bandeddata,_BandedMatrix
 
+
+function reduceband(A)
+        l,u = bandwidths(A)
+        H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+        Q1,L1 = ql(H)
+        D = Q1[1:l+u+1,1:1]'A[1:l+u+1,1:u-1]
+        D, Q1, L1
+end
+_Lrightasymptotics(D::Vcat) = D.arrays[2]
+_Lrightasymptotics(D::ApplyArray) = D.applied.args[1][2:end] * Ones{ComplexF64}(1,∞)
+Lrightasymptotics(L) = _Lrightasymptotics(rightasymptotics(parent(L).data))
+
+function qdL(A)
+    l,u = bandwidths(A)
+    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+    Q1,L1 = ql(H)
+    D1, Q1, L1 = reduceband(A)
+    T2 = _BandedMatrix(Lrightasymptotics(L1), ∞, l, u)
+    l1 = L1[1,1]
+    A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]] # TODO: remove
+    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+    D2, Q2, L2 = reduceband(B2)
+    l2 = L2[1,1]
+    # peroidic tail
+    T3 = _BandedMatrix(Lrightasymptotics(L2), ∞, l+1, u-1)
+    A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]] # TODO: remove
+
+    Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
+
+    fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
+    B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
+
+    if T3 isa InfToeplitz
+        ql(B3).L
+    else
+        # remove periodicity
+        fd_data_s = diagm(0 => (-1).^(0:size(fd_data,1)-1)) * (fd_data * diagm(0 => (-1).^(1:size(fd_data,2))))
+        T3_data_s = (-1)^size(fd_data,2) * (-1).^(1:u+l+1) .* T3.data[:,1]
+        B3_s = _BandedMatrix(Hcat(fd_data_s, T3_data_s*Ones{ComplexF64}(1,∞)), ∞, l+u-1, 1)
+        ql(B3_s).L
+    end
+end
 # Bull's head
 A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
 ℓ = λ -> try abs(ql(A-λ*I).L[1,1]) catch DomainError 
             (-1) end
 x,y = range(-4,4; length=200),range(-4,4;length=200)
 z = ℓ.(x' .+ y.*im)
-contourf(x,y,z; nlevels=100)
+contourf(x,y,z; nlevels=100, title="A")
+θ = range(0,2π; length=1000)
+a = z -> 2im/z + z^2 + 7/10 * z^3
+plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
+
+Ac = BandedMatrix(A')
+ℓ = λ -> try abs(qdL(Ac-conj(λ)*I)[1,1]) catch DomainError 
+            (-1.0) end
+x,y = range(-4,4; length=100),range(-4,4;length=100)
+@time z = ℓ.(x' .+ y.*im)
+contourf(x,y,z; nlevels=100, title="A'")
+ℓ(-0.5-0.1im)
+qdL(Ac-(-0.5+0.1im)*I)
+contour(x,y,z)
+
 θ = range(0,2π; length=1000)
 a = z -> 2im/z + z^2 + 7/10 * z^3
 plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
@@ -55,6 +112,8 @@ function Toep_L11(T)
         X = [Matrix(T[3:4,1:6]); [zeros(2,2) [-1 0; 0 1]*D[1:2,:] [-1 0; 0 1]*L2[1:2,2]]]
         ql(X).L[1,3]
 end
+
+
 
 A = BandedMatrix(2 => Fill(1/4,∞), -1 => Fill(1,∞), -2 => Fill(0.0, ∞))
 @time Toep_L11(A-(0.1+0im)I)
