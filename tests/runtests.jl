@@ -30,6 +30,20 @@ function householderiterate(Q1::AbstractMatrix{T}, Q2::AbstractMatrix{T}, n) whe
     ret
 end
 
+function householderiterate(Q3::AbstractMatrix{T}, Q1::AbstractMatrix{T}, Q2::AbstractMatrix{T}, n) where T
+    ret = Matrix{T}(I,n,n)
+    for j = n-1:-1:1
+        if mod(j,3) == 0
+            ret[j:j+1,:] = Q1*ret[j:j+1,:]
+        elseif mod(j,3) == 1
+            ret[j:j+1,:] = Q2*ret[j:j+1,:]
+        else
+            ret[j:j+1,:] = Q3*ret[j:j+1,:]
+        end
+    end
+    ret
+end
+
 @testset "Householder combine" begin
     @testset "sign = -1" begin
         σ = -0.9998783597231515 + 0.01559697910943707im
@@ -65,7 +79,7 @@ end
         @test [-s 0; 0 1/s] * Qt2 * [s 0 ; 0 -1/s]  ≈ Q̃' ≈ I - t'*[ω,1]*[ω,1]'
 
         # [-σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) 1-τ]
-        # [-z*σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v) (1-τ)/z]
+        # [-z*σ*(1-τ*abs2(v)) -σ*τ*v; τ*conj(v)*(1-τ)/z]
 
         @test (1-τ) ≈ (1-t')*z
         @test -z*σ*(1-τ*abs2(v)) ≈ 1-t'*abs2(ω)
@@ -171,7 +185,7 @@ end
         @test L[1:10,1:10] ≈  Ln[1:10,1:10]
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
     end
-    @testset "to be determined error" begin
+    @testset "periodic 1" begin
         A = BandedMatrix(-2 => Fill(1/4,∞), 1 => Fill(1,∞))-im*I
         n = 1000; Qn,Ln = ql(A[1:n,1:n])
         a = reverse(A.data.applied.args[1])
@@ -273,6 +287,138 @@ end
         L∞11 = -X[1,end-1]
         L∞21 = -X[2,end-1]
         Q∞12 = -t1*ω1
+        @test Qn.τ[1] ≈ (Q∞12 * L∞21 - A[1,1])/(L∞11*Q∞11) + 1
+
+        Q∞, L∞ = ql(A)
+        @test Q∞[1:10,1:11] * L∞[1:11,1:10] ≈ A[1:10,1:10]
+    end
+    @testset "3-periodic" begin
+        ain =    [ -2.531640004434771-0.0im , 0.36995310821558014+2.5612894011525276im, -0.22944284364953327+0.39386202384951985im, -0.2700241133710857 + 0.8984628598798804im, 4.930380657631324e-32 + 0.553001215633963im ]
+        l = 3
+        A = _BandedMatrix(ain * Ones{ComplexF64}(1,∞), ∞, l, 1)
+        n = 1000; Qn,Ln = ql(A[1:n,1:n])
+        a = reverse(A.data.applied.args[1])
+        de = tail_de(a)
+        X =  [transpose(a); 0 transpose(de)]
+        F = ql_X!(copy(X))
+        @test F.factors[1,1:end-1] ≈ de
+        @test F.factors[2,:] ≈ Ln[l+2,1:l+2]
+        @test F.factors[2,:] ≈ -Ln[l+3,2:l+3]
+
+        (σ,τ,v) = householderparams(F)
+        H = I - τ *[v,1]*[v,1]'   
+        @test H ≈ QLPackedQ([NaN v; NaN NaN], [0,τ])
+        Qt = [σ 0; 0 1] * H
+        @test Qt ≈ F.Q'
+        @test  (householderiterate(Qt, 11)' * diagm(0 => [1; mortar(Fill([1,-1,-1],4))[1:10]]))[1:10,1:10] ≈ Qn[1:10,1:10]
+
+
+        t1, ω1 = Qn.τ[2], Qn.factors[1,2]
+        Q1 = QLPackedQ([NaN ω1; NaN NaN], [0, t1])
+        t2, ω2 = Qn.τ[3], Qn.factors[2,3]
+        Q2 = QLPackedQ([NaN ω2; NaN NaN], [0, t2])
+        t3, ω3 = Qn.τ[4], Qn.factors[3,4]
+        Q3 = QLPackedQ([NaN ω3; NaN NaN], [0, t3])
+
+        @test abs.(householderiterate(Q3', Q2', Q1', 11)')[1:10,1:10] ≈ abs.(Qn[1:10,1:10])
+        @test abs.(householderiterate(Q1', Q2', Q3', 11)')[1:10,1:10] ≈ abs.(Qn[1:10,1:10])
+        @test abs.(householderiterate(Q2', Q3', Q1', 11)')[1:10,1:10] ≈ abs.(Qn[1:10,1:10])
+
+        # remove last 
+        Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
+        @test Q̃n[1:10,1:10] ≈ (householderiterate(Q2', Q3', Q1', 15)')[1:10,1:10]
+        
+        S1 = [1 0; 0 -1] * Qt * [1 0; 0 -1]
+        @test S1 ≈ [σ 0; 0 1] * (I - τ *[-v,1]*[-v,1]')
+        S2 = [-1 0; 0 -1] * Qt * [1 0; 0 -1]
+        @test S2 ≈ [-σ 0; 0 1] * (I - τ *[-v,1]*[-v,1]')
+        S3 = [-1 0; 0 1] * Qt 
+        @test S3 ≈ [-σ 0; 0 1] * (I - τ *[v,1]*[v,1]')
+        @test (diagm(0 => [-1; Ones(10)]) * householderiterate(S1, S2, S3, 11))'[1:10,1:10] ≈ Qn[1:10,1:10]
+
+        s1 = sign(S1[1,1]/Q2[1,1]')
+        s2 = sign(Q2[2,2]')
+        s3 = sign(Q3[2,2]')
+        @test [s1 0; 0 1] * Q2' * [1 0; 0 -1/s2] ≈ S1
+        @test [-s2 0; 0 1] * Q3' * [1 0 ; 0 -1/s3] ≈ S2
+        @test [-s3 0; 0 1] * Q1' * [1 0 ; 0 1/s1] ≈ S3
+
+
+        @test (1-τ)*(-s2) ≈ 1-t2'  # [2,2] entry (1)
+        @test (1-τ)*s1 ≈ 1-t1'
+        @test (1-τ)*(-s3) ≈ 1-t3'
+        @test -1/s1 * (-σ) * (1-τ*abs2(v)) ≈ 1-t2' * abs2(ω2) # [1,1] entry (4)
+        @test 1/s2 * (σ) * (1-τ*abs2(v)) ≈ 1-t3' * abs2(ω3) # [1,1] entry
+        @test 1/s3 * (σ) * (1-τ*abs2(v)) ≈ 1-t1' * abs2(ω1) # [1,1] entry
+        @test 1/s1 * (-s2) * (σ*τ*v) ≈ -t2' * ω2 # (7)
+        @test 1/s2 * (-s3) * (σ*τ*v) ≈ -t3' * ω3
+        @test 1/s3 * (-s1) * (σ*τ*v) ≈ -t1' * ω1
+        @test τ*v ≈ -t2'*ω2' # (10)
+        @test τ*v ≈ t1'*ω1'
+        @test τ*v ≈ -t3'*ω3'
+
+        
+
+        @test σ * (1-τ*abs2(v)) ≈ s1 - s2 * (σ*τ*v) * ω2'  # (13) = (4) & (7)
+        @test σ * (1-τ*abs2(v)) ≈ s2 - s3 * (σ*τ*v) * ω3'  # (14) = (5) & (8)
+        @test σ * (1-τ*abs2(v)) ≈ s3 - s1 * (σ*τ*v)  * ω1' # (15) = (6) & (9)
+
+        @test (τ*v)/(-(1-(1-τ)*(-s2) )) ≈ ω2' # (16) = (10) & (1)
+        @test (τ*v)/((1-(1-τ)*(s1) )) ≈ ω1' 
+        @test (τ*v)/(-(1-(1-τ)*(-s3) )) ≈ ω3' 
+
+        @test σ * (1-τ*abs2(v)) ≈ s1 - s2 * (σ*τ*v) * (τ*v)/(-(1-(1-τ)*(-s2) )) #  (19) = (16) & (13)
+        @test σ * (1-τ*abs2(v)) ≈ s2 - s3 * (σ*τ*v) * (τ*v)/(-(1-(1-τ)*(-s3) )) 
+        @test σ * (1-τ*abs2(v)) ≈ s3 - s1 * (σ*τ*v) * (τ*v)/((1-(1-τ)*(s1) )) 
+
+        α = σ * (1-τ*abs2(v))
+        β = α - τ*σ
+        @test α  + β*s2  ≈ s1 + (1-τ)*s1*s2 
+        @test  α + β*s3  ≈ s2 + (1-τ)*s2*s3  
+        @test  α - β*s1  ≈ s3 - (1-τ)*s1*s3  
+
+        # from Mathematica
+        @test s1 ≈ -((1 + 3α + 3*α*β + β^3 - 3*α*τ - 3*α*β*τ - sqrt((1 + β^3 - 3*α*(1 + β)*(-1 + τ))^2 + 4*α*(-1 + τ)*(1 + α + β + β^2 - α*τ)^2))/(2*(-1 + τ)*(1 + α + β + β^2 - α*τ)))
+        @test s2 ≈ -((1 - α - α*β + β^3 + α*τ + α*β*τ - sqrt((1 + β^3 - 3*α*(1 + β)*(-1 + τ))^2 + 4*α*(-1 + τ)*(1 + α + β + β^2 - α*τ)^2))/(2*(-1 + β + β^2 + α*(-1 + τ))*(-1 + τ)))
+        @test s3 ≈ (1 - α - α*β + β^3 + α*τ + α*β*τ - sqrt((1 + β^3 - 3*α*(1 + β)*(-1 + τ))^2 + 4*α*(-1 + τ)*(1 + α + β + β^2 - α*τ)^2))/(2*(1 + β - β^2 + α*(-1 + τ))*(-1 + τ))
+
+        @test t2' ≈ 1-(1-τ)*(-s2) # (1)
+        @test t1' ≈ 1-(1-τ)*s1 # (2)
+        @test t3' ≈ 1+(1-τ)*s3 # (3)
+            
+        @test ω1' ≈ τ*v/t1'  # (11)
+        @test ω2' ≈ -τ*v / t2'
+        @test ω3' ≈ -τ*v / t3'
+
+        X = F.factors
+        m = size(X,2)
+        μ = mortar(Fill([1 -1 -1], 1, ∞))
+        μ0 = mortar(Fill([1 0 0], 1, ∞))
+        μ1 = mortar(Fill([0 1 0], 1, ∞))
+        μ2 = mortar(Fill([0 0 1], 1, ∞))
+
+        data = Hcat([X[1,end-1]; μ[1,1:m-1] .* X[2,end-1:-1:1]], ApplyArray(*, [μ[1,1:m].*X[2,end:-1:1] μ[1,2:m+1].*X[2,end:-1:1] μ[1,3:m+2].*X[2,end:-1:1]], Vcat(μ0,μ1,μ2)))
+        L∞ = _BandedMatrix(data,∞,m-1,0)
+        @test L∞[1:10,1:10] ≈ Ln[1:10,1:10]
+
+        Q∞11 = 1 - ω1*t1*conj(ω1)  # Q[1,1] without the callowing correction
+        Q̃n = QLPackedQ(Qn.factors, [0; Qn.τ[2:end]])
+        @test Q∞11 ≈ Q̃n[1,1]
+
+        data2 = Vcat(Hcat(0.0+0im, mortar(Fill([ω1 ω2 ω3],1,∞))), data)
+        factors = _BandedMatrix(data2,∞,m-1,1)
+        Q̃∞ = QLPackedQ(factors, Vcat(0.0+0im,mortar(Fill([t1,t2,t3],∞))))
+        @test Q̃∞[1:10,1:10] ≈ Q̃n[1:10,1:10]
+
+        @test Q̃∞[1:10,1:11]*L∞[1:11,2:10] ≈ A[1:10,2:10]
+
+        @test (1-Qn.τ[1])*Q̃∞[1,1] * L∞[1,1] + Q̃∞[1,2] * L∞[2,1] ≈ A[1,1]
+        L∞11 = X[1,end-1]
+        @test L∞11 ≈ Ln[1,1]
+        L∞21 = X[2,end-1]
+        @test L∞21 ≈ Ln[2,1]
+        Q∞12 = -t1*ω1
+        @test Q∞12 ≈ Qn[1,2]
         @test Qn.τ[1] ≈ (Q∞12 * L∞21 - A[1,1])/(L∞11*Q∞11) + 1
 
         Q∞, L∞ = ql(A)
@@ -446,9 +592,13 @@ end
     for T in (BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5,∞), 1 => Fill(0.25,∞)),
                 BandedMatrix(-2 => Fill(1/4,∞), 1 => Fill(1,∞))-im*I)
         Q,L = ql(T)
-        Qn,Ln = ql(T[1:1000,1:1000])
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
     end
+
+    a =    [ -2.531640004434771-0.0im , 0.36995310821558014+2.5612894011525276im, -0.22944284364953327+0.39386202384951985im, -0.2700241133710857 + 0.8984628598798804im, 4.930380657631324e-32 + 0.553001215633963im ] 
+    T = _BandedMatrix(a * Ones{ComplexF64}(1,∞), ∞, 3, 1)
+    Q,L = ql(T)
+    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
 end
 
 @testset "Pert Hessenberg Toeplitz" begin
@@ -676,6 +826,61 @@ end
 
         @test ql(B3_s).L[1,1] ≈ ql(A[1:1000,1:1000]).L[1,1]
     end
+
+    @testset "3rd case" begin
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(3-0.1im,∞), -1 => Fill(-2im,∞))
+        l,u = bandwidths(A)
+        H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+        Q1,L1 = ql(H)
+        @test Q1[1:10,1:11] * L1[1:11,1:10] ≈ H[1:10,1:10]
+        @test L1[1:10,1:10] ≈ Q1[1:13,1:10]'H[1:13,1:10]
+
+        @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
+        # to the left of H
+        D1, Q1, L1 = reduceband(A)
+        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+        l1 = L1[1,1]
+        
+        A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
+        @test Q1[1:13,1:10]'A[1:13,1:10] ≈ A2
+        
+        B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+        D2, Q2, L2 = reduceband(B2)
+        l2 = L2[1,1]
+
+        # peroidic tail
+        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
+        A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
+        @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
+
+        n,m = 10,10
+        Q̃2 = [1 zeros(1,m-1);  zeros(n-1,1) Q2[1:n-1,1:m-1]]
+        @test norm((Q̃2'A2[:,1:end-2])[band(2)][2:end]) ≤ 20eps() # banded apart from (1,1) entry
+        @test (Q̃2'A2[:,1:end-2])[2:end,2:end] ≈ A3[1:9,1:7]
+        @test (Q̃2'A2[:,1:end-2])[3:end,1] ≈ A3[3:10,1] # swapped sign
+        @test (Q̃2'A2[:,1:end-2])[1:5,1:2] ≈  Q̃2[1:4,1:5]' * [D1; T2[1:size(D1,2)+1,1:2]]
+        @test (Q̃2'A2[:,1:end-2]) ≈ [A2[1,1] A2[1:1,2:8]; [Q2[1:3,1:3]' * T2[1:3,1]; Zeros(10-4)]  A3[1:end-1,1:7] ]
+
+        # fix last entry
+        @test (Q̃2'A2[:,1:3])[1:2,1:3] ≈ [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]] 
+        Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
+        Q̃3 = [Q3 zeros(2, n-2); zeros(n-2,2) I]
+        @test norm((Q̃3'Q̃2'A2[:,1:end-2])[band(2)]) ≤ 50eps()
+
+        @test Q̃3'Q̃2'A2[:,1:end-2] ≈ [L3 zeros(2,8-3); [[Q2[1:3,2:3]' * T2[1:3,1]; Zeros(10-4)] A3[2:end-1,1:7] ] ]
+        
+        fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
+        B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
+        @test B3[1:10,1:8] ≈ Q̃3'Q̃2'A2[:,1:end-2]
+
+        # test tail
+        T4 = _BandedMatrix(T3.data, ∞, l+u-1,1)
+        Q4, L4 = ql(T4)
+        @test Q4[1:10,1:11]*L4[1:11,1:10] ≈ T4[1:10,1:10]
+
+        @test ql(B3).L[1,1] ≈ ql(B3[1:10000,1:10000]).L[1,1]
+        @test abs(ql(B3).L[1,1]) ≈ abs(ql(A[1:10000,1:10000]).L[1,1])
+    end
 end
 
 _Lrightasymptotics(D::Vcat) = D.arrays[2]
@@ -690,7 +895,6 @@ function qdL(A)
     T2 = _BandedMatrix(Lrightasymptotics(L1), ∞, l, u)
     l1 = L1[1,1]
     A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]] # TODO: remove
-    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
     B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
     D2, Q2, L2 = reduceband(B2)
     l2 = L2[1,1]
@@ -722,8 +926,9 @@ end
         @test L∞ .* sign.(diag(L∞)) ≈ Matrix(Ln) .* sign.(diag(Ln))
     end
     for λ in (-3-0.1im, 0.0, -1im)
+        @show λ
         A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-conj(λ),∞), -1 => Fill(-2im,∞))
-        @test abs(qdL(A)[1,1]) ≈ abs(ql(A[1:1000,1:1000]).L[1,1])
+        @test abs(qdL(A)[1,1]) ≈ abs(ql(A[1:10000,1:10000]).L[1,1])
     end
     for λ in (1+2im,)
         A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-λ,∞), -1 => Fill(2im,∞))
