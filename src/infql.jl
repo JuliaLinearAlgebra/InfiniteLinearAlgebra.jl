@@ -76,11 +76,6 @@ function ql!(B::InfBandedMatrix{TT}) where TT
     T = toeptail(B)
     # Tail QL
     F∞ = ql(T)
-
-    # Unwind sign change
-    σ = 1- F∞.τ[1]
-    F∞.factors[1,1] *= σ
-    F∞ = QL(F∞.factors, Vcat(zero(TT),F∞.τ.arrays[2]))
     Q∞, L∞ = F∞
 
     # populate finite data and do ql!
@@ -97,7 +92,7 @@ function ql!(B::InfBandedMatrix{TT}) where TT
     
     # combine finite and infinite data
     H = Hcat(B̃.data, rightasymptotics(F∞.factors.data))
-    QL(_BandedMatrix(H, ∞, l, 1), Vcat(F.τ, F∞.τ.arrays[2]))
+    QLHessenberg(_BandedMatrix(H, ∞, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
 end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =

@@ -147,8 +147,9 @@ function householderparams(F)
 end
 
 # Convert to LAPAck format
+# There are several cases, it may not always work
 function QL(QLin::QLHessenberg{T,<:InfBandedMatrix{T}}) where T
-    # F = QLin.q[1].τ
+    F = QL(QLin.q[1].factors, QLin.q[1].τ) # The q stores the original iterated factorization
     σ,τ,v = householderparams(F) # parameters for fixed point householder
     s,t,ω = combine_two_Q(σ,τ,v) # combined two Qs into one, these are the parameteris
     if isnan(t) || isnan(ω) # NaN is returned if can't be combined as Toeplitz, so we try periodic Toeplitz

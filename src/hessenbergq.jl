@@ -123,7 +123,7 @@ getindex(Q::LowerHessenbergQ, i::Integer, j::Integer) = (Q')[j,i]'
 
 
 ###
-# QLPackedQ, QRPackedQ -> Lower/UpperHessenbergQ
+# QLPackedQ, QRPackedQ <-> Lower/UpperHessenbergQ
 ###
 
 function UpperHessenbergQ(Q::QRPackedQ{T}) where T
