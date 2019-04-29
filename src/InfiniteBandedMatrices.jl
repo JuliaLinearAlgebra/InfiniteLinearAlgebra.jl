@@ -1,13 +1,17 @@
 module InfiniteBandedMatrices
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
-import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size
+import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size,
+            AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector,
+            show, getproperty
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular, AbstractQ, adjoint, transpose
+import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular, AbstractQ, adjoint, transpose,
+                        QR
 import LazyArrays: CachedArray, VecMulMat, DenseColumnMajor, FillLayout, ApplyMatrix
-import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
+import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!,
+                            QL
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
 

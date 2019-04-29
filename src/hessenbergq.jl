@@ -1,6 +1,64 @@
 isorthogonal(::AbstractQ) = true
 isorthogonal(q) = q'q ≈ I
 
+
+struct QLHessenberg{T,S<:AbstractMatrix{T},QT<:AbstractVector{<:AbstractMatrix{T}}} <: Factorization{T}
+    factors::S
+    q::QT
+
+    function QLHessenberg{T,S,QT}(factors, q) where {T,S<:AbstractMatrix{T},QT<:AbstractVector{<:AbstractMatrix{T}}}
+        require_one_based_indexing(factors)
+        new{T,S,QT}(factors, q)
+    end
+end
+
+QLHessenberg(factors::AbstractMatrix{T}, q::AbstractVector{<:AbstractMatrix{T}}) where {T} = QLHessenberg{T,typeof(factors),typeof(q)}(factors, q)
+QLHessenberg{T}(factors::AbstractMatrix, q::AbstractVector) where {T} =
+    QLHessenberg(convert(AbstractMatrix{T}, factors), convert.(AbstractMatrix{T}, q))
+
+# iteration for destructuring into components
+Base.iterate(S::QLHessenberg) = (S.Q, Val(:L))
+Base.iterate(S::QLHessenberg, ::Val{:L}) = (S.L, Val(:done))
+Base.iterate(S::QLHessenberg, ::Val{:done}) = nothing
+
+QLHessenberg{T}(A::QLHessenberg) where {T} = QLHessenberg(convert(AbstractMatrix{T}, A.factors), convert.(AbstractMatrix{T}, A.q))
+Factorization{T}(A::QLHessenberg{T}) where {T} = A
+Factorization{T}(A::QLHessenberg) where {T} = QLHessenberg{T}(A)
+AbstractMatrix(F::QLHessenberg) = F.Q * F.L
+AbstractArray(F::QLHessenberg) = AbstractMatrix(F)
+Matrix(F::QLHessenberg) = Array(AbstractArray(F))
+Array(F::QLHessenberg) = Matrix(F)
+
+function show(io::IO, mime::MIME{Symbol("text/plain")}, F::QLHessenberg)
+    summary(io, F); println(io)
+    println(io, "Q factor:")
+    show(io, mime, F.Q)
+    println(io, "\nL factor:")
+    show(io, mime, F.L)
+end
+
+@inline function getL(F::QLHessenberg, _) 
+    m, n = size(F)
+    tril!(getfield(F, :factors)[end-min(m,n)+1:end, 1:n], max(n-m,0))
+end
+@inline getQ(F::QLHessenberg, _) = LowerHessenbergQ(F.q)
+
+getL(F::QLHessenberg) = getL(F, axes(F.factors))
+getQ(F::QLHessenberg) = getQ(F, axes(F.factors))
+
+function getproperty(F::QLHessenberg, d::Symbol)
+    if d == :L
+        return getL(F)
+    elseif d == :Q
+        return getQ(F)
+    else
+        getfield(F, d)
+    end
+end
+
+Base.propertynames(F::QLHessenberg, private::Bool=false) =
+    (:L, :Q, (private ? fieldnames(typeof(F)) : ())...)
+
 abstract type AbstractHessenbergQ{T} <: AbstractQ{T} end
 
 for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
@@ -20,6 +78,8 @@ for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
 end
 
 size(Q::AbstractHessenbergQ, k::Integer) = length(Q.q)+1
+size(F::QLHessenberg, dim::Integer) = size(getfield(F, :factors), dim)
+size(F::QLHessenberg) = size(getfield(F, :factors))
 
 bandwidths(Q::UpperHessenbergQ) = (1,size(Q,2)-1)
 bandwidths(Q::LowerHessenbergQ) = (size(Q,1)-1,1)
@@ -50,7 +110,7 @@ end
 
 
 ###
-# Infinite
+# getindex
 ####
 
 function getindex(Q::UpperHessenbergQ, i::Integer, j::Integer)
@@ -60,3 +120,28 @@ function getindex(Q::UpperHessenbergQ, i::Integer, j::Integer)
 end
 
 getindex(Q::LowerHessenbergQ, i::Integer, j::Integer) = (Q')[j,i]'
+
+
+###
+# QLPackedQ, QRPackedQ -> Lower/UpperHessenbergQ
+###
+
+function UpperHessenbergQ(Q::QRPackedQ{T}) where T
+    @assert bandwidth(Q.factors,1) == 1
+    q = Vector{Matrix{T}}()
+    for j = 1:length(Q.τ)-2
+        push!(q, QRPackedQ(Q.factors[j:j+1,j:j+1], [Q.τ[j],zero(T)]))
+    end
+    push!(q, QRPackedQ(Q.factors[end-1:end,end-1:end], Q.τ[end-1:end]))
+    UpperHessenbergQ(q)
+end
+
+function LowerHessenbergQ(Q::QLPackedQ{T}) where T
+    @assert bandwidth(Q.factors,2) == 1
+    q = Vector{Matrix{T}}()
+    push!(q, QLPackedQ(Q.factors[1:2,1:2], Q.τ[1:2]))
+    for j = 2:length(Q.τ)-1
+        push!(q, QLPackedQ(Q.factors[j:j+1,j:j+1], [zero(T),Q.τ[j+1]]))
+    end
+    LowerHessenbergQ(q)
+end

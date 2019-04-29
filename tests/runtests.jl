@@ -453,15 +453,6 @@ end
 end
 
 @testset "Toeplitz" begin
-    for (Z,A,B) in ((2.0,5.1,0.5), (2.0,2.2,0.5), (2.0,-2.2,0.5), (2.0,-5.1,0.5),
-                    (0.5,5.1,2.0),  (0.5,-5.1,2.0))
-        n = 100_000; T = Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)); Qn,Ln = ql(BandedMatrix(T)[1:n,1:n]);
-        Q,L = ql(T)
-        @test L[1:10,1:10] ≈ Ln[1:10,1:10]
-        @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
-        @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
-    end
-
     for (Z,A,B) in ((2,2.1+0.01im,0.5),) # (2,-0.1+0.1im,0.5))
         n = 1_000; T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞)); Q,L = ql(BandedMatrix(T)[1:n,1:n]);
         d,e = tail_de([Z,A,B])
@@ -491,25 +482,6 @@ end
         @test Q∞[1:10,1:10] ≈ Q[1:10,1:10]
         @test L∞[1:10,1:10] ≈ L[1:10,1:10]
         @test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
-    end
-
-    for (Z,A,B)  in ((2,5.0im,0.5),
-                    (2,2.1+0.1im,0.5),
-                    (2,2.1-0.1im,0.5),
-                    (2,1.5+0.1im,0.5),
-                    (2,1.5+0.0im,0.5),
-                    (2,1.5-0.0im,0.5),
-                    (2,0.0+0.0im,0.5),
-                    (2,-0.1+0.1im,0.5),
-                    (2,-1.1+0.1im,0.5),
-                    (2,-0.1-0.1im,0.5))
-        T = Tridiagonal(Fill(ComplexF64(Z),∞), Fill(ComplexF64(A),∞), Fill(ComplexF64(B),∞))
-        Q,L = ql(T)
-        @test Q[1:10,1:12] * L[1:12,1:10] ≈ T[1:10,1:10]
-    end
-
-    for (Z,A,B) in ((0.5,2.1,2.0),(0.5,-1.1,2.0))
-        @test_throws DomainError ql(Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞))) 
     end
 end
 
@@ -575,31 +547,11 @@ end
     @test ql(X).τ[2] ≈ Q.τ[2]
 
     @test T isa InfToeplitz
-    
-    F = ql(T)
-    @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
-
-    a = [1,2,3+im,0.5] 
-    T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 1)
-    Q,L = ql(T)
-    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
-    @test T isa InfToeplitz
 
     T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5+eps()im,∞), 1 => Fill(0.25,∞))
-    Q,L = ql(T)
+    Q,L = QL(ql(T))
     Qn,Ln = ql(T[1:1000,1:1000])
     @test Qn.τ[1:10] ≈ Q.τ[1:10]
-    @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
-
-    for T in (BandedMatrix(-2 => Fill(1,∞), 0 => Fill(0.5,∞), 1 => Fill(0.25,∞)),
-                BandedMatrix(-2 => Fill(1/4,∞), 1 => Fill(1,∞))-im*I)
-        Q,L = ql(T)
-        @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
-    end
-
-    a =    [ -2.531640004434771-0.0im , 0.36995310821558014+2.5612894011525276im, -0.22944284364953327+0.39386202384951985im, -0.2700241133710857 + 0.8984628598798804im, 4.930380657631324e-32 + 0.553001215633963im ] 
-    T = _BandedMatrix(a * Ones{ComplexF64}(1,∞), ∞, 3, 1)
-    Q,L = ql(T)
     @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
 end
 

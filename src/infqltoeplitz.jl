@@ -26,6 +26,44 @@ function tail_de(a::AbstractVector{T}) where T
     c_sgn*c_abs*V[end:-1:1,j]    
 end
 
+
+# this calculates the QL decomposition of X and corrects sign
+function ql_X!(X)
+    s = sign(real(X[2,end])) 
+    F = ql!(X)
+    if s ≠ sign(real(X[1,end-1])) # we need to normalise the sign if ql! flips it
+        F.τ[1] = 2 - F.τ[1] # 1-F.τ[1] is the sign so this flips it
+        X[1,1:end-1] *= -1
+    end
+    F
+end
+
+
+
+
+function ql(Op::TriToeplitz{T}) where T<:Real
+    Z,A,B = Op.dl.value, Op.d.value, Op.du.value
+    d,e = tail_de([Z,A,B]) # fixed point of QL but with two Qs, one that changes sign
+    X = [Z A B; zero(T) d e]
+    F = ql_X!(X)
+    t,ω = F.τ[2],X[1,end]
+    QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
+end
+
+ql(Op::TriToeplitz{T}) where T = ql(InfToeplitz(Op))
+
+function ql(A::InfToeplitz{T}) where T
+    l,u = bandwidths(A)
+    @assert u == 1
+    a = reverse(A.data.applied.args[1])
+    de = tail_de(a)
+    X = [transpose(a); zero(T) transpose(de)]::Matrix{T}
+    F = ql_X!(X) # calculate data for fixed point
+    factors = _BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [0; X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1)
+    QLHessenberg(factors, Fill(F.Q,∞))
+end
+
+
 ###
 # We have a fixed point to normalized Householder
 #
@@ -100,18 +138,6 @@ function tri_periodic_combine_two_Q(σ,τ,v)
     (t1,t2,t3),(ω1,ω2,ω3)
 end
 
-
-# this calculates the QL decomposition of X and corrects sign
-function ql_X!(X)
-    s = sign(real(X[2,end])) 
-    F = ql!(X)
-    if s ≠ sign(real(X[1,end-1])) # we need to normalise the sign if ql! flips it
-        F.τ[1] = 2 - F.τ[1] # 1-F.τ[1] is the sign so this flips it
-        X[1,1:end-1] *= -1
-    end
-    F
-end
-
 # gives parameters for 2x2 Householder Q'
 function householderparams(F)
     σ = conj(1 - F.τ[1])
@@ -120,25 +146,9 @@ function householderparams(F)
     σ, τ, v
 end
 
-
-function ql(Op::TriToeplitz{T}) where T<:Real
-    Z,A,B = Op.dl.value, Op.d.value, Op.du.value
-    d,e = tail_de([Z,A,B]) # fixed point of QL but with two Qs, one that changes sign
-    X = [Z A B; zero(T) d e]
-    F = ql_X!(X)
-    t,ω = F.τ[2],X[1,end]
-    QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
-end
-
-ql(Op::TriToeplitz{T}) where T = ql(InfToeplitz(Op))
-
-function ql(A::InfToeplitz{T}) where T
-    l,u = bandwidths(A)
-    @assert u == 1
-    a = reverse(A.data.applied.args[1])
-    de = tail_de(a)
-    X = [transpose(a); zero(T) transpose(de)]::Matrix{T}
-    F = ql_X!(X) # calculate data for fixed point
+# Convert to LAPAck format
+function QL(QLin::QLHessenberg{T,<:InfBandedMatrix{T}}) where T
+    # F = QLin.q[1].τ
     σ,τ,v = householderparams(F) # parameters for fixed point householder
     s,t,ω = combine_two_Q(σ,τ,v) # combined two Qs into one, these are the parameteris
     if isnan(t) || isnan(ω) # NaN is returned if can't be combined as Toeplitz, so we try periodic Toeplitz
