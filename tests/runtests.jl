@@ -6,6 +6,8 @@ import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
 
+include("test_hessenbergq.jl")
+
 function reduceband(A)
     l,u = bandwidths(A)
     H = _BandedMatrix(A.data, ∞, l+u-1, 1)

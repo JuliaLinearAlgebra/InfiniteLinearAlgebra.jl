@@ -106,6 +106,8 @@ getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
 getL(Q::QL, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
 
 # number of structural non-zeros in axis k
+nzzeros(A::AbstractArray, k) = size(A,k)
+nzzeros(::Zeros, k) = 0
 nzzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
 nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
 function nzzeros(B::AbstractMatrix, k) 
@@ -123,26 +125,24 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     Afactors = A.factors
     l,u = bandwidths(Afactors)
     D = Afactors.data
-    begin
-        for k = 1:∞
-            ν = k
-            allzero = k > nzzeros(B,1) ? true : false
-            for j = 1:nB
-                vBj = B[k,j]
-                for i = max(1,ν-u):k-1
-                    if !iszero(B[i,j])
-                        allzero = false
-                        vBj += conj(D[i-ν+u+1,ν])*B[i,j]
-                    end
-                end
-                vBj = A.τ[k]*vBj
-                B[k,j] -= vBj
-                for i = max(1,ν-u):k-1
-                    B[i,j] -= D[i-ν+u+1,ν]*vBj
+    for k = 1:∞
+        ν = k
+        allzero = k > nzzeros(B,1) ? true : false
+        for j = 1:nB
+            vBj = B[k,j]
+            for i = max(1,ν-u):k-1
+                if !iszero(B[i,j])
+                    allzero = false
+                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
                 end
             end
-            allzero && break
+            vBj = A.τ[k]*vBj
+            B[k,j] -= vBj
+            for i = max(1,ν-u):k-1
+                B[i,j] -= D[i-ν+u+1,ν]*vBj
+            end
         end
+        allzero && break
     end
     B
 end

@@ -1,17 +1,17 @@
 module InfiniteBandedMatrices
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
-import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row
+import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange
 import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
-import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular
+import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: CachedArray, VecMulMat, DenseColumnMajor, FillLayout, ApplyMatrix
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
 
-import BandedMatrices: BandedMatrix
+import BandedMatrices: BandedMatrix, bandwidths
 
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSizes, cumulsizes, _BlockSkylineMatrix, BlockSizes, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
@@ -28,7 +28,7 @@ end
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
-
+include("hessenbergq.jl")
 
 include("infbanded.jl")
 include("infblocktridiagonal.jl")
