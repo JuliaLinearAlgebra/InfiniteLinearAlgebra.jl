@@ -107,3 +107,45 @@ end
     @test Qn[1:10,1:10] * diagm(0 => [Ones(5); -(-1).^(1:5)]) ≈ Q[1:10,1:10]
     @test diagm(0 => [Ones(5); -(-1).^(1:5)]) * Ln[1:10,1:10] ≈ L[1:10,1:10]
 end
+
+
+function qdL(A)
+    l,u = bandwidths(A)
+    H = _BandedMatrix(A.data, ∞, l+u-1, 1)
+    Q1,L1 = ql(H)
+    D1, Q1, L1 = reduceband(A)
+    T2 = _BandedMatrix(Lrightasymptotics(L1), ∞, l, u)
+    l1 = L1[1,1]
+    A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]] # TODO: remove
+    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+    B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
+    D2, Q2, L2 = reduceband(B2)
+    l2 = L2[1,1]
+    # peroidic tail
+    T3 = _BandedMatrix(Lrightasymptotics(L2), ∞, l+1, u-1)
+    A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]] # TODO: remove
+
+    Q3,L3 = ql( [A2[1,1] A2[1:1,2:3]; [Q2[1:3,1:1]' * T2[1:3,1]  A3[1:1,1:2] ]])
+
+    fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
+    B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
+
+    ql(B3).L
+end
+
+@testset "quick-and-dirty L" begin
+    for λ in (5,1,0.1+0.1im,-0.5-0.1im), A in (BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-λ,∞), -1 => Fill(2im,∞)),
+                                        BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-conj(λ),∞), -1 => Fill(-2im,∞)))
+        L∞ = qdL(A)[1:10,1:10]
+        Ln = ql(A[1:1000,1:1000]).L[1:10,1:10]
+        @test L∞ .* sign.(diag(L∞)) ≈ Matrix(Ln) .* sign.(diag(Ln))
+    end
+    for λ in (-3-0.1im, 0.0, -1im)
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-conj(λ),∞), -1 => Fill(-2im,∞))
+        @test abs(qdL(A)[1,1]) ≈ abs(ql(A[1:10000,1:10000]).L[1,1])
+    end
+    for λ in (1+2im,)
+        A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-λ,∞), -1 => Fill(2im,∞))
+        @test_throws DomainError qdL(A)
+    end
+end

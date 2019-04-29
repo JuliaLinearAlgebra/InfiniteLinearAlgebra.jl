@@ -36,15 +36,7 @@ function qdL(A)
     fd_data = hcat([0; L3[:,1]; Q2[1:3,2:3]' * T2[1:3,1]], [L3[:,2]; T3[1:3,1]], [L3[2,3]; T3[1:4,2]])
     B3 = _BandedMatrix(Hcat(fd_data, T3.data), ∞, l+u-1, 1)
 
-    if T3 isa InfToeplitz
-        ql(B3).L
-    else
-        # remove periodicity
-        fd_data_s = diagm(0 => (-1).^(0:size(fd_data,1)-1)) * (fd_data * diagm(0 => (-1).^(1:size(fd_data,2))))
-        T3_data_s = (-1)^size(fd_data,2) * (-1).^(1:u+l+1) .* T3.data[:,1]
-        B3_s = _BandedMatrix(Hcat(fd_data_s, T3_data_s*Ones{ComplexF64}(1,∞)), ∞, l+u-1, 1)
-        ql(B3_s).L
-    end
+    ql(B3).L
 end
 # Bull's head
 A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
@@ -52,21 +44,18 @@ A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
             (-1) end
 x,y = range(-4,4; length=200),range(-4,4;length=200)
 z = ℓ.(x' .+ y.*im)
-contourf(x,y,z; nlevels=100, title="A")
+contourf(x,y,z; nlevels=100, title="A", linewidth=0)
 θ = range(0,2π; length=1000)
 a = z -> 2im/z + z^2 + 7/10 * z^3
 plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
 
 Ac = BandedMatrix(A')
+
 ℓ = λ -> try abs(qdL(Ac-conj(λ)*I)[1,1]) catch DomainError 
             (-1.0) end
 x,y = range(-4,4; length=100),range(-4,4;length=100)
 @time z = ℓ.(x' .+ y.*im)
-contourf(x,y,z; nlevels=100, title="A'")
-ℓ(-0.5-0.1im)
-qdL(Ac-(-0.5+0.1im)*I)
-contour(x,y,z)
-
+contourf(x,y,z; nlevels=100, title="A'", linewidth=0.0)
 θ = range(0,2π; length=1000)
 a = z -> 2im/z + z^2 + 7/10 * z^3
 plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
