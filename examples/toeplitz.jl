@@ -3,6 +3,69 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql, qltail, rightasymptotics
 import BandedMatrices: bandeddata,_BandedMatrix
 
+function ℓ11(A,λ) 
+    try 
+        abs(ql(A-λ*I).L[1,1]) 
+    catch DomainError 
+        (-1) 
+    end
+end
+
+function qlplot(A; x=range(-4,4; length=200), y=range(-4,4;length=200), kwds...)
+    z = ℓ11.(Ref(A), x' .+ y.*im)
+    contourf(x,y,z; kwds...)
+end
+
+###
+# Non-normal
+###
+
+A = BandedMatrix(-1 => Fill(1/4,∞), 1 => Fill(1,∞))
+qlplot(A; title="A")
+qlplot(BandedMatrix(A'); title="A'", linewidth=0, nlevels=100)
+θ = range(0,2π-0.5; length=1000)
+a = z -> z + 0.25/z
+plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
+
+
+
+A = BandedMatrix(-10 => Fill(4.0,∞), 1 => Fill(1,∞))
+ql(A+0im*I)
+
+
+
+
+θ = range(0,2π-0.5; length=1000)
+a = z -> 4z^10 + 1/z
+θ = range(0,2π; length=1000)
+plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
+
+import InfiniteBandedMatrices: tail_de
+a = reverse(A.data.applied.args[1]) .+ 0im
+
+a = randn(10) .+ im*randn(10); a[1] += 10; a[end] = 1;
+de = tail_de(a)
+
+@which tail_de(a)
+
+ql([transpose(a); 0 transpose(de)])
+
+ql([transpose(a); 0 transpose(de2)])
+
+de
+
+contourf(x,y,angle.(a.(x' .+ y.*im)))
+
+A'
+Fun(a, Laurent())
+
+A'
+
+
+a(1.0exp(0.5im))
+
+#### To be cleaned
+
 
 function reduceband(A)
         l,u = bandwidths(A)

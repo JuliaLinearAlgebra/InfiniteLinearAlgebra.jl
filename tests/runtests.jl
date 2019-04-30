@@ -1,7 +1,7 @@
 using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations
 import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams,
-                    rightasymptotics
+                    rightasymptotics, QLHessenberg
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -148,4 +148,45 @@ end
         A = BandedMatrix(3 => Fill(7/10,∞), 2 => Fill(1,∞), 0 => Fill(-λ,∞), -1 => Fill(2im,∞))
         @test_throws DomainError qdL(A)
     end
+end
+
+
+
+function tail_de_j(a::AbstractVector{T}, j) where T
+    m = length(a)
+    C = [view(a,m-1:-1:1) Vcat(-a[end]*Eye(m-2), Zeros{T}(1,m-2))]
+    λ, V = eigen(C)::Eigen{T,T,Matrix{T},Vector{T}}
+    n2 = abs2.(λ[j])
+    n2 ≥ abs2(a[end]) || throw(DomainError(a, "QL factorization does not exist. This could indicate that the operator is not Fredholm or that the dimension of the kernel exceeds that of the co-kernel. Try again with the adjoint."))
+    c_abs = sqrt((n2 - abs2(a[end]))/abs2(V[1,j]))
+    c_sgn = -sign(λ[j])/sign(V[1,j]*a[end-1] - V[2,j]*a[end])
+    c_sgn*c_abs*V[end:-1:1,j]    
+end
+
+@testset "non-uniqueness" begin
+    a =    [10.774290245267503 - 2.01600077393353im   , -0.21512211005762638 + 0.4071609685512763im , -1.1744464421530598 + 0.6046364065537878im , 0.9690771351593747 + 0.24407852288135806im,
+                -0.17679826119222275 - 1.0449912257889253im ,  1.350321850620113 + 0.1195877826052787im , -0.7557518148047799 - 0.809927665736972im  , -0.24869467464627973 + 0.06062801043516876im,
+        -0.83619838577036 + 1.053001604590783im  ,1.0 + 0.0im ]
+
+    A = _BandedMatrix(reverse(a) * Ones{ComplexF64}(1,∞), ∞, length(a)-2, 1)    
+    l,u = bandwidths(A)
+    Q,L = ql(A)
+    @test Q[1:10,1:11] * L[1:11,1:10] ≈ A[1:10,1:10]
+
+    de = tail_de(a)
+    de2 = tail_de_j(a, 2)
+
+    @test !(de ≈ de2)
+
+    X = [transpose(a); 0 transpose(de2)]
+    F = ql_X!(X)
+    @test X[1,1:end-1] ≈ de2
+    factors = _BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [0; X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1)
+    Q2,L2 = QLHessenberg(factors, Fill(F.Q,∞))
+    @test Q2[1:10,1:11] * L2[1:11,1:10] ≈ A[1:10,1:10]
+    @test Q2[1:10,1:11] * (Q2')[1:11,1:10] ≈ I
+    @test (Q2')[1:10,1:100] * (Q2)[1:100,1:10] ≈ I
+    @test (Q')[1:10,1:100] * (Q)[1:100,1:10] ≈ I
+
+    @test !(abs(L2[1,1]) ≈ abs(L[1,1]))
 end
