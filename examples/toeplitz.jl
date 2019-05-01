@@ -3,29 +3,71 @@ import MatrixFactorizations: reflectorApply!, QLPackedQ
 import InfiniteBandedMatrices: blocktailiterate, _ql, qltail, rightasymptotics
 import BandedMatrices: bandeddata,_BandedMatrix
 
-function ℓ11(A,λ) 
+function ℓ11(A,λ; kwds...) 
     try 
-        abs(ql(A-λ*I).L[1,1]) 
+        abs(ql(A-λ*I; kwds...).L[1,1]) 
     catch DomainError 
-        (-1) 
+        -1.0
     end
 end
 
-function qlplot(A; x=range(-4,4; length=200), y=range(-4,4;length=200), kwds...)
-    z = ℓ11.(Ref(A), x' .+ y.*im)
+function findsecond(λ) 
+    j = sortperm(λ)[end-1]
+    λ[j], j
+end
+
+function qlplot(A; branch=findmax, x=range(-4,4; length=200), y=range(-4,4;length=200), kwds...)
+    z = ℓ11.(Ref(A), x' .+ y.*im; branch=branch)
     contourf(x,y,z; kwds...)
 end
+
+function symbolplot!(A::BandedMatrix; kwds...)
+    l,u = bandwidths(A)
+    a = rightasymptotics(A.data).applied.args[1]
+    θ = range(0,2π; length=1000)
+    i = Vector{ComplexF64}()
+    for t in θ
+        r = 0.0+0.0im
+        for k=1:length(a)
+            r += exp(im*(k-l-1)*t) * a[k]
+        end
+        push!(i,r)
+    end
+    plot!(i; kwds...)
+end
+
+
+###
+# Trefethen & Embree example
+###
+
+A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+p =plot(); symbolplot!(A)
 
 ###
 # Non-normal
 ###
 
-A = BandedMatrix(-1 => Fill(1/4,∞), 1 => Fill(1,∞))
-qlplot(A; title="A")
-qlplot(BandedMatrix(A'); title="A'", linewidth=0, nlevels=100)
-θ = range(0,2π-0.5; length=1000)
+A = BandedMatrix(-1 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([0.9],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
+qlplot(A; title="A", linewidth=0, x=range(-2,2; length=200), y=range(-2,2;length=200))
+symbolplot!(A; linewidth=2.0, linecolor=:blue, legend=false)
+qlplot(BandedMatrix(A'); title="A', 1st", linewidth=0, nlevels=100, x=range(-2,2; length=200), y=range(-2,2;length=200))
+symbolplot!(A; linewidth=2.0, linecolor=:blue, legend=false)
+qlplot(BandedMatrix(A'); branch=findsecond, title="A'", linewidth=0, nlevels=100, x=range(-2,2; length=200), y=range(-2,2;length=200))
+
+
+heatmap!(x,y,fill(-100,length(y),length(x)); legend=false, color=:grays, fillalpha=(z -> isnan(z) ? 0.0 : 1.0).(z))
+
+Matrix((A)[1:1000,1:1000]) |> eigvals |> scatter
+
+ql(A-2I)
+
+
+θ = range(0,2π; length=1000)
 a = z -> z + 0.25/z
 plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
+
+
 
 
 
@@ -103,6 +145,32 @@ function qdL(A)
 end
 # Bull's head
 A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
+qlplot(A;  title="largest", linewidth=0)
+
+
+qlplot(A; branch=findsecond, title="second largest", linewidth=0)
+
+
+
+sortp
+
+ql(A-(1+2im)*I)
+
+θ = range(0,2π; length=1000)
+a = z -> 2im/z + z^2 + 7/10 * z^3
+plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
+qlplot(A; branch=2, title="branch=2", linewidth=0)
+
+
+
+
+θ = range(0,2π; length=1000)
+a = z -> 2im/z + z^2 + 7/10 * z^3
+plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
+
+
+ql(A - (5+2im)*I; branch=1)
+
 ℓ = λ -> try abs(ql(A-λ*I).L[1,1]) catch DomainError 
             (-1) end
 x,y = range(-4,4; length=200),range(-4,4;length=200)

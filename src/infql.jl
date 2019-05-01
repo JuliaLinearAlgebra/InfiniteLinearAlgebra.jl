@@ -58,10 +58,10 @@ function qltail(Z::Number, A::Number, B::Number)
 end
 
 
-ql(A::SymTriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
-ql(A::SymTridiagonal{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
-ql(A::TriPertToeplitz{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
-ql(A::InfBandedMatrix{T}) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))))
+ql(A::SymTriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql(A::SymTridiagonal{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql(A::TriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql(A::InfBandedMatrix{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
 toeptail(B::BandedMatrix{T}) where T = 
     _BandedMatrix(B.data.arrays[end].applied.args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
@@ -69,13 +69,14 @@ toeptail(B::BandedMatrix{T}) where T =
 # asymptotics of A[:,j:end] as j -> ∞  
 rightasymptotics(d::Hcat) = last(d.arrays)
 rightasymptotics(d::Vcat) = Vcat(rightasymptotics.(d.arrays)...)
+rightasymptotics(d) = d
 
-function ql!(B::InfBandedMatrix{TT}) where TT
+function ql!(B::InfBandedMatrix{TT}; kwds...) where TT
     l,u = bandwidths(B)
     @assert u == 1
     T = toeptail(B)
     # Tail QL
-    F∞ = ql(T)
+    F∞ = ql(T; kwds...)
     Q∞, L∞ = F∞
 
     # populate finite data and do ql!

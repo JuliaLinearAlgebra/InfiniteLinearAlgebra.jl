@@ -63,6 +63,23 @@ function BandedMatrix(Ac::Transpose{T,<:InfToeplitz}) where T
     _BandedMatrix(reverse(a) * Ones{T}(1,∞), ∞, u, l)
 end
 
+function BandedMatrix(Ac::Adjoint{T,<:PertToeplitz}) where T
+    A = parent(Ac)
+    l,u = bandwidths(A)
+    a,b = A.data.arrays
+    Ac_fd = BandedMatrix(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)')
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.applied.args[1])) * Ones{T}(1,∞)), ∞, u, l)
+end
+
+function BandedMatrix(Ac::Transpose{T,<:PertToeplitz}) where T
+    A = parent(Ac)
+    l,u = bandwidths(A)
+    a,b = A.data.arrays
+    Ac_fd = BandedMatrix(transpose(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)))
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.applied.args[1]) * Ones{T}(1,∞)), ∞, u, l)
+end
+
+
 for op in (:-, :+)
     @eval begin
         function $op(A::SymTriPertToeplitz{T}, λ::UniformScaling) where T 
