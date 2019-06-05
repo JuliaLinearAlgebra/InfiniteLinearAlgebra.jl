@@ -48,12 +48,12 @@ p =plot(); symbolplot!(A)
 # Non-normal
 ###
 
-A = BandedMatrix(-1 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([0.9],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
-qlplot(A; title="A", linewidth=0, x=range(-2,2; length=200), y=range(-2,2;length=200))
+A = BandedMatrix(-1 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([1im],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
+qlplot(A; title="A", linewidth=0, x=range(-2,2; length=100), y=range(-2,2;length=100))
 symbolplot!(A; linewidth=2.0, linecolor=:blue, legend=false)
-qlplot(BandedMatrix(A'); title="A', 1st", linewidth=0, nlevels=100, x=range(-2,2; length=200), y=range(-2,2;length=200))
+qlplot(BandedMatrix(A'); title="A', 1st", linewidth=0, nlevels=100, x=range(-2,2; length=100), y=range(-2,2;length=100))
 symbolplot!(A; linewidth=2.0, linecolor=:blue, legend=false)
-qlplot(BandedMatrix(A'); branch=findsecond, title="A'", linewidth=0, nlevels=100, x=range(-2,2; length=200), y=range(-2,2;length=200))
+qlplot(BandedMatrix(A'); branch=findsecond, title="A'", linewidth=0, nlevels=100, x=range(-2,2; length=100), y=range(-2,2;length=100))
 
 
 heatmap!(x,y,fill(-100,length(y),length(x)); legend=false, color=:grays, fillalpha=(z -> isnan(z) ? 0.0 : 1.0).(z))
@@ -144,6 +144,8 @@ function qdL(A)
     ql(B3).L
 end
 # Bull's head
+A = BandedMatrix(-3 => Fill(7/10,10), -2 => Fill(1,11), 1 => Fill(2im,9))
+
 A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
 qlplot(A;  title="largest", linewidth=0)
 
