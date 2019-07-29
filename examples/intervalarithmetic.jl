@@ -1,2 +1,2 @@
-using InfiniteBandedMatrices
+using InfiniteLinearAlgebra
 import IntervalArithmetic

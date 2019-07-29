@@ -1,6 +1,6 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
+using Revise, InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
 import MatrixFactorizations: reflectorApply!, QLPackedQ
-import InfiniteBandedMatrices: blocktailiterate, _ql, qltail, rightasymptotics
+import InfiniteLinearAlgebra: blocktailiterate, _ql, qltail, rightasymptotics
 import BandedMatrices: bandeddata,_BandedMatrix
 
 function ℓ11(A,λ; kwds...) 
@@ -82,7 +82,7 @@ a = z -> 4z^10 + 1/z
 θ = range(0,2π; length=1000)
 plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
 
-import InfiniteBandedMatrices: tail_de
+import InfiniteLinearAlgebra: tail_de
 a = reverse(A.data.applied.args[1]) .+ 0im
 
 a = randn(10) .+ im*randn(10); a[1] += 10; a[end] = 1;

@@ -1,5 +1,5 @@
-using InfiniteBandedMatrices, BandedMatrices, LazyArrays, Test
-import InfiniteBandedMatrices: UpperHessenbergQ, LowerHessenbergQ, tail_de, _BandedMatrix, QL, InfToeplitz
+using InfiniteLinearAlgebra, BandedMatrices, LazyArrays, Test
+import InfiniteLinearAlgebra: UpperHessenbergQ, LowerHessenbergQ, tail_de, _BandedMatrix, QL, InfToeplitz
 
 @testset "HessenbergQ" begin
     @testset "finite UpperHessenbergQ" begin

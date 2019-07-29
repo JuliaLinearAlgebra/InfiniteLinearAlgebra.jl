@@ -1,4 +1,4 @@
-module InfiniteBandedMatrices
+module InfiniteLinearAlgebra
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
 import Base: +, -, *, /, \, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size,
@@ -32,12 +32,12 @@ end
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
-include("hessenbergq.jl")
+include("banded/hessenbergq.jl")
 
-include("infbanded.jl")
-include("infblocktridiagonal.jl")
-include("infqltoeplitz.jl")
+include("banded/infbanded.jl")
+include("blockbanded/infblocktridiagonal.jl")
+include("banded/infqltoeplitz.jl")
 include("infql.jl")
-include("rigorous.jl")
+include("banded/rigorous.jl")
 
 end # module

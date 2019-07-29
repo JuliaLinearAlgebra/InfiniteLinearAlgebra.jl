@@ -1,4 +1,4 @@
-using InfiniteBandedMatrices, Plots
+using InfiniteLinearAlgebra, Plots
 
 # Consider a rank-1 perturbation of periodic semi-infinite Schrödinger (Jacobi) operator.
 # We can construct it as a block matrix as follows:

@@ -5,7 +5,7 @@
 
 
     Q,L = ql(A);                       
-    @test Q.factors isa InfiniteBandedMatrices.InfBlockBandedMatrix
+    @test Q.factors isa InfiniteLinearAlgebra.InfBlockBandedMatrix
     Q̃,L̃ = ql(BlockBandedMatrix(A)[Block.(1:100),Block.(1:100)])
 
     @test Q̃.factors[1:100,1:100] ≈ Q.factors[1:100,1:100]

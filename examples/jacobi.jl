@@ -1,4 +1,4 @@
-using Revise, InfiniteBandedMatrices, MatrixFactorizations
+using Revise, InfiniteLinearAlgebra, MatrixFactorizations
 import IntervalArithmetic
 import IntervalArithmetic: Interval, emptyinterval
 import MatrixFactorizations: add_mul_signed, reflector!
@@ -26,12 +26,12 @@ ql(Δ - Interval(4.2)I).L[1,1]
 rig_qltail(0.5,-1.98,2.0)
 
 A = (Δ-λ*I)
-import InfiniteBandedMatrices: _qlfactUnblocked!
-InfiniteBandedMatrices.qltail(0.5,Interval(-4.1,-4.0), 0.5)
+import InfiniteLinearAlgebra: _qlfactUnblocked!
+InfiniteLinearAlgebra.qltail(0.5,Interval(-4.1,-4.0), 0.5)
 
-InfiniteBandedMatrices.qltail(0.5,-4.1, 0.5)
+InfiniteLinearAlgebra.qltail(0.5,-4.1, 0.5)
 
-InfiniteBandedMatrices.qltail(0.5,-4.0, 0.5)
+InfiniteLinearAlgebra.qltail(0.5,-4.0, 0.5)
 
 Z,A,B = 0.5,-4.0,0.5
 
@@ -47,7 +47,7 @@ d,e = d2,e2
 rig_qltail(Z,A,B,d,e)
 
 
-InfiniteBandedMatrices.qltail(Z,A,B)
+InfiniteLinearAlgebra.qltail(Z,A,B)
 
 @which reflector!(X[2:-1:1,end])
 
@@ -80,7 +80,7 @@ sign(Interval(-10,10))
 
 length(d)
 
-InfiniteBandedMatrices.qltail(Z,A,B)
+InfiniteLinearAlgebra.qltail(Z,A,B)
 
 
 

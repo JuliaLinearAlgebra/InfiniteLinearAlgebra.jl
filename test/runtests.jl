@@ -1,5 +1,5 @@
-using Revise, InfiniteBandedMatrices, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, DualNumbers, MatrixFactorizations
-import InfiniteBandedMatrices: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
+using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, LinearAlgebra
+import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, householderparams, combine_two_Q, periodic_combine_two_Q, householderparams,
                     rightasymptotics, QLHessenberg
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
@@ -11,7 +11,7 @@ import BandedMatrices: bandeddata, _BandedMatrix
                         Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
                         Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
                         
-    @test A isa InfiniteBandedMatrices.BlockTriPertToeplitz                       
+    @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz                       
     @test isblockbanded(A)
 
     @test A[Block.(1:2),Block(1)] == A[1:3,1:1] == reshape([0.,1.,1.],3,1)

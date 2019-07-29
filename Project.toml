@@ -1,5 +1,6 @@
-name = "InfiniteBandedMatrices"
-uuid = "75c36928-c531-5f82-ab28-1f08c0e381e4"
+name = "InfiniteLinearAlgebra"
+uuid = "cde9dba0-b1de-11e9-2c62-0bab9446c55c"
+version = "0.0.1"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
