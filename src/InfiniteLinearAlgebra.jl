@@ -9,7 +9,7 @@ import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular, AbstractQ, adjoint, transpose,
                         QR
-import LazyArrays: CachedArray, VecMulMat, DenseColumnMajor, FillLayout, ApplyMatrix
+import LazyArrays: CachedArray, DenseColumnMajor, FillLayout, ApplyMatrix
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!,
                             QL
 
@@ -20,8 +20,6 @@ import BandedMatrices: BandedMatrix, bandwidths
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSizes, cumulsizes, _BlockSkylineMatrix, BlockSizes, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
 
-import IntervalArithmetic
-import IntervalArithmetic: Interval, emptyinterval
 
 if VERSION < v"1.2-"
     import Base: has_offset_axes
@@ -38,6 +36,5 @@ include("banded/infbanded.jl")
 include("blockbanded/infblocktridiagonal.jl")
 include("banded/infqltoeplitz.jl")
 include("infql.jl")
-include("banded/rigorous.jl")
 
 end # module

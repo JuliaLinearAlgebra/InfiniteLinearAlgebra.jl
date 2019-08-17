@@ -28,7 +28,7 @@ for op in (:-, :+)
     end
 end
 
-*(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = MulArray(a,b)
+*(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = ApplyArray(*,a,b)
 
 
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = BlockSizes((Vcat(1, 1 .+ cumsum(length.(A))),))

@@ -87,6 +87,10 @@ bandwidths(Q::LowerHessenbergQ) = (size(Q,1)-1,1)
 adjoint(Q::UpperHessenbergQ) = LowerHessenbergQ(adjoint.(Q.q))
 adjoint(Q::LowerHessenbergQ) = UpperHessenbergQ(adjoint.(Q.q))
 
+check_mul_axes(A::AbstractHessenbergQ, B, C...) =
+    axes(A,2) == axes(B,1) || throw(DimensionMismatch("Second axis of A, $(axes(A,2)), and first axis of B, $(axes(B,1)) must match"))
+
+
 function lmul!(Q::LowerHessenbergQ{T}, x::AbstractVector) where T
     t = Array{T}(undef, 2)
     for n = 1:length(Q.q)
