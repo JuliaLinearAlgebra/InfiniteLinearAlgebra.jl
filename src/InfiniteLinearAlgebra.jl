@@ -36,5 +36,6 @@ include("banded/infbanded.jl")
 include("blockbanded/infblocktridiagonal.jl")
 include("banded/infqltoeplitz.jl")
 include("infql.jl")
+include("infqr.jl")
 
 end # module
