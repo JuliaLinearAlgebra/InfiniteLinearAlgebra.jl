@@ -9,7 +9,7 @@ import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, QRPackedQ, AbstractTriangular, AbstractQ, adjoint, transpose,
                         QR
-import LazyArrays: CachedArray, DenseColumnMajor, FillLayout, ApplyMatrix
+import LazyArrays: CachedArray, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, reflector!, reflectorApply!,
                             QL
 

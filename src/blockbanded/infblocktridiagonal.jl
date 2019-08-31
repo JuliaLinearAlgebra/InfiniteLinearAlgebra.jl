@@ -13,15 +13,15 @@ for op in (:-, :+)
     @eval begin
         function $op(A::BlockTriPertToeplitz{T}, λ::UniformScaling) where T 
             TV = promote_type(T,eltype(λ))
-            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.dl.arrays)...), 
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.d, Ref(λ)).arrays)...), 
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.du.arrays)...))
+            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.dl.args)...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.d, Ref(λ)).args)...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.du.args)...))
         end
         function $op(λ::UniformScaling, A::BlockTriPertToeplitz{V}) where V
             TV = promote_type(eltype(λ),V)
-            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.dl.arrays))...), 
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, Ref(λ), A.blocks.d).arrays)...), 
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.du.arrays))...))
+            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.dl.args))...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, Ref(λ), A.blocks.d).args)...), 
+                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.du.args))...))
         end
         $op(adjA::Adjoint{T,BlockTriPertToeplitz{T}}, λ::UniformScaling) where T = $op(BlockTridiagonal(adjA), λ)
         $op(λ::UniformScaling, adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T = $op(λ, BlockTridiagonal(adjA))
@@ -47,7 +47,7 @@ end
 _find_block(cs::Number, i::Integer) = i ≤ cs ? 1 : 0
 function _find_block(cs::Vcat, i::Integer)
     n = 0
-    for a in cs.arrays
+    for a in cs.args
         i < first(a) && return n
         if i ≤ last(a)
             return _find_block(a, i) + n
@@ -68,7 +68,7 @@ print_matrix_row(io::IO,
         i::Integer, cols::AbstractVector{<:Infinity}, sep::AbstractString) = nothing        
                                         
 function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
-    N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+    N = max(length(A.blocks.du.args[1])+1,length(A.blocks.d.args[1]),length(A.blocks.dl.args[1]))
     block_sizes = Vector{Int}(undef, N) # assume square
     block_starts = BandedMatrix{Int}(undef, (N+l,N),  (l,u))
     block_strides = Vector{Int}(undef, N)
@@ -103,7 +103,7 @@ end
 function BlockBandedMatrix(A::BlockTriPertToeplitz{T}, (l,u)::NTuple{2,Int}) where T
     data = T[]                      
     append!(data,vec(A[Block.(1:1+l),Block(1)]))
-    N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+    N = max(length(A.blocks.du.args[1])+1,length(A.blocks.d.args[1]),length(A.blocks.dl.args[1]))
     for J=2:N
         append!(data, vec(A[Block.(max(1,J-u):J+l),Block(J)]))
     end

@@ -55,7 +55,7 @@ ql(Op::TriToeplitz{T}) where T = ql(InfToeplitz(Op))
 function ql(A::InfToeplitz{T}; kwds...) where T
     l,u = bandwidths(A)
     @assert u == 1
-    a = reverse(A.data.applied.args[1])
+    a = reverse(A.data.args[1])
     de = tail_de(a; kwds...)
     X = [transpose(a); zero(T) transpose(de)]::Matrix{T}
     F = ql_X!(X) # calculate data for fixed point

@@ -67,7 +67,7 @@ end
 @testset "Toeplitz QLHessenberg" begin
     @testset "Derivation" begin
         A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5,∞), 1 => Fill(0.5,∞))
-        a = reverse(A.data.applied.args[1])
+        a = reverse(A.data.args[1])
         d,e = tail_de(a)
         X = [transpose(a); 0 d e]
         Q = LowerHessenbergQ(Fill(ql!(X).Q,∞))
@@ -77,7 +77,7 @@ end
         @test (Q'A)[1:10,1:10] ≈ Ln[1:10,1:10] ≈ L[1:10,1:10]
 
         A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5+im,∞), 1 => Fill(0.5,∞))
-        a = reverse(A.data.applied.args[1])
+        a = reverse(A.data.args[1])
         d,e = tail_de(a)
         X = [transpose(a); 0 d e]
         q = ql!(X).Q

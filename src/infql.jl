@@ -64,11 +64,11 @@ ql(A::TriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)
 ql(A::InfBandedMatrix{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
 toeptail(B::BandedMatrix{T}) where T = 
-    _BandedMatrix(B.data.arrays[end].applied.args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
+    _BandedMatrix(B.data.args[end].args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
 
 # asymptotics of A[:,j:end] as j -> ∞  
-rightasymptotics(d::Hcat) = last(d.arrays)
-rightasymptotics(d::Vcat) = Vcat(rightasymptotics.(d.arrays)...)
+rightasymptotics(d::Hcat) = last(d.args)
+rightasymptotics(d::Vcat) = Vcat(rightasymptotics.(d.args)...)
 rightasymptotics(d) = d
 
 function ql!(B::InfBandedMatrix{TT}; kwds...) where TT
@@ -80,7 +80,7 @@ function ql!(B::InfBandedMatrix{TT}; kwds...) where TT
     Q∞, L∞ = F∞
 
     # populate finite data and do ql!
-    data = bandeddata(B).arrays[1]
+    data = bandeddata(B).args[1]
     B̃ = _BandedMatrix(data, size(data,2), l,u)
     B̃[end,end] = L∞[1,1]
     B̃[end:end,end-l+1:end-1] = adjoint(Q∞)[1:1,1:l-1]*T[l:2(l-1),1:l-1]
@@ -105,7 +105,7 @@ getL(Q::QLHessenberg, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTrian
 # number of structural non-zeros in axis k
 nzzeros(A::AbstractArray, k) = size(A,k)
 nzzeros(::Zeros, k) = 0
-nzzeros(B::Vcat, k) = sum(size.(B.arrays[1:end-1],k))
+nzzeros(B::Vcat, k) = sum(size.(B.args[1:end-1],k))
 nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
 function nzzeros(B::AbstractMatrix, k) 
     l,u = bandwidths(B)
@@ -209,13 +209,13 @@ end
 ####
 
 function _ql(A::BlockTriPertToeplitz, d, e)
-    N = max(length(A.blocks.du.arrays[1])+1,length(A.blocks.d.arrays[1]),length(A.blocks.dl.arrays[1]))
+    N = max(length(A.blocks.du.args[1])+1,length(A.blocks.d.args[1]),length(A.blocks.dl.args[1]))
     c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
     P,τ = blocktailiterate(c,a,b,d,e)
     B = BlockBandedMatrix(A,(2,1))
     
 
-    BB = _BlockBandedMatrix(B.data.arrays[1], (fill(2,N+2), fill(2,N)), (2,1))
+    BB = _BlockBandedMatrix(B.data.args[1], (fill(2,N+2), fill(2,N)), (2,1))
     BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
     F = ql!(view(BB, Block.(1:N), Block.(1:N)))
     BB[Block(N+1),Block.(N-1:N)] .= P[Block(2), Block.(1:2)]

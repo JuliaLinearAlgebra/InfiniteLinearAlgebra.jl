@@ -119,7 +119,7 @@ end
     @testset "sign = +1" begin
         n = 1000
         T = BandedMatrix(-2 => Fill(1,∞), 0 => Fill(-0.5-0.1im, ∞), 1 => Fill(0.25, ∞));  Qn,Ln = ql(T[1:n,1:n]);
-        a = reverse(T.data.applied.args[1])
+        a = reverse(T.data.args[1])
         de = tail_de(a)
         X =  [transpose(a); 0 transpose(de)]
         F = ql_X!(copy(X))
@@ -180,7 +180,7 @@ end
     @testset "periodic 1" begin
         A = BandedMatrix(-2 => Fill(1/4,∞), 1 => Fill(1,∞))-im*I
         n = 1000; Qn,Ln = ql(A[1:n,1:n])
-        a = reverse(A.data.applied.args[1])
+        a = reverse(A.data.args[1])
         de = tail_de(a)
         X =  [transpose(a); 0 transpose(de)]
         F = ql_X!(copy(X))
@@ -289,7 +289,7 @@ end
         l = 3
         A = _BandedMatrix(ain * Ones{ComplexF64}(1,∞), ∞, l, 1)
         n = 1000; Qn,Ln = ql(A[1:n,1:n])
-        a = reverse(A.data.applied.args[1])
+        a = reverse(A.data.args[1])
         de = tail_de(a)
         X =  [transpose(a); 0 transpose(de)]
         F = ql_X!(copy(X))
@@ -465,14 +465,14 @@ end
     F∞ = ql(T)
     σ = 1- F∞.τ[1]
     F∞.factors[1,1] *= σ
-    F∞ = QL(F∞.factors, Vcat(zero(ComplexF64),F∞.τ.arrays[2]))
+    F∞ = QL(F∞.factors, Vcat(zero(ComplexF64),F∞.τ.args[2]))
     Q∞, L∞ = F∞
     @test Q∞[1:10,1:12] * L∞[1:12,1:10] ≈ T[1:10,1:10]
 
     n = 100_000; Q,L = ql(B[1:n,1:n]);
     @test Q.τ[3] ≈ F∞.τ[2]
 
-    data = bandeddata(B).arrays[1]
+    data = bandeddata(B).args[1]
     e = F∞.factors[1,1]
     d = conj(F∞.Q[1,1]*c)
     @test d == (F∞.Q'*Vcat(c,Zeros(∞)))[1]
@@ -483,7 +483,7 @@ end
     B̃.data[3:end,end] .= (L∞[2,1], L∞[3,1]) # fill in L
     B̃.data[4,end-1] = L∞[3,1] # fill in L
     H = Hcat(B̃.data, F∞.factors[1:4,2] * Ones{eltype(F∞)}(1,∞))
-    @test Q.τ[1:10] ≈ Vcat(F.τ, F∞.τ.arrays[2])[1:10]
+    @test Q.τ[1:10] ≈ Vcat(F.τ, F∞.τ.args[2])[1:10]
 
     Q2,L2 = ql(A)
 
@@ -524,7 +524,7 @@ function Toep_L11(T)
     Q1,L1 = ql(H)
 
     d = Q1[1:3,1]'T[1:1+l,1]
-    ℓ = Q1.factors.data.arrays[2].applied.args[1][2:end] # new L
+    ℓ = Q1.factors.data.args[2].args[1][2:end] # new L
     T2 = _BandedMatrix(Hcat([[zero(d); d; ℓ[3:end]] L1[1:5,1]], ℓ*Ones{eltype(T)}(1,∞)), ∞, 3, 1)
     Q2,L2 = ql(T2)
     D = (Q2')[1:5,1:4] * (Q1')[1:4,1:3] * T[3:5,1:3]
@@ -543,7 +543,7 @@ end
     @test Q1[1:10,1:11]*L1[1:11,1:10] ≈ H[1:10,1:10]
 
     d = Q1[1:3,1]'T[1:1+T.l,1]
-    ℓ = F1.factors.data.arrays[2].applied.args[1][2:end]
+    ℓ = F1.factors.data.args[2].args[1][2:end]
     @test Vcat(zero(d), d, ℓ[3:end])[2:end] ≈ (Q1')[1:4,1:3]*T[1:3,1]
 
     T2 = _BandedMatrix(Hcat([[zero(d); d; ℓ[3:end]] L1[1:5,1]], ℓ*Ones{eltype(a)}(1,∞)), ∞, 3, 1)
@@ -584,7 +584,7 @@ end
         @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
         # to the left of H
         D1, Q1, L1 = reduceband(A)
-        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
         l1 = L1[1,1]
         
 
@@ -595,7 +595,7 @@ end
         B2 = _BandedMatrix(T2.data, ∞, l+u-2, 2)
         D2, Q2, L2 = reduceband(B2)
         l2 = L2[1,1]
-        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
+        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
         A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
         @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
 
@@ -632,7 +632,7 @@ end
         @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
         # to the left of H
         D1, Q1, L1 = reduceband(A)
-        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
         l1 = L1[1,1]
         
         A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
@@ -643,7 +643,7 @@ end
         l2 = L2[1,1]
 
         # peroidic tail
-        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).arrays[2], ∞, l+1, u-1)
+        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).args[2], ∞, l+1, u-1)
         A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
         @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
 
@@ -689,7 +689,7 @@ end
         @test (Q1[1:13,1:10]'A[1:13,1:12])[1:10,u:10+u-1] ≈ L1[1:10,1:10]
         # to the left of H
         D1, Q1, L1 = reduceband(A)
-        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
+        T2 = _BandedMatrix(rightasymptotics(parent(L1).data).args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l, u)
         l1 = L1[1,1]
         
         A2 = [[D1 l1 zeros(1,10-size(D1,2)-1)]; T2[1:10-1,1:10]]
@@ -700,7 +700,7 @@ end
         l2 = L2[1,1]
 
         # peroidic tail
-        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).applied.args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
+        T3 = _BandedMatrix(rightasymptotics(parent(L2).data).args[1][2:end] * Ones{ComplexF64}(1,∞), ∞, l+1, u-1)
         A3 = [[D2 l2 zeros(1,10-size(D2,2)-1)]; T3[1:10-1,1:10]]
         @test Q2[1:13,1:10]'B2[1:13,1:10] ≈ A3
 
@@ -734,8 +734,8 @@ end
     end
 end
 
-_Lrightasymptotics(D::Vcat) = D.arrays[2]
-_Lrightasymptotics(D::ApplyArray) = D.applied.args[1][2:end] * Ones{ComplexF64}(1,∞)
+_Lrightasymptotics(D::Vcat) = D.args[2]
+_Lrightasymptotics(D::ApplyArray) = D.args[1][2:end] * Ones{ComplexF64}(1,∞)
 Lrightasymptotics(L) = _Lrightasymptotics(rightasymptotics(parent(L).data))
 
 function qdL(A)

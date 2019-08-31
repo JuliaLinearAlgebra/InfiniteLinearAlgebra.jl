@@ -19,7 +19,7 @@ BlockArrays = "0.9"
 BlockBandedMatrices = "0.4"
 FillArrays = "0.7"
 InfiniteArrays = "0.1"
-LazyArrays = "0.10.1"
+LazyArrays = "0.11"
 MatrixFactorizations = "0.1"
 julia = "1"
 

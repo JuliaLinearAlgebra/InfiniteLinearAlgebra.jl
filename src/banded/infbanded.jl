@@ -30,11 +30,11 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{
     m,n = mn
     @assert isinf(n)
     l,u = lu
-    M = mapreduce(x -> length(x.second.arrays[1]) + max(0,x.first), max, kv) # number of data rows
+    M = mapreduce(x -> length(x.second.args[1]) + max(0,x.first), max, kv) # number of data rows
     data = zeros(T, u+l+1, M)
     t = zeros(T, u+l+1)
     for (k,v) in kv
-        a,b = v.arrays
+        a,b = v.args
         p = length(a)
         t[u-k+1] = b.value
         if k ≤ 0
@@ -53,31 +53,31 @@ end
 function BandedMatrix(Ac::Adjoint{T,<:InfToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
-    a = A.data.applied.args[1]
+    a = A.data.args[1]
     _BandedMatrix(reverse(conj(a)) * Ones{T}(1,∞), ∞, u, l)
 end
 
 function BandedMatrix(Ac::Transpose{T,<:InfToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
-    a = A.data.applied.args[1]
+    a = A.data.args[1]
     _BandedMatrix(reverse(a) * Ones{T}(1,∞), ∞, u, l)
 end
 
 function BandedMatrix(Ac::Adjoint{T,<:PertToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
-    a,b = A.data.arrays
+    a,b = A.data.args
     Ac_fd = BandedMatrix(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)')
-    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.applied.args[1])) * Ones{T}(1,∞)), ∞, u, l)
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.args[1])) * Ones{T}(1,∞)), ∞, u, l)
 end
 
 function BandedMatrix(Ac::Transpose{T,<:PertToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
-    a,b = A.data.arrays
+    a,b = A.data.args
     Ac_fd = BandedMatrix(transpose(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)))
-    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.applied.args[1]) * Ones{T}(1,∞)), ∞, u, l)
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.args[1]) * Ones{T}(1,∞)), ∞, u, l)
 end
 
 
@@ -85,8 +85,8 @@ for op in (:-, :+)
     @eval begin
         function $op(A::SymTriPertToeplitz{T}, λ::UniformScaling) where T 
             TV = promote_type(T,eltype(λ))
-            dv = Vcat(convert.(AbstractVector{TV}, A.dv.arrays)...)
-            ev = Vcat(convert.(AbstractVector{TV}, A.ev.arrays)...)
+            dv = Vcat(convert.(AbstractVector{TV}, A.dv.args)...)
+            ev = Vcat(convert.(AbstractVector{TV}, A.ev.args)...)
             SymTridiagonal(broadcast($op, dv, Ref(λ.λ)), ev)
         end
         function $op(λ::UniformScaling, A::SymTriPertToeplitz{V}) where V
@@ -102,35 +102,35 @@ for op in (:-, :+)
 
         function $op(A::TriPertToeplitz{T}, λ::UniformScaling) where T 
             TV = promote_type(T,eltype(λ))
-            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.d, λ.λ).arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, A.du.arrays)...))
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.dl.args)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.d, λ.λ).args)...), 
+                        Vcat(convert.(AbstractVector{TV}, A.du.args)...))
         end
         function $op(λ::UniformScaling, A::TriPertToeplitz{V}) where V
             TV = promote_type(eltype(λ),V)
-            Tridiagonal(Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.arrays))...), 
-                        Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.du.arrays))...))
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.args))...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).args)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.du.args))...))
         end
         function $op(adjA::AdjTriPertToeplitz{T}, λ::UniformScaling) where T 
             A = parent(adjA)
             TV = promote_type(T,eltype(λ))
-            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.du.arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.d, λ.λ).arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, A.dl.arrays)...))
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, A.du.args)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.d, λ.λ).args)...), 
+                        Vcat(convert.(AbstractVector{TV}, A.dl.args)...))
         end
         function $op(λ::UniformScaling, adjA::AdjTriPertToeplitz{V}) where V
             A = parent(adjA)
             TV = promote_type(eltype(λ),V)
-            Tridiagonal(Vcat(convert.(AbstractVector{TV}, broadcast($op, A.du.arrays))...), 
-                        Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).arrays)...), 
-                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.arrays))...))
+            Tridiagonal(Vcat(convert.(AbstractVector{TV}, broadcast($op, A.du.args))...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, λ.λ, A.d).args)...), 
+                        Vcat(convert.(AbstractVector{TV}, broadcast($op, A.dl.args))...))
         end
 
         function $op(λ::UniformScaling, A::InfToeplitz{V}) where V
             l,u = bandwidths(A)
             TV = promote_type(eltype(λ),V)
-            a = convert(AbstractVector{TV}, $op.(A.data.applied.args[1]))
+            a = convert(AbstractVector{TV}, $op.(A.data.args[1]))
             a[u+1] += λ.λ
             _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
         end
@@ -138,7 +138,7 @@ for op in (:-, :+)
         function $op(A::InfToeplitz{T}, λ::UniformScaling) where T
             l,u = bandwidths(A)
             TV = promote_type(T,eltype(λ))
-            a = AbstractVector{TV}(A.data.applied.args[1])
+            a = AbstractVector{TV}(A.data.args[1])
             a[u+1] = $op(a[u+1], λ.λ)
             _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
         end
@@ -146,8 +146,8 @@ for op in (:-, :+)
         function $op(λ::UniformScaling, A::PertToeplitz{V}) where V
             l,u = bandwidths(A)
             TV = promote_type(eltype(λ),V)
-            a, t = convert.(AbstractVector{TV}, A.data.arrays)
-            b = $op.(t.applied.args[1])
+            a, t = convert.(AbstractVector{TV}, A.data.args)
+            b = $op.(t.args[1])
             a[u+1,:] += λ.λ
             b[u+1] += λ.λ
             _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ∞, l, u)
@@ -156,9 +156,9 @@ for op in (:-, :+)
         function $op(A::PertToeplitz{T}, λ::UniformScaling) where T
             l,u = bandwidths(A)
             TV = promote_type(T,eltype(λ))
-            ã, t = A.data.arrays
+            ã, t = A.data.args
             a = AbstractArray{TV}(ã)
-            b = AbstractVector{TV}(t.applied.args[1])
+            b = AbstractVector{TV}(t.args[1])
             a[u+1,:] .= $op.(a[u+1,:],λ.λ)
             b[u+1] = $op(b[u+1], λ.λ)
             _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ∞, l, u)
@@ -174,16 +174,16 @@ end
 
 function BandedMatrix(A::PertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     @assert A.u == u # Not implemented
-    a, b = A.data.arrays
-    t = b.applied.args[1] # topelitz part
+    a, b = A.data.args
+    t = b.args[1] # topelitz part
     t_pad = vcat(t,Zeros(l-A.l))
     data = Hcat([vcat(a,Zeros{T}(l-A.l,size(a,2))) repeat(t_pad,1,l)], t_pad * Ones{T}(1,∞))
     _BandedMatrix(data, ∞, l, u)
 end
 
 function BandedMatrix(A::SymTriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
-    a,a∞ = A.dv.arrays
-    b,b∞ = A.ev.arrays
+    a,a∞ = A.dv.args
+    b,b∞ = A.ev.args
     n = max(length(a), length(b)+1) + 1
     data = zeros(T, l+u+1, n)
     data[u,2:length(b)+1] .= b
@@ -207,9 +207,9 @@ function BandedMatrix(A::SymTridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)
 end
 
 function BandedMatrix(A::TriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
-    a,a∞ = A.d.arrays
-    b,b∞ = A.du.arrays
-    c,c∞ = A.dl.arrays
+    a,a∞ = A.d.args
+    b,b∞ = A.du.args
+    c,c∞ = A.dl.args
     n = max(length(a), length(b)+1, length(c)-1) + 1
     data = zeros(T, l+u+1, n)
     data[u,2:length(b)+1] .= b

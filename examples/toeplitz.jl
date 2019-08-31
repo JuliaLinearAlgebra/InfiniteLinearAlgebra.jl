@@ -23,7 +23,7 @@ end
 
 function symbolplot!(A::BandedMatrix; kwds...)
     l,u = bandwidths(A)
-    a = rightasymptotics(A.data).applied.args[1]
+    a = rightasymptotics(A.data).args[1]
     θ = range(0,2π; length=1000)
     i = Vector{ComplexF64}()
     for t in θ
@@ -83,7 +83,7 @@ a = z -> 4z^10 + 1/z
 plot!(a.(exp.(im.*θ)); linewidth=2.0, linecolor=:blue, legend=false)
 
 import InfiniteLinearAlgebra: tail_de
-a = reverse(A.data.applied.args[1]) .+ 0im
+a = reverse(A.data.args[1]) .+ 0im
 
 a = randn(10) .+ im*randn(10); a[1] += 10; a[end] = 1;
 de = tail_de(a)
@@ -116,8 +116,8 @@ function reduceband(A)
         D = Q1[1:l+u+1,1:1]'A[1:l+u+1,1:u-1]
         D, Q1, L1
 end
-_Lrightasymptotics(D::Vcat) = D.arrays[2]
-_Lrightasymptotics(D::ApplyArray) = D.applied.args[1][2:end] * Ones{ComplexF64}(1,∞)
+_Lrightasymptotics(D::Vcat) = D.args[2]
+_Lrightasymptotics(D::ApplyArray) = D.args[1][2:end] * Ones{ComplexF64}(1,∞)
 Lrightasymptotics(L) = _Lrightasymptotics(rightasymptotics(parent(L).data))
 
 function qdL(A)
@@ -227,7 +227,7 @@ function Toep_L11(T)
         Q1,L1 = ql(H)
 
         d = Q1[1:3,1]'T[1:1+l,1]
-        ℓ = Q1.factors.data.arrays[2].applied.args[1][2:end] # new L
+        ℓ = Q1.factors.data.args[2].args[1][2:end] # new L
         T2 = _BandedMatrix(Hcat([[zero(d); d; ℓ[3:end]] L1[1:5,1]], ℓ*Ones{eltype(T)}(1,∞)), ∞, 3, 1)
         Q2,L2 = ql(T2)
         D = (Q2')[1:5,1:4] * (Q1')[1:4,1:3] * T[3:5,1:3]
