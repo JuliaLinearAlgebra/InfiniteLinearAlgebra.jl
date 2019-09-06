@@ -1,9 +1,13 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, FillArrays
-import BandedMatrices: _BandedMatrix
+import BandedMatrices: _BandedMatrix, colsupport
 
 
 A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
 C = cache(A)
+V = view(C.data,1:10,1:11)
+V isa BandedMatrices.BandedSubBandedMatrix
+qr!(V)
+qr!(C.data)
 
 F = QR(
 
