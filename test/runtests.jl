@@ -40,7 +40,13 @@ import BandedMatrices: bandeddata, _BandedMatrix
     At = BandedMatrix(transpose(A))
     @test Ac[1:10,1:10] ≈ (A')[1:10,1:10] ≈ A[1:10,1:10]'
     @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
+
+    A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
+    @test A*A isa ApplyArray
+    @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
+    @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
 end
+
 include("test_hessenbergq.jl")
 include("test_infql.jl")
 
