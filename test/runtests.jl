@@ -2,6 +2,7 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg
+import BlockArrays: _BlockArray                    
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
@@ -45,6 +46,15 @@ import BandedMatrices: bandeddata, _BandedMatrix
     @test A*A isa ApplyArray
     @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
     @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
+
+    @testset "Triangle OP recurrences" begin
+        mortar((n -> 1:n).(1:∞))
+    end
+    # Multivariate OPs Corollary (3)
+    # n = 5
+    # BlockTridiagonal(Zeros.(1:∞,2:∞),
+    #         (n -> Diagonal(((n+2).+(0:n)))/ (2n + 2)).(0:∞),
+    #         Zeros.(2:∞,1:∞))
 end
 
 include("test_hessenbergq.jl")

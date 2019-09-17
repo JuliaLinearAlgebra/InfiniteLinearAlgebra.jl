@@ -8,7 +8,7 @@ import Base.Broadcast: BroadcastStyle
 
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange
 import FillArrays: AbstractFill
-import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata
+import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata, bandwidths
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: CachedArray, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     CachedMatrix, CachedArray, resizedata!, MemoryLayout

@@ -31,7 +31,9 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData
         @test F.τ[1] ≈ 1+sqrt(2)/2
         @test F.τ[100] ≈ qrunblocked(A[1:101,1:100]).τ[100]
         Q,R = F;
-        
+        @test bandwidths(R) == (0,2)
+        @test size(R) == (∞,∞)
+        @test R[1,1] == -sqrt(2)
     end
 end
 

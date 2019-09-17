@@ -35,6 +35,7 @@ struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: Abstra
 end
 
 size(F::AdaptiveQRFactors) = size(F.data.data)
+bandwidths(F::AdaptiveQRFactors) = bandwidths(F.data.data)
 function getindex(F::AdaptiveQRFactors, k::Int, j::Int)
     partialqr!(F.data, j)
     F.data.data[k,j]
