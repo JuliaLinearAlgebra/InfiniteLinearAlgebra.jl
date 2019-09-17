@@ -1,44 +1,38 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays
-import BandedMatrices: _BandedMatrix, colsupport
-import MatrixFactorizations: QR
-import LazyArrays: CachedMatrix
+import BandedMatrices: _BandedMatrix, _banded_qr!, colsupport, BandedColumns
+import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData
 
-struct AdaptiveQRFactors{T,DM<:CachedMatrix{T}} <: AbstractMatrix{T}
-    factors::DM
-    τ::Vector{T}
+
+@testset "Adaptive QR" begin
+    @testset "test partialqr!" begin
+        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
+        l,u = bandwidths(A)
+        F = AdaptiveQRData(A);
+        @test bandwidths(F.data) == (1,2)
+        n = 3
+        partialqr!(F,n);
+        F̃ = qrunblocked(Matrix(A[1:n+l,1:n]))
+        @test F̃.factors ≈ F.data[1:n+l,1:n]
+        @test F̃.τ  ≈ F.τ
+        @test triu!(F.data[1:n+1,1:n+2]) ≈ F̃.Q'*A[1:n+1,1:n+2] # test extra columns have been modified
+        n  = 6
+        partialqr!(F,n);
+        F̃ = qrunblocked(Matrix(A[1:n+l,1:n]))
+        @test F̃.factors ≈ F.data[1:n+l,1:n]
+        @test F̃.τ  ≈ F.τ
+        @test triu!(F.data[1:n+1,1:n+2]) ≈ F̃.Q'*A[1:n+1,1:n+2] # test extra columns have been modified
+    end
+
+    @testset "AdaptiveQRFactors" begin
+        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1) 
+        F = qr(A);
+        @test F.factors[1,1] ≈ -sqrt(2)
+        @test F.factors[100,100] ≈ qrunblocked(A[1:101,1:100]).factors[100,100]
+        @test F.τ[1] ≈ 1+sqrt(2)/2
+        @test F.τ[100] ≈ qrunblocked(A[1:101,1:100]).τ[100]
+        Q,R = F;
+        
+    end
 end
 
-struct AdaptiveQRTau{T,DM<:CachedMatrix{T}} <: AbstractMatrix{T}
-    factors::DM
-    τ::Vector{T}
-end
-
-
-A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
-C = cache(A)
-
-
-V = view(C.data,1:10,1:11)
-V isa BandedMatrices.BandedSubBandedMatrix
-qr!(V)
-qr!(C.data)
-
-F = QR(
-
-
-vierwC.data
-
-@test C[100_000,100_000] === 100_000.0
-
-@time C[100_000,100_000]
-M = 
-@time F = qr!(C.data)
-
-@which C[1:100,1:100]
-
-@which bandwidths(C)
-
-@which cache(A)
-C.data
-
-2
+    
