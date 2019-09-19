@@ -47,6 +47,26 @@ import BandedMatrices: bandeddata, _BandedMatrix
     @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
     @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
 
+    @testset "Diagonal" begin
+        A = _BandedMatrix(Ones(1,∞),∞,-1,1)
+        @test 1.0 .* A isa BandedMatrix{Float64,<:Fill}
+        @test_skip Ones(∞) .* A
+        @test 2.0 .* A isa BandedMatrix{Float64,<:Fill}
+        @test A .* 2.0 isa BandedMatrix{Float64,<:Fill}
+        @test Eye(∞)*A isa BandedMatrix{Float64,<:Fill}
+        @test A*Eye(∞) isa BandedMatrix{Float64,<:Fill}
+        A = _BandedMatrix((1:∞)',∞,-1,1)
+        @test 2.0 .* A isa BandedMatrix{Float64,<:Adjoint}
+        @test A .* 2.0 isa BandedMatrix{Float64,<:Adjoint}
+        @test Eye(∞)*A isa BandedMatrix{Float64,<:Adjoint}
+        @test A*Eye(∞) isa BandedMatrix{Float64,<:Adjoint}
+        A = _BandedMatrix(Vcat((1:∞)',Ones(1,∞)),∞,0,1)
+        @test 2.0 .* A isa BandedMatrix
+        @test A .* 2.0 isa BandedMatrix
+        @test Eye(∞) * A isa BandedMatrix
+        @test A * Eye(∞) isa BandedMatrix
+    end
+
     @testset "Triangle OP recurrences" begin
         mortar((n -> 1:n).(1:∞))
     end

@@ -23,8 +23,8 @@ import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSiz
 
 
 # Fix ∞ BandedMatrix
-ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, _::Type{<:AbstractArray}...) =
-    LazyArrayApplyStyle()
+# ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, _::Type{<:AbstractArray}...) =
+#     LazyArrayApplyStyle()
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
