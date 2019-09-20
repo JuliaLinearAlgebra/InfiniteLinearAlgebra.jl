@@ -130,6 +130,8 @@ getindex(Q::LowerHessenbergQ, i::Integer, j::Integer) = (Q')[j,i]'
 # QLPackedQ, QRPackedQ <-> Lower/UpperHessenbergQ
 ###
 
+UpperHessenbergQ(Q::LinearAlgebra.QRPackedQ) = UpperHessenbergQ(QRPackedQ(Q))
+
 function UpperHessenbergQ(Q::QRPackedQ{T}) where T
     @assert bandwidth(Q.factors,1) == 1
     q = Vector{Matrix{T}}()
