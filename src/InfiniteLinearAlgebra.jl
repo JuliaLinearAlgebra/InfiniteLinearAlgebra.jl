@@ -11,7 +11,7 @@ import FillArrays: AbstractFill
 import BandedMatrices: BandedMatrix, _BandedMatrix, bandeddata, bandwidths
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: CachedArray, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
-                    CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle
+                    CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
@@ -60,8 +60,18 @@ include("infqr.jl")
 ###
 
 # Fix ∞ BandedMatrix
-ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:AbstractFill,<:OneToInf}}...) =
+ApplyStyle(::typeof(*), ::Type{<:Diagonal}, ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) =
+    LmulStyle()
+ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, ::Type{<:Diagonal}) =
+    RmulStyle()    
+ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) =
     LazyArrayApplyStyle()
-
-
+ApplyStyle(::typeof(*), ::Type{<:AbstractArray}, ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) =
+    LazyArrayApplyStyle()
+ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, ::Type{<:AbstractArray}) =
+    LazyArrayApplyStyle()
+ApplyStyle(::typeof(*), ::Type{<:Adjoint{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneToInf}}}, ::Type{<:AbstractArray}) =
+    LazyArrayApplyStyle()
+ApplyStyle(::typeof(*), ::Type{<:Transpose{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneToInf}}}, ::Type{<:AbstractArray}) =
+    LazyArrayApplyStyle()
 end # module

@@ -6,7 +6,7 @@ import BlockArrays: _BlockArray
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
-import LazyArrays: colsupport
+import LazyArrays: colsupport, ApplyStyle, MemoryLayout
 
 @testset "Algebra" begin 
     @testset "BlockTridiagonal" begin
@@ -26,6 +26,7 @@ import LazyArrays: colsupport
         @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
         @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
     end
+    
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
         Ac = BandedMatrix(A')
@@ -74,11 +75,19 @@ import LazyArrays: colsupport
         @test A * Eye(∞) isa BandedMatrix
         b = 1:∞
         @test bandwidths(b .* A) == (0,1)
+
+        @test colsupport(b.*A, 1) == 1:1
         @test Base.replace_in_print_matrix(b.*A, 2,1,"0.0") == " ⋅ "
         @test bandwidths(A .* b) == (0,1)
         @test A .* b' isa BroadcastArray
         @test bandwidths(A .* b') == bandwidths(A .* b')
         @test colsupport(A .* b', 3) == 2:3
+
+        A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
+        B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
+        C = Diagonal( 2 ./ (1:2:∞))
+        @test A*(B*C) isa MulMatrix
+        @test bandwidths(A*(B*C)) == (-1,1)
     end
     
     @testset "Triangle OP recurrences" begin
