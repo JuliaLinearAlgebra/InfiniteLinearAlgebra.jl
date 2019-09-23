@@ -67,7 +67,11 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         @test Q[200_000,200_000] ≈ -1.0
         @test Q[1:101,1:100] ≈ qr(A[1:101,1:100]).Q[:,1:100]
 
-        # lmul!(Q', Base.copymutable(b))
+        r = lmul!(Q', Base.copymutable(b))
+        nr = length(r.data)
+        @test qr(A[1:nr+1,1:nr]).Q'b[1:nr+1] ≈ r[1:nr+1]
+
+        materialize!(Ldiv(R, r))
     end
 end
 

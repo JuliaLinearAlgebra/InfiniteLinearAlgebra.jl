@@ -128,9 +128,10 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
         for j = 1:nB
             vBj = B[k,j]
             for i = max(1,ν-u):k-1
-                if !iszero(B[i,j])
+                Bij = B[i,j]
+                if !iszero(Bij)
                     allzero = false
-                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
+                    vBj += conj(D[i-ν+u+1,ν])*Bij
                 end
             end
             vBj = A.τ[k]*vBj

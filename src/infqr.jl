@@ -83,6 +83,10 @@ function qr(A::BandedMatrix{<:Any,<:Any,<:OneToInf})
     QR(AdaptiveQRFactors(data), AdaptiveQRTau(data))
 end
 
+#########
+# lmul!
+#########
+
 
 function lmul!(A::QRPackedQ{<:Any,<:AdaptiveQRFactors}, B::CachedVector{T,Vector{T},<:Zeros{T,1}}) where T
     require_one_based_indexing(B)
@@ -111,6 +115,40 @@ function lmul!(A::QRPackedQ{<:Any,<:AdaptiveQRFactors}, B::CachedVector{T,Vector
             for i = (k+1:sB_2) ∩ cs
                 b[i] -= Afactors[i,k]*vBj
             end
+        end
+    end
+    B
+end
+
+
+function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::CachedVector{T,Vector{T},<:Zeros{T,1}}) where T
+    require_one_based_indexing(B)
+    A = adjA.parent
+    mA, nA = size(A.factors)
+    mB = length(B)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    sB = length(B.data)
+    @inbounds begin
+        for k = 1:min(mA,nA)
+            vBj = B[k]
+            allzero = k > sB ? iszero(vBj) : false
+            cs = colsupport(Afactors,k)
+            for i = (k+1:mB) ∩ cs
+                Bi = B[i]
+                if !iszero(Bi)
+                    allzero = false
+                    vBj += conj(Afactors[i,k])*Bi
+                end
+            end
+            vBj = conj(A.τ[k])*vBj
+            B[k] -= vBj
+            for i = (k+1:mB) ∩ cs
+                B[i] -= Afactors[i,k]*vBj
+            end
+            allzero && break
         end
     end
     B
