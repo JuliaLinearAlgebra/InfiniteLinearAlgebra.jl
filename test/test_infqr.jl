@@ -63,15 +63,21 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         Q,R = qr(A);
         b = Vcat([1.,2,3],Zeros(∞))
         @test lmul!(Q, Base.copymutable(b)).data ≈ qr(A[1:4,1:3]).Q*[1,2,3]
+
         @test Q[1,1] ≈ -1/sqrt(2)
         @test Q[200_000,200_000] ≈ -1.0
         @test Q[1:101,1:100] ≈ qr(A[1:101,1:100]).Q[:,1:100]
+
+        @test lmul!(Q, Base.copymutable(b)) == Q*b
 
         r = lmul!(Q', Base.copymutable(b))
         nr = length(r.data)
         @test qr(A[1:nr+1,1:nr]).Q'b[1:nr+1] ≈ r[1:nr+1]
 
-        materialize!(Ldiv(R, r))
+        @test Q'*b == r
+
+        @test qr(A)\b == A\b
+        @test (A*(A\b))[1:100] ≈ [1:3; Zeros(97)]
     end
 end
 

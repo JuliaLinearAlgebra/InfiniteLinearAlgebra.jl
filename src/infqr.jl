@@ -153,3 +153,24 @@ function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::C
     end
     B
 end
+
+function (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
+end
+
+function (*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
+end
+
+ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = materialize!(Ldiv(R, B))
+
+
+
+ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) = 
+    ldiv!(F, copyto!(dest, b))
+ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) = ldiv!(F.R, lmul!(F.Q',b))
+\(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = ldiv!(F.R, F.Q'B)
+
+factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
