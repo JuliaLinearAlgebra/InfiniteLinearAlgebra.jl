@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays
+using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays, SpecialFunctions
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
@@ -76,8 +76,21 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
 
         @test Q'*b == r
 
+        @test factorize(A) isa typeof(qr(A))
         @test qr(A)\b == A\b
         @test (A*(A\b))[1:100] ≈ [1:3; Zeros(97)]
+    end
+
+    @testset "Bessel J" begin
+        z = 1000; # the bigger z the longer before we see convergence
+        A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
+        J = A \ Vcat([besselj(1,z)], Zeros(∞))
+        @test J[1:2000] ≈ [besselj(k,z) for k=0:1999]
+
+        z = 10_000; # the bigger z the longer before we see convergence
+        A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
+        J = A \ Vcat([besselj(1,z)], Zeros(∞))
+        @test J[1:20_000] ≈ [besselj(k,z) for k=0:20_000-1]
     end
 end
 

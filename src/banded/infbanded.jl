@@ -8,9 +8,22 @@ const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple
 const AdjTriPertToeplitz{T} = Adjoint{T,Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}}
 const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
 
+function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:AbstractVector}}},
+                         ::NTuple{2,Infinity},
+                         (l,u)::NTuple{2,Integer}) where T
+    ks = getproperty.(kv, :first)
+    rws = Vcat(permutedims.(getproperty.(kv, :second))...)
+    l,u = -minimum(ks),maximum(ks)
+    c = zeros(T, l+u+1, length(ks))
+    for (k,j) in zip(u .- ks .+ 1,1:length(ks))
+        c[k,j] = one(T)
+    end
+    _BandedMatrix(ApplyArray(*,c,rws), ∞, l, u)
+end
+
 # Construct InfToeplitz
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Fill{<:Any,1,Tuple{OneToInf{Int}}}}}},
-                         mn::NTuple{2,Integer},
+                         mn::NTuple{2,Infinity},
                          lu::NTuple{2,Integer}) where T
     m,n = mn
     @assert isinf(n)
@@ -25,7 +38,7 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Fill{<:Any,1,Tuple{On
 end
 
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{<:AbstractVector,Fill{<:Any,1,Tuple{OneToInf{Int}}}}}}}},
-                         mn::NTuple{2,Integer},
+                         mn::NTuple{2,Infinity},
                          lu::NTuple{2,Integer}) where T
     m,n = mn
     @assert isinf(n)

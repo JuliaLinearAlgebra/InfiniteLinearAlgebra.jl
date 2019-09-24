@@ -2,32 +2,23 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg
+
 import BlockArrays: _BlockArray                    
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout
 
+
+
+
+
 @testset "Algebra" begin 
-    @testset "BlockTridiagonal" begin
-        A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
-                            Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
-                            Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
-                            
-        @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz                       
-        @test isblockbanded(A)
-
-        @test A[Block.(1:2),Block(1)] == A[1:3,1:1] == reshape([0.,1.,1.],3,1)
-
-        @test BlockBandedMatrix(A)[1:100,1:100] == BlockBandedMatrix(A,(2,1))[1:100,1:100] == BlockBandedMatrix(A,(1,1))[1:100,1:100] == A[1:100,1:100]
-
-        @test (A - I)[1:100,1:100] == A[1:100,1:100]-I
-        @test (A + I)[1:100,1:100] == A[1:100,1:100]+I
-        @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
-        @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
-    end
-    
     @testset "BandedMatrix" begin
+        A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
+        @test A isa BandedMatrix{ComplexF64}
+        @test A[1:10,1:10] == diagm(-3 => Fill(7/10,7), -2 => 1:8, 1 => Fill(2im,9))
+
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
         Ac = BandedMatrix(A')
         At = BandedMatrix(transpose(A))
@@ -51,6 +42,25 @@ import LazyArrays: colsupport, ApplyStyle, MemoryLayout
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
         @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
     end
+
+    @testset "BlockTridiagonal" begin
+        A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
+                            Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
+                            Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
+                            
+        @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz                       
+        @test isblockbanded(A)
+
+        @test A[Block.(1:2),Block(1)] == A[1:3,1:1] == reshape([0.,1.,1.],3,1)
+
+        @test BlockBandedMatrix(A)[1:100,1:100] == BlockBandedMatrix(A,(2,1))[1:100,1:100] == BlockBandedMatrix(A,(1,1))[1:100,1:100] == A[1:100,1:100]
+
+        @test (A - I)[1:100,1:100] == A[1:100,1:100]-I
+        @test (A + I)[1:100,1:100] == A[1:100,1:100]+I
+        @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
+        @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
+    end
+    
 
     @testset "Fill" begin
         A = _BandedMatrix(Ones(1,∞),∞,-1,1)

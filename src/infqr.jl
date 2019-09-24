@@ -102,6 +102,7 @@ function lmul!(A::QRPackedQ{<:Any,<:AdaptiveQRFactors}, B::CachedVector{T,Vector
     b = B.data    
     
     sB_2 = length(b)
+    partialqr!(A.factors.data, sB)
 
     @inbounds begin
         for k = sB:-1:1
@@ -131,22 +132,30 @@ function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::C
     end
     Afactors = A.factors
     sB = length(B.data)
+    partialqr!(A.factors.data, min(sB+100,nA))
+    resizedata!(B, min(sB+100,mB))
+    Bd = B.data
     @inbounds begin
         for k = 1:min(mA,nA)
             vBj = B[k]
             allzero = k > sB ? iszero(vBj) : false
             cs = colsupport(Afactors,k)
+            cs_max = maximum(cs)
+            if cs_max > length(Bd) # need to grow the data
+                resizedata!(B, min(cs_max+100,mB)); Bd = B.data
+                partialqr!(A.factors.data, min(cs_max+100,nA))
+            end
             for i = (k+1:mB) ∩ cs
-                Bi = B[i]
+                Bi = Bd[i]
                 if !iszero(Bi)
                     allzero = false
                     vBj += conj(Afactors[i,k])*Bi
                 end
             end
             vBj = conj(A.τ[k])*vBj
-            B[k] -= vBj
+            Bd[k] -= vBj
             for i = (k+1:mB) ∩ cs
-                B[i] -= Afactors[i,k]*vBj
+                Bd[i] -= Afactors[i,k]*vBj
             end
             allzero && break
         end
