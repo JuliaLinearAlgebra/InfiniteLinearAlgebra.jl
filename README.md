@@ -36,7 +36,7 @@ julia> A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
 ```
 The first row corresponds to specifying an initial condition. Thus we can determine the Bessel functions via solving the recurrence:
 ```julia
-julia> A \ Vcat([besselj(1,z)], Zeros(∞)) 
+julia> A \ [besselj(1,z); Zeros(∞)] 
 ∞-element LazyArrays.CachedArray{Float64,1,Array{Float64,1},Zeros{Float64,1,Tuple{InfiniteArrays.OneToInf{Int64}}}} with indices OneToInf():
  -0.007096160353406478 
   0.0036474507555295833
