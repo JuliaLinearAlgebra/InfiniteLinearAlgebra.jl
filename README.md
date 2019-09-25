@@ -8,9 +8,7 @@ A Julia repository for linear algebra with infinite banded and block-banded matr
 This currently supports the infinite-dimensional QR factorization for banded matrices, also known as the adaptive QR decomposition as the entries of the QR decomposition are determined lazily. 
 
 As a simple example, consider the Bessel recurrence relationship:
-$$
-J_{n-1}(z)  - {2 n \over z} J_n(z) + J_{n+1}(z) = 0
-$$
+- <img src="https://latex.codecogs.com/gif.latex?O_t=J_{n-1}(z)  - {2 n \over z} J_n(z) + J_{n+1}(z) = 0" />
 This can be recast as an infinite linear system:
 ```julia
 julia> using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, SpecialFunctions
@@ -36,7 +34,7 @@ julia> A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
   ⋅     ⋅        ⋅        ⋅        ⋅        ⋅       ⋅        ⋅        ⋅         
  ⋮                                         ⋮                                 ⋱  
 ```
-The first row corresponds to specifying an initial condition. Thus we can determine $J_n(z)$ via solving the recurrence:
+The first row corresponds to specifying an initial condition. Thus we can determine the Bessel functions via solving the recurrence:
 ```julia
 julia> A \ Vcat([besselj(1,z)], Zeros(∞)) 
 ∞-element LazyArrays.CachedArray{Float64,1,Array{Float64,1},Zeros{Float64,1,Tuple{InfiniteArrays.OneToInf{Int64}}}} with indices OneToInf():
