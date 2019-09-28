@@ -9,15 +9,14 @@ import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout
 
-
-
-
-
 @testset "Algebra" begin 
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
         @test A isa BandedMatrix{ComplexF64}
         @test A[1:10,1:10] == diagm(-3 => Fill(7/10,7), -2 => 1:8, 1 => Fill(2im,9))
+
+        A = BandedMatrix(0 => Vcat([1,2,3],Zeros(∞)), 1 => Vcat(1, Zeros(∞)))
+        @test A[1,2] == 1
 
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
         Ac = BandedMatrix(A')
@@ -112,4 +111,4 @@ end
 
 include("test_hessenbergq.jl")
 include("test_infql.jl")
-
+include("test_infqr.jl")

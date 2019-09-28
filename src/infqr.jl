@@ -15,12 +15,12 @@ AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(typeo
 function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
     if n > F.ncols 
         l,u = bandwidths(F.data.array)
-        resizedata!(F.data,n+l,n+u+l)
-        resize!(F.τ,n)
+        resizedata!(F.data,n+l,n+u+l);
+        resize!(F.τ,n);
         ñ = F.ncols
-        factors = view(F.data.data,ñ+1:n+l,ñ+1:n)
-        τ = view(F.τ,ñ+1:n)
-        _banded_qr!(factors, τ)
+        factors = view(F.data.data,ñ+1:n+l,ñ+1:n);
+        τ = view(F.τ,ñ+1:n);
+        _banded_qr!(factors, τ);
         # multiply remaining columns
         n̄ = max(ñ+1,n-l-u+1) # first column interacting with extra data
         Q = QRPackedQ(view(F.data.data,n̄:n+l,n̄:n), view(F.τ,n̄:n))
@@ -78,7 +78,7 @@ end
 getR(Q::QR, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = UpperTriangular(Q.factors)
 
 
-function qr(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) 
+function _banded_qr(::NTuple{2,OneToInf{Int}}, A)
     data = AdaptiveQRData(A)
     QR(AdaptiveQRFactors(data), AdaptiveQRTau(data))
 end
@@ -181,5 +181,6 @@ ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector)
     ldiv!(F, copyto!(dest, b))
 ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) = ldiv!(F.R, lmul!(F.Q',b))
 \(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = ldiv!(F.R, F.Q'B)
+
 
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)

@@ -8,12 +8,17 @@ const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple
 const AdjTriPertToeplitz{T} = Adjoint{T,Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}}
 const InfBandedMatrix{T,V<:AbstractMatrix{T}} = BandedMatrix{T,V,OneToInf{Int}}
 
+_prepad(p, a) = Vcat(Zeros(max(p,0)), a)
+_prepad(p, a::Zeros{T,1}) where T = Zeros{T}(length(a)+p)
+_prepad(p, a::Ones{T,1}) where T = Ones{T}(length(a)+p)
+_prepad(p, a::AbstractFill{T,1}) where T = Fill{T}(getindex_value(a), length(a)+p)
+
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:AbstractVector}}},
                          ::NTuple{2,Infinity},
                          (l,u)::NTuple{2,Integer}) where T
     ks = getproperty.(kv, :first)
-    rws = Vcat(permutedims.(getproperty.(kv, :second))...)
     l,u = -minimum(ks),maximum(ks)
+    rws = Vcat(permutedims.(_prepad.(ks,getproperty.(kv, :second)))...)
     c = zeros(T, l+u+1, length(ks))
     for (k,j) in zip(u .- ks .+ 1,1:length(ks))
         c[k,j] = one(T)

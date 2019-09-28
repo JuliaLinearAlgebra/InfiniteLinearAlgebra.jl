@@ -92,6 +92,28 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         J = A \ Vcat([besselj(1,z)], Zeros(∞))
         @test J[1:20_000] ≈ [besselj(k,z) for k=0:20_000-1]
     end
-end
 
-    
+    @testset "5-band" begin
+        A = BandedMatrix(-2 => Ones(∞), -1 => Vcat(1, Zeros(∞)), 0 => Vcat([1,2,3],Zeros(∞)).+3, 1 => Vcat(1, Zeros(∞)), 2 => Ones(∞))
+        b = Vcat([3,4,5],Zeros(∞))
+        x = qr(A) \ b
+        @test x[1:2000] ≈ (A[1:2000,1:2000]\b[1:2000])
+    end
+
+    @testset "broadcast" begin
+        A = BandedMatrix(0 => -2*(0:∞), 1 => Ones(∞), -1 => Ones(∞))
+        B = BandedMatrix(-2 => Ones(∞), -1 => Vcat(1, Zeros(∞)), 0 => Vcat([1,2,3],Zeros(∞)).+3, 1 => Vcat(1, Zeros(∞)), 2 => Ones(∞))
+
+        AB = BroadcastArray(+,A,B)
+        C = cache(AB);
+        resizedata!(C,103,100); resizedata!(C,203,200);
+        @test C[103,104] ≈ 1.0
+        F = qr(AB);
+        partialqr!(F.factors.data, 100);
+        partialqr!(F.factors.data, 200);
+        @test norm(F.factors.data.data.data) ≤ 4000
+        b = Vcat([3,4,5],Zeros(∞))
+        @time x = qr(AB) \ b;
+        @test x[1:300] ≈ AB[1:300,1:300] \ b[1:300]
+    end
+end
