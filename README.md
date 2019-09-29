@@ -2,6 +2,9 @@
 
 A Julia repository for linear algebra with infinite banded and block-banded matrices
 
+[![Build Status](https://travis-ci.org/JuliaMatrices/InfiniteLinearAlgebra.jl.svg?branch=master)](https://travis-ci.org/JuliaMatrices/InfiniteLinearAlgebra.jl)
+
+[![codecov](https://codecov.io/gh/JuliaMatrices/InfiniteLinearAlgebra.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaMatrices/InfiniteLinearAlgebra.jl)
 
 ## Infinite-dimensional QR factorization
 
