@@ -14,7 +14,7 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 
 
 [compat]
-BandedMatrices = "0.12.1"
+BandedMatrices = "0.12.2"
 BlockArrays = "0.10"
 BlockBandedMatrices = "0.5.1"
 FillArrays = "0.7.1"
