@@ -18,7 +18,7 @@ end
 function tail_de(a::AbstractVector{T}; branch=findmax) where T
     m = length(a)
     C = [view(a,m-1:-1:1) Vcat(-a[end]*Eye(m-2), Zeros{T}(1,m-2))]
-    λ, V = eigen(C)::Eigen{T,T,Matrix{T},Vector{T}}
+    λ, V = eigen(C)::Eigen{float(T),float(T),Matrix{float(T)},Vector{float(T)}}
     n2, j = branch(abs2.(λ))
     n2 ≥ abs2(a[end]) || throw(DomainError(a, "QL factorization does not exist. This could indicate that the operator is not Fredholm or that the dimension of the kernel exceeds that of the co-kernel. Try again with the adjoint."))
     c_abs = sqrt((n2 - abs2(a[end]))/abs2(V[1,j]))
@@ -52,13 +52,97 @@ end
 
 ql(Op::TriToeplitz{T}) where T = ql(InfToeplitz(Op))
 
-function ql(A::InfToeplitz{T}; kwds...) where T
+# ql for Lower hessenberg InfToeplitz
+function ql_hessenberg(A::InfToeplitz{T}; kwds...) where T
     l,u = bandwidths(A)
     @assert u == 1
     a = reverse(A.data.args[1])
     de = tail_de(a; kwds...)
-    X = [transpose(a); zero(T) transpose(de)]::Matrix{T}
+    X = [transpose(a); zero(T) transpose(de)]::Matrix{float(T)}
     F = ql_X!(X) # calculate data for fixed point
-    factors = _BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [0; X[2,end:-1:1]] * Ones{T}(1,∞)), ∞, l+u, 1)
+    factors = _BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [0; X[2,end:-1:1]] * Ones{float(T)}(1,∞)), ∞, l+u, 1)
     QLHessenberg(factors, Fill(F.Q,∞))
+end
+
+
+# remove one band of A
+function ql_pruneband(A)
+    l,u = bandwidths(A)
+    p = size(_pertdata(bandeddata(A)),2) # pert size
+    Q,L = ql_hessenberg(A[:,u:end])
+    m = max(p+1,u+1)
+    dat = (UpperHessenbergQ((Q').q[1:(m+l)])) * A[1:m+l+1,1:m]
+    pert = Array{eltype(dat)}(undef, l+u+1,size(dat,2)-1)
+    for j = 1:u
+        pert[u-j+1:end,j] .= view(dat,1:l+j+1,j)
+    end
+    for j = u+1:size(pert,2)
+        pert[:,j] .= view(dat,j-u+1:j+l+1,j)
+    end
+    H = _BandedMatrix(Hcat(pert, dat[end-l-u:end,end]*Ones{eltype(dat)}(1,∞)), ∞, l+1,u-1)
+    Q,H
+end
+
+# represent Q as a product of orthogonal operations
+struct QLProduct{T,QQ<:Tuple,LL} <: Factorization{T}
+    Qs::QQ
+    L::LL
+end
+
+QLProduct(Qs::Tuple, L::AbstractMatrix{T}) where T = QLProduct{T,typeof(Qs),typeof(L)}(Qs, L)
+QLProduct(F::QLHessenberg) = QLProduct(tuple(F.Q), F.L)
+
+# iteration for destructuring into components
+Base.iterate(S::QLProduct) = (S.Q, Val(:L))
+Base.iterate(S::QLProduct, ::Val{:L}) = (S.L, Val(:done))
+Base.iterate(S::QLProduct, ::Val{:done}) = nothing
+
+QLProduct{T}(A::QLProduct) where {T} = QLProduct(convert.(AbstractMatrix{T}, A.Qs), convert(AbstractMatrix{T}, A.L))
+Factorization{T}(A::QLProduct{T}) where {T} = A
+Factorization{T}(A::QLProduct) where {T} = QLProduct{T}(A)
+AbstractMatrix(F::QLProduct) = F.Q * F.L
+AbstractArray(F::QLProduct) = AbstractMatrix(F)
+Matrix(F::QLProduct) = Array(AbstractArray(F))
+Array(F::QLProduct) = Matrix(F)
+
+function show(io::IO, mime::MIME{Symbol("text/plain")}, F::QLProduct)
+    summary(io, F); println(io)
+    println(io, "Q factor:")
+    show(io, mime, F.Q)
+    println(io, "\nL factor:")
+    show(io, mime, F.L)
+end
+
+@inline getL(F::QLProduct) = getfield(F, :L)
+@inline getQ(F::QLProduct) = ProductQ(F.Qs)
+
+function getproperty(F::QLProduct, d::Symbol)
+    if d == :L
+        return getL(F)
+    elseif d == :Q
+        return getQ(F)
+    else
+        getfield(F, d)
+    end
+end
+
+Base.propertynames(F::QLProduct, private::Bool=false) =
+    (:L, :Q, (private ? fieldnames(typeof(F)) : ())...)
+
+function ql(A::InfToeplitz{T}) where T
+    _,u = bandwidths(A)
+    u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
+    u == 1 && return QLProduct(ql_hessenberg(A))
+    Q1,H1 = ql_pruneband(A)
+    F̃ = ql(H1)
+    QLProduct(tuple(Q1, F̃.Qs...), F̃.L)
+end
+
+function ql(A::PertToeplitz{T}) where T
+    _,u = bandwidths(A)
+    u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
+    u == 1 && return QLProduct(ql_hessenberg(A))
+    Q1,H1 = ql_pruneband(A)
+    F̃ = ql(H1)
+    QLProduct(tuple(Q1, F̃.Qs...), F̃.L)
 end

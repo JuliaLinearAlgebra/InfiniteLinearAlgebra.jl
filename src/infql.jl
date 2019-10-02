@@ -61,7 +61,7 @@ end
 ql(A::SymTriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 ql(A::SymTridiagonal{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 ql(A::TriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::InfBandedMatrix{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql_hessenberg(A::InfBandedMatrix{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
 toeptail(B::BandedMatrix{T}) where T = 
     _BandedMatrix(B.data.args[end].args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
@@ -71,12 +71,12 @@ rightasymptotics(d::Hcat) = last(d.args)
 rightasymptotics(d::Vcat) = Vcat(rightasymptotics.(d.args)...)
 rightasymptotics(d) = d
 
-function ql!(B::InfBandedMatrix{TT}; kwds...) where TT
+function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
     l,u = bandwidths(B)
     @assert u == 1
     T = toeptail(B)
     # Tail QL
-    F∞ = ql(T; kwds...)
+    F∞ = ql_hessenberg(T; kwds...)
     Q∞, L∞ = F∞
 
     # populate finite data and do ql!
