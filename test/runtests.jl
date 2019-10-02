@@ -1,7 +1,7 @@
 using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, LinearAlgebra, Random
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
-                    rightasymptotics, QLHessenberg
+                    rightasymptotics, QLHessenberg, ConstRows, BandedToeplitzLayout
 
 import BlockArrays: _BlockArray                    
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
@@ -107,6 +107,19 @@ import LazyArrays: colsupport, ApplyStyle, MemoryLayout
     # BlockTridiagonal(Zeros.(1:∞,2:∞),
     #         (n -> Diagonal(((n+2).+(0:n)))/ (2n + 2)).(0:∞),
     #         Zeros.(2:∞,1:∞))
+end
+
+
+@testset "∞-Toeplitz" begin
+    A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+    @test MemoryLayout(typeof(A.data)) == ConstRows()
+    @test MemoryLayout(typeof(A)) == BandedToeplitzLayout()
+    V = view(A,:,3:∞)
+    @test MemoryLayout(typeof(bandeddata(V))) == ConstRows()
+    @test MemoryLayout(typeof(V)) == BandedToeplitzLayout()
+
+    @test BandedMatrix(V) isa InfToeplitz
+    @test A[:,3:end] isa InfToeplitz
 end
 
 include("test_hessenbergq.jl")

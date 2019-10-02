@@ -42,6 +42,10 @@ end
 ###
 
 A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+
+BandedMatrix(view(A,:,3:∞))
+
+ql(A)
 p =plot(); symbolplot!(A)
 
 ###

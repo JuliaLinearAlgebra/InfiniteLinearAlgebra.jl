@@ -1,7 +1,7 @@
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
-const ConstRows{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill}}
-const InfToeplitz{T} = BandedMatrix{T,<:ConstRows{T},OneToInf{Int}}
-const PertToeplitz{T} = BandedMatrix{T,<:Hcat{T,<:Tuple{Matrix{T},<:ConstRows{T}}},OneToInf{Int}}
+const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill}}
+const InfToeplitz{T} = BandedMatrix{T,<:ConstRowMatrix{T},OneToInf{Int}}
+const PertToeplitz{T} = BandedMatrix{T,<:Hcat{T,<:Tuple{Matrix{T},<:ConstRowMatrix{T}}},OneToInf{Int}}
 
 const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
@@ -259,3 +259,21 @@ function InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::Tu
 end
 
 InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}) where T = InfToeplitz(A, bandwidths(A))
+
+
+####
+# Toeplitz layout
+####
+
+ConstRowMatrix(A::AbstractMatrix{T}) where T = ApplyMatrix(*, A[:,1], Ones{T}(1,size(A,2)))
+
+struct ConstRows <: MemoryLayout end
+struct BandedToeplitzLayout <: MemoryLayout end
+MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
+bandedcolumns(::ConstRows) = BandedToeplitzLayout()
+subarraylayout(::ConstRows, _) = ConstRows() # no way to lose const rows
+
+_BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) = 
+    _BandedMatrix(ConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)
+
+sub_materialize(::BandedToeplitzLayout, V) = BandedMatrix(V)    
