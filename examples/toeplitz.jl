@@ -1,7 +1,5 @@
-using Revise, InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, LazyArrays, FillArrays, MatrixFactorizations, Plots
-import MatrixFactorizations: reflectorApply!, QLPackedQ
-import InfiniteLinearAlgebra: blocktailiterate, _ql, qltail, rightasymptotics
-import BandedMatrices: bandeddata,_BandedMatrix
+using InfiniteLinearAlgebra, BandedMatrices, PyPlot
+
 
 function ℓ11(A,λ; kwds...) 
     try 
@@ -42,6 +40,11 @@ end
 ###
 
 A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+ℓ11(A, 0.1+0.2im; branch=findmax)
+ql(A - (0.1+0.2im)I; branch=findmax).L[1,1]
+
+qlplot(A)
+
 
 BandedMatrix(view(A,:,3:∞))
 

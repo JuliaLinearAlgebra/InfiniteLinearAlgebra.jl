@@ -66,10 +66,10 @@ end
 
 
 # remove one band of A
-function ql_pruneband(A)
+function ql_pruneband(A; kwds...)
     l,u = bandwidths(A)
     p = size(_pertdata(bandeddata(A)),2) # pert size
-    Q,L = ql_hessenberg(A[:,u:end])
+    Q,L = ql_hessenberg(A[:,u:end]; kwds...)
     m = max(p+1,u+1)
     dat = (UpperHessenbergQ((Q').q[1:(m+l)])) * A[1:m+l+1,1:m]
     pert = Array{eltype(dat)}(undef, l+u+1,size(dat,2)-1)
@@ -129,20 +129,14 @@ end
 Base.propertynames(F::QLProduct, private::Bool=false) =
     (:L, :Q, (private ? fieldnames(typeof(F)) : ())...)
 
-function ql(A::InfToeplitz{T}) where T
+function _inf_ql(A::AbstractMatrix{T}; kwds...) where T
     _,u = bandwidths(A)
     u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
-    u == 1 && return QLProduct(ql_hessenberg(A))
-    Q1,H1 = ql_pruneband(A)
-    F̃ = ql(H1)
+    u == 1 && return QLProduct(ql_hessenberg(A; kwds...))
+    Q1,H1 = ql_pruneband(A; kwds...)
+    F̃ = ql(H1; kwds...)
     QLProduct(tuple(Q1, F̃.Qs...), F̃.L)
 end
 
-function ql(A::PertToeplitz{T}) where T
-    _,u = bandwidths(A)
-    u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
-    u == 1 && return QLProduct(ql_hessenberg(A))
-    Q1,H1 = ql_pruneband(A)
-    F̃ = ql(H1)
-    QLProduct(tuple(Q1, F̃.Qs...), F̃.L)
-end
+ql(A::InfToeplitz{T}; kwds...) where T = _inf_ql(A; kwds...)
+ql(A::PertToeplitz{T}; kwds...) where T = _inf_ql(A; kwds...)
