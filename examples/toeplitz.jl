@@ -19,19 +19,15 @@ function qlplot(A; branch=findmax, x=range(-4,4; length=200), y=range(-4,4;lengt
     contourf(x,y,z; kwds...)
 end
 
-function symbolplot!(A::BandedMatrix; kwds...)
+toepcoeffs(A::BandedMatrix) = InfiniteLinearAlgebra.rightasymptotics(A.data).args[1]
+toepcoeffs(A::Adjoint) = reverse(toepcoeffs(A'))
+
+function symbolplot(A::BandedMatrix; kwds...)
     l,u = bandwidths(A)
-    a = rightasymptotics(A.data).args[1]
+    a = toepcoeffs(A)
     θ = range(0,2π; length=1000)
-    i = Vector{ComplexF64}()
-    for t in θ
-        r = 0.0+0.0im
-        for k=1:length(a)
-            r += exp(im*(k-l-1)*t) * a[k]
-        end
-        push!(i,r)
-    end
-    plot!(i; kwds...)
+    i = map(t -> dot(exp.(im.*(u:-1:-l).*t),a),θ)
+    plot(real.(i), imag.(i); kwds...)
 end
 
 
@@ -40,16 +36,138 @@ end
 ###
 
 A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
-ℓ11(A, 0.1+0.2im; branch=findmax)
-ql(A - (0.1+0.2im)I; branch=findmax).L[1,1]
+clf();qlplot(A; x=range(-10,7; length=100), y=range(-7,8;length=100)); symbolplot(A; color=:black); title("Trefethen & Embree")
+clf(); qlplot(BandedMatrix(transpose(A)); x=range(-10,7; length=200), y=range(-7,8;length=200)); symbolplot(A; color=:black); title("Trefethen & Embree, transpose")
 
-qlplot(A)
+ql(A+(2im)*I).L
 
-
+symbolplot(A')
+ql((A-(5.1)*I)[1:1000,1:1000]).L
 BandedMatrix(view(A,:,3:∞))
 
 ql(A)
 p =plot(); symbolplot!(A)
+
+
+###
+# bull-head
+###
+
+A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞))
+clf(); qlplot(A; x=range(-4,4; length=100), y=range(-4,4;length=100))
+symbolplot(A; color=:black)
+
+clf(); qlplot(BandedMatrix(transpose(A)); x=range(-4,4; length=100), y=range(-4,4;length=100))
+symbolplot(A; color=:black)
+
+At = BandedMatrix(transpose(A))
+Q, L = ql(At)
+Q[1:10,1:14]*L[1:14,1:10]
+L
+ql(At[1:N,1:N])
+
+A = BandedMatrix(-3 => Fill(7/10,∞), -2 => Fill(1,∞), 1 => Fill(2im,∞)); At = A = B = BandedMatrix(transpose(A)); 
+Q,L = ql(B)
+Q[1:10,1:14] * L[1:14,1:10]
+
+
+Q,L = ql(At);
+Q[1:100,1:104] * L[1:104,1:100] - At[1:100,1:100] |> norm
+A = B
+import InfiniteLinearAlgebra: ql_pruneband
+A = At
+Q1,H1 = ql_pruneband(A)
+Q1[1:10,1:15] * H1[1:15,1:10] - A[1:10,1:10] |> norm
+Q2,H2 = ql_pruneband(H1)
+Q2[1:10,1:15] * H2[1:15,1:10] - H1[1:10,1:10] |> norm
+Q3,L = ql(H2)
+Q3[1:10,1:15] * L[1:15,1:10] - H2[1:10,1:10] |> norm
+
+Q2[1:10,1:15] * Q3[1:15,1:19] * L[1:19,1:10] - H1[1:10,1:10] |> norm
+Q1[1:10,1:15] * Q2[1:15,1:19] * Q3[1:19,1:23] * L[1:23,1:10] - A[1:10,1:10] |> norm
+Q,L = ql(At)
+ql(At).Qs[2]
+
+Q.Qs[1][1:10,1:15] - Q1[1:10,1:15]
+
+Q.Qs[1][1:10,1:15] * Q.Qs[2][1:15,1:19] * Q.Qs[3][1:19,1:23] * L[1:23,1:10] - A[1:10,1:10] |> norm
+
+e = zeros(ComplexF64,∞); e[1] = 1; lmul!(Q.Qs[1]', e); lmul!(Q.Qs[2]', e);  lmul!(Q.Qs[3]', e)
+@which lmul!(Q', e)
+
+e = zeros(ComplexF64,∞); e[1] = 1; lmul!((Q').Qs[end], e)
+
+
+@which (Q')[1,1]
+Q[1,1]
+
+
+
+A = H1
+A_hess = A[:,u:end]
+
+B = BandedMatrix(A_hess, (bandwidth(A_hess,1)+bandwidth(A_hess,2),bandwidth(A_hess,2)))
+l,u = bandwidths(B)
+@assert u == 1
+T = toeptail(B)
+# Tail QL
+F∞ = ql_hessenberg(T; kwds...)
+Q∞, L∞ = F∞
+
+Q∞[1:10,1:15] * L∞[1:15,1:10] - T[1:10,1:10] |> norm
+
+data = bandeddata(B).args[1]
+B̃ = _BandedMatrix(data, size(data,2), l,u)
+B̃[end,end] = L∞[1,1]
+B̃[end:end,end-l+1:end-1] = adjoint(Q∞)[1:1,1:l-1]*T[l:2(l-1),1:l-1]
+
+m = size(data,2)-1
+Q_tail = [Matrix(I,m,m) zeros(m,N-m); zeros(N-m,m)  Q∞[1:N-m,1:N-m]]
+(Q_tail' * A_hess[1:N,1:N])[1:7,1:7] - B̃ 
+
+
+# populate finite data and do ql!
+F = ql(B̃)
+
+# fill in data with L∞
+B̃ = _BandedMatrix(B̃.data, size(data,2)+l, l,u)
+B̃[size(data,2)+1:end,end-l+1:end] = adjoint(Q∞)[2:l+1,1:l+1] * T[l:2l,1:l]
+
+
+# combine finite and infinite data
+H = Hcat(B̃.data, rightasymptotics(F∞.factors.data))
+QLHessenberg(_BandedMatrix(H, ∞, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
+
+
+@which ql_hessenberg(A_hess)
+Q,L = ql_hessenberg(A_hess; kwds...)
+
+Q[1:10,1:15] * L[1:15,1:10] - A_hess[1:10,1:10]
+
+Q1[1:10,1:15] * H2[1:15,1:10] - H1[1:10,1:10] 
+@which ql_pruneband(H1)
+
+
+QN = ([F.Q zeros(6,N-6); zeros(N-6,6) Matrix(I,N-6,N-6)]' * [Matrix(I,5,5) zeros(5,N-5); zeros(N-5,5) Q∞[1:N-5,1:N-5]]')'
+
+
+
+ql_pruneband(H1)
+
+H2
+
+
+(Q2*H2)[1:10,1:10] - H1[1:10,1:10]
+
+using LazyArrays
+ApplyArray(*,Q1,Q1')
+
+Q = Q1[1:100,1:100]; Q'Q
+
+H1
+
+
+A
 
 ###
 # Non-normal

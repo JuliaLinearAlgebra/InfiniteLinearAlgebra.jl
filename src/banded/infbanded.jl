@@ -267,6 +267,7 @@ InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}) where T = InfToepl
 ####
 
 _pertdata(A::ConstRowMatrix{T}) where T = Array{T}(undef,size(A,1),0)
+_pertdata(A::Hcat{T,<:Tuple{Vector{T},<:ConstRowMatrix{T}}}) where T = 1
 _pertdata(A::PertConstRowMatrix) = A.args[1]
 function _pertdata(A::SubArray)
     P = parent(A)
