@@ -157,9 +157,9 @@ for op in (:-, :+)
         function $op(A::InfToeplitz{T}, λ::UniformScaling) where T
             l,u = bandwidths(A)
             TV = promote_type(T,eltype(λ))
-            a = AbstractVector{TV}(A.data.args[1])
-            a[u+1] = $op(a[u+1], λ.λ)
-            _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
+            a = TV[Zeros{TV}(max(-u,0)); A.data.args[1]; Zeros{TV}(max(-l,0))]
+            a[max(0,u)+1] = $op(a[max(u,0)+1], λ.λ)
+            _BandedMatrix(a*Ones{TV}(1,∞), ∞, max(l,0), max(u,0))
         end
 
         function $op(λ::UniformScaling, A::PertToeplitz{V}) where V

@@ -153,7 +153,7 @@ Base.propertynames(F::QLProduct, private::Bool=false) =
 
 function _inf_ql(A::AbstractMatrix{T}; kwds...) where T
     _,u = bandwidths(A)
-    u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
+    u ≤ 0 && return QLProduct(tuple(Eye{float(T)}(∞)), A)
     u == 1 && return QLProduct(ql_hessenberg(A; kwds...))
     Q1,H1 = ql_pruneband(A; kwds...)
     F̃ = ql(H1; kwds...)
