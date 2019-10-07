@@ -84,12 +84,15 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
     @testset "Bessel J" begin
         z = 1000; # the bigger z the longer before we see convergence
         A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
-        J = A \ Vcat([besselj(1,z)], Zeros(∞))
+        b = Vcat([besselj(1,z)], Zeros(∞))
+        F = qr(A)
+        @test qr(A[1:3000,1:3000]).Q'b[1:3000] ≈ (F.Q'b)[1:3000]
+        @time J = A \ Vcat([besselj(1,z)], Zeros(∞))
         @test J[1:2000] ≈ [besselj(k,z) for k=0:1999]
-
+    
         z = 10_000; # the bigger z the longer before we see convergence
         A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
-        J = A \ Vcat([besselj(1,z)], Zeros(∞))
+        @time J = A \ Vcat([besselj(1,z)], Zeros(∞))
         @test J[1:20_000] ≈ [besselj(k,z) for k=0:20_000-1]
     end
 
@@ -117,4 +120,3 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         @test x[1:300] ≈ AB[1:300,1:300] \ b[1:300]
     end
 end
-

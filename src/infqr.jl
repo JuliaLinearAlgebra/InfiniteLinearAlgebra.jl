@@ -137,11 +137,14 @@ function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::C
     jr = 1:min(COLGROWTH,nA)
 
     @inbounds begin
-        while first(jr) < nA && first(jr) ≤ sB && maximum(abs,view(B.data,colsupport(A.factors,first(jr)))) > tol
+        while first(jr) < nA
             cs = colsupport(A.factors, last(jr))
             cs_max = maximum(cs)
             kr = first(jr):cs_max
             resizedata!(B, min(cs_max,mB))
+            if (first(jr) > sB && maximum(abs,view(B.data,colsupport(A.factors,first(jr)))) ≤ tol)
+                break
+            end
             partialqr!(A.factors.data, min(cs_max,nA))
             Q_N = QRPackedQ(view(A.factors.data.data.data,kr,jr), view(A.τ.data.τ,jr))
             lmul!(Q_N', view(B.data, kr))

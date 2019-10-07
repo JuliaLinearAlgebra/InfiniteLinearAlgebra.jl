@@ -286,8 +286,6 @@ PertConstRowMatrix(A::AbstractMatrix{T}) where T =
 
 struct ConstRows <: MemoryLayout end
 struct PertConstRows <: MemoryLayout end
-struct BandedToeplitzLayout <: AbstractBandedLayout end
-struct PertToeplitzLayout <: AbstractBandedLayout end
 MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
 MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
 bandedcolumns(::ConstRows) = BandedToeplitzLayout()
@@ -295,18 +293,22 @@ bandedcolumns(::PertConstRows) = PertToeplitzLayout()
 subarraylayout(::ConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = ConstRows() # no way to lose const rows
 subarraylayout(::PertConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = PertConstRows() # no way to lose const rows
 
+const BandedToeplitzLayout = BandedColumns{ConstRows}
+const PertToeplitzLayout = BandedColumns{PertConstRows}
+
+
 _BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) = 
     _BandedMatrix(ConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)
 _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) = 
     _BandedMatrix(PertConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)    
 
-for Lay in (:BandedToeplitzLayout, :PertToeplitzLayout)
-    @eval begin    
-        subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},AbstractInfUnitRange{Int}}}) = $Lay()
-        subarraylayout(::$Lay, ::Type{<:Tuple{Slice,AbstractInfUnitRange{Int}}}) = $Lay()
-        subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},Slice}}) = $Lay()
-        subarraylayout(::$Lay, ::Type{<:Tuple{Slice,Slice}}) = $Lay()
+# for Lay in (:BandedToeplitzLayout, :PertToeplitzLayout)
+#     @eval begin    
+#         subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},AbstractInfUnitRange{Int}}}) = $Lay()
+#         subarraylayout(::$Lay, ::Type{<:Tuple{Slice,AbstractInfUnitRange{Int}}}) = $Lay()
+#         subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},Slice}}) = $Lay()
+#         subarraylayout(::$Lay, ::Type{<:Tuple{Slice,Slice}}) = $Lay()
 
-        sub_materialize(::$Lay, V) = BandedMatrix(V)    
-    end
-end
+#         sub_materialize(::$Lay, V) = BandedMatrix(V)    
+#     end
+# end

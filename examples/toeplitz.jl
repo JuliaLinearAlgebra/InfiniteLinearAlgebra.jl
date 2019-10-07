@@ -52,7 +52,7 @@ clf(); qlplot(A; branch=findsecond, x=range(-2,3; length=100), y=range(-2.5,2.5;
 clf(); qlplot(transpose(A); x=range(-2,3; length=100), y=range(-2.5,2.5;length=100)); symbolplot(A; color=:black); title("Limacon, transpose")
 
 
-ql(A+(0.5+0.000001im)*I; branch=findsecond)
+ql(A-(0.5+0.000001im)*I; branch=findsecond)
 
 ### 
 # bull-head

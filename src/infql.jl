@@ -58,9 +58,9 @@ function qltail(Z::Number, A::Number, B::Number)
 end
 
 
-ql(A::SymTriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::SymTridiagonal{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::TriPertToeplitz{T}; kwds...) where T = ql!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql(A::SymTriPertToeplitz{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql(A::SymTridiagonal{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
+ql(A::TriPertToeplitz{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 ql_hessenberg(A::InfBandedMatrix{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
 toeptail(B::BandedMatrix{T}) where T = 
