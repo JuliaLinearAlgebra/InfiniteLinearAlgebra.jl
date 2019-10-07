@@ -117,3 +117,4 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         @test x[1:300] ≈ AB[1:300,1:300] \ b[1:300]
     end
 end
+
