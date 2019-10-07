@@ -2,7 +2,7 @@ module InfiniteLinearAlgebra
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
-            AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector,
+            AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
             show, getproperty
 import Base.Broadcast: BroadcastStyle
 

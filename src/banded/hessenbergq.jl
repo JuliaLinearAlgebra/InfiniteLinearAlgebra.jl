@@ -93,7 +93,7 @@ check_mul_axes(A::AbstractHessenbergQ, B, C...) =
 @lazymul AbstractHessenbergQ
 
 # ambiguities
-for Arr in (:AbstractBandedMatrix, :StridedVector)
+for Arr in (:AbstractBandedMatrix, :StridedVector, :StridedMatrix)
     @eval begin
         *(A::AbstractHessenbergQ, B::$Arr) = apply(*, A, B)
         *(A::$Arr, B::AbstractHessenbergQ) = apply(*, A, B)
@@ -102,11 +102,12 @@ end
 
 function lmul!(Q::LowerHessenbergQ{T}, x::AbstractVector) where T
     t = Array{T}(undef, 2)
+    nz = nzzeros(x,1)
     for n = 1:length(Q.q)
         v = view(x, n:n+1)
         mul!(t, Q.q[n], v)
         v .= t
-        norm(t) ≤ 10floatmin(real(T)) && return x
+        n > nz && norm(t) ≤ 10floatmin(real(T)) && return x
     end
     x
 end

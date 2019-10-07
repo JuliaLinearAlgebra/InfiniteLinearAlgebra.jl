@@ -157,9 +157,9 @@ for op in (:-, :+)
         function $op(A::InfToeplitz{T}, λ::UniformScaling) where T
             l,u = bandwidths(A)
             TV = promote_type(T,eltype(λ))
-            a = AbstractVector{TV}(A.data.args[1])
-            a[u+1] = $op(a[u+1], λ.λ)
-            _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
+            a = TV[Zeros{TV}(max(-u,0)); A.data.args[1]; Zeros{TV}(max(-l,0))]
+            a[max(0,u)+1] = $op(a[max(u,0)+1], λ.λ)
+            _BandedMatrix(a*Ones{TV}(1,∞), ∞, max(l,0), max(u,0))
         end
 
         function $op(λ::UniformScaling, A::PertToeplitz{V}) where V
@@ -267,6 +267,7 @@ InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}) where T = InfToepl
 ####
 
 _pertdata(A::ConstRowMatrix{T}) where T = Array{T}(undef,size(A,1),0)
+_pertdata(A::Hcat{T,<:Tuple{Vector{T},<:ConstRowMatrix{T}}}) where T = 1
 _pertdata(A::PertConstRowMatrix) = A.args[1]
 function _pertdata(A::SubArray)
     P = parent(A)
@@ -291,13 +292,21 @@ MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
 MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
 bandedcolumns(::ConstRows) = BandedToeplitzLayout()
 bandedcolumns(::PertConstRows) = PertToeplitzLayout()
-subarraylayout(::ConstRows, ::Type{<:Tuple{Any,<:AbstractInfUnitRange{Int}}}) = ConstRows() # no way to lose const rows
-subarraylayout(::PertConstRows, ::Type{<:Tuple{Any,<:AbstractInfUnitRange{Int}}}) = PertConstRows() # no way to lose const rows
+subarraylayout(::ConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = ConstRows() # no way to lose const rows
+subarraylayout(::PertConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = PertConstRows() # no way to lose const rows
 
 _BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) = 
     _BandedMatrix(ConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)
 _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) = 
     _BandedMatrix(PertConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)    
 
-sub_materialize(::BandedToeplitzLayout, V) = BandedMatrix(V)    
-sub_materialize(::PertToeplitzLayout, V) = BandedMatrix(V)    
+for Lay in (:BandedToeplitzLayout, :PertToeplitzLayout)
+    @eval begin    
+        subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},AbstractInfUnitRange{Int}}}) = $Lay()
+        subarraylayout(::$Lay, ::Type{<:Tuple{Slice,AbstractInfUnitRange{Int}}}) = $Lay()
+        subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},Slice}}) = $Lay()
+        subarraylayout(::$Lay, ::Type{<:Tuple{Slice,Slice}}) = $Lay()
+
+        sub_materialize(::$Lay, V) = BandedMatrix(V)    
+    end
+end

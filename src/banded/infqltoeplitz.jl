@@ -66,12 +66,12 @@ end
 
 
 # remove one band of A
-function ql_pruneband(A)
+function ql_pruneband(A; kwds...)
     l,u = bandwidths(A)
-    p = size(_pertdata(bandeddata(A)),2) # pert size
-    Q,L = ql_hessenberg(A[:,u:end])
-    m = max(p+1,u+1)
-    dat = (UpperHessenbergQ((Q').q[1:(m+l)])) * A[1:m+l+1,1:m]
+    A_hess = A[:,u:end]
+    Q,L = ql_hessenberg(A_hess; kwds...)
+    p = size(_pertdata(bandeddata(parent(L))),2)+u+1 # pert size
+    dat = (UpperHessenbergQ((Q').q[1:(p+l)])) * A[1:p+l+1,1:p]
     pert = Array{eltype(dat)}(undef, l+u+1,size(dat,2)-1)
     for j = 1:u
         pert[u-j+1:end,j] .= view(dat,1:l+j+1,j)
@@ -84,10 +84,32 @@ function ql_pruneband(A)
 end
 
 # represent Q as a product of orthogonal operations
+struct ProductQ{T,QQ<:Tuple} <: AbstractQ{T}
+    Qs::QQ
+end
+
+ProductQ(Qs::AbstractMatrix...) = ProductQ{mapreduce(eltype,promote_type,Qs),typeof(Qs)}(Qs)
+
+adjoint(Q::ProductQ) = ProductQ(reverse(map(adjoint,Q.Qs))...)
+
+size(Q::ProductQ, dim::Integer) = size(dim == 1 ? Q.Qs[1] : last(Q.Qs), dim == 2 ? 1 : dim)
+
+function lmul!(Q::ProductQ, v::AbstractVecOrMat)
+    for j = length(Q.Qs):-1:1
+        lmul!(Q.Qs[j], v)
+    end
+    v
+end
+
+getindex(Q::ProductQ{<:Any,<:Tuple{Vararg{LowerHessenbergQ}}}, i::Integer, j::Integer) = (Q')[j,i]'
+
+# LQ where Q is a product of orthogonal operations
 struct QLProduct{T,QQ<:Tuple,LL} <: Factorization{T}
     Qs::QQ
     L::LL
 end
+
+
 
 QLProduct(Qs::Tuple, L::AbstractMatrix{T}) where T = QLProduct{T,typeof(Qs),typeof(L)}(Qs, L)
 QLProduct(F::QLHessenberg) = QLProduct(tuple(F.Q), F.L)
@@ -114,7 +136,7 @@ function show(io::IO, mime::MIME{Symbol("text/plain")}, F::QLProduct)
 end
 
 @inline getL(F::QLProduct) = getfield(F, :L)
-@inline getQ(F::QLProduct) = ProductQ(F.Qs)
+@inline getQ(F::QLProduct) = ProductQ(F.Qs...)
 
 function getproperty(F::QLProduct, d::Symbol)
     if d == :L
@@ -129,20 +151,17 @@ end
 Base.propertynames(F::QLProduct, private::Bool=false) =
     (:L, :Q, (private ? fieldnames(typeof(F)) : ())...)
 
-function ql(A::InfToeplitz{T}) where T
+function _inf_ql(A::AbstractMatrix{T}; kwds...) where T
     _,u = bandwidths(A)
-    u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
-    u == 1 && return QLProduct(ql_hessenberg(A))
-    Q1,H1 = ql_pruneband(A)
-    F̃ = ql(H1)
+    u ≤ 0 && return QLProduct(tuple(Eye{float(T)}(∞)), A)
+    u == 1 && return QLProduct(ql_hessenberg(A; kwds...))
+    Q1,H1 = ql_pruneband(A; kwds...)
+    F̃ = ql(H1; kwds...)
     QLProduct(tuple(Q1, F̃.Qs...), F̃.L)
 end
 
-function ql(A::PertToeplitz{T}) where T
-    _,u = bandwidths(A)
-    u ≤ 0 && return QLProduct(tuple(Eye{T}(∞)), A)
-    u == 1 && return QLProduct(ql_hessenberg(A))
-    Q1,H1 = ql_pruneband(A)
-    F̃ = ql(H1)
-    QLProduct(tuple(Q1, F̃.Qs...), F̃.L)
-end
+ql(A::InfToeplitz; kwds...) = _inf_ql(A; kwds...)
+ql(A::PertToeplitz; kwds...) = _inf_ql(A; kwds...)
+
+ql(A::Adjoint{<:Any,<:InfToeplitz}) = ql(BandedMatrix(A))
+ql(A::Adjoint{<:Any,<:PertToeplitz}) = ql(BandedMatrix(A))
