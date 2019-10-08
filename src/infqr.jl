@@ -42,12 +42,12 @@ size(F::AdaptiveQRFactors) = size(F.data.data)
 bandwidths(F::AdaptiveQRFactors) = bandwidths(F.data.data)
 function colsupport(F::AdaptiveQRFactors, j)
     partialqr!(F.data, j)
-    colsupport(F.data.data, j)
+    colsupport(F.data.data.data, j)
 end
 
 function rowsupport(F::AdaptiveQRFactors, j)
     partialqr!(F.data, j+bandwidth(F,2))
-    rowsupport(F.data.data, j)
+    rowsupport(F.data.data.data, j)
 end
 
 function getindex(F::AdaptiveQRFactors, k::Int, j::Int)
@@ -123,6 +123,9 @@ end
 
 
 function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::CachedVector{T,Vector{T},<:Zeros{T,1}}) where T
+    COLGROWTH = 100 # rate to grow columns
+    tol = floatmin(T)
+
     require_one_based_indexing(B)
     A = adjA.parent
     mA, nA = size(A.factors)
@@ -130,34 +133,22 @@ function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::C
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    Afactors = A.factors
     sB = length(B.data)
-    partialqr!(A.factors.data, min(sB+100,nA))
-    resizedata!(B, min(sB+100,mB))
-    Bd = B.data
+    jr = 1:min(COLGROWTH,nA)
+
     @inbounds begin
-        for k = 1:min(mA,nA)
-            vBj = B[k]
-            allzero = k > sB ? iszero(vBj) : false
-            cs = colsupport(Afactors,k)
+        while first(jr) < nA
+            cs = colsupport(A.factors, last(jr))
             cs_max = maximum(cs)
-            if cs_max > length(Bd) # need to grow the data
-                resizedata!(B, min(cs_max+100,mB)); Bd = B.data
-                partialqr!(A.factors.data, min(cs_max+100,nA))
+            kr = first(jr):cs_max
+            resizedata!(B, min(cs_max,mB))
+            if (first(jr) > sB && maximum(abs,view(B.data,colsupport(A.factors,first(jr)))) ≤ tol)
+                break
             end
-            for i = (k+1:mB) ∩ cs
-                Bi = Bd[i]
-                if !iszero(Bi)
-                    allzero = false
-                    vBj += conj(Afactors[i,k])*Bi
-                end
-            end
-            vBj = conj(A.τ[k])*vBj
-            Bd[k] -= vBj
-            for i = (k+1:mB) ∩ cs
-                Bd[i] -= Afactors[i,k]*vBj
-            end
-            allzero && break
+            partialqr!(A.factors.data, min(cs_max,nA))
+            Q_N = QRPackedQ(view(A.factors.data.data.data,kr,jr), view(A.τ.data.τ,jr))
+            lmul!(Q_N', view(B.data, kr))
+            jr = last(jr)+1:min(last(jr)+COLGROWTH,nA)
         end
     end
     B

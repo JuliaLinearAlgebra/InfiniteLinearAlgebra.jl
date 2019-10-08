@@ -1,7 +1,8 @@
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
-const ConstRows{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill}}
-const InfToeplitz{T} = BandedMatrix{T,<:ConstRows{T},OneToInf{Int}}
-const PertToeplitz{T} = BandedMatrix{T,<:Hcat{T,<:Tuple{Matrix{T},<:ConstRows{T}}},OneToInf{Int}}
+const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}
+const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Matrix{T},<:ConstRowMatrix{T}}}
+const InfToeplitz{T} = BandedMatrix{T,<:ConstRowMatrix{T},OneToInf{Int}}
+const PertToeplitz{T} = BandedMatrix{T,<:PertConstRowMatrix{T},OneToInf{Int}}
 
 const SymTriPertToeplitz{T} = SymTridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
 const TriPertToeplitz{T} = Tridiagonal{T,Vcat{T,1,Tuple{Vector{T},Fill{T,1,Tuple{OneToInf{Int}}}}}}
@@ -156,9 +157,9 @@ for op in (:-, :+)
         function $op(A::InfToeplitz{T}, λ::UniformScaling) where T
             l,u = bandwidths(A)
             TV = promote_type(T,eltype(λ))
-            a = AbstractVector{TV}(A.data.args[1])
-            a[u+1] = $op(a[u+1], λ.λ)
-            _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
+            a = TV[Zeros{TV}(max(-u,0)); A.data.args[1]; Zeros{TV}(max(-l,0))]
+            a[max(0,u)+1] = $op(a[max(u,0)+1], λ.λ)
+            _BandedMatrix(a*Ones{TV}(1,∞), ∞, max(l,0), max(u,0))
         end
 
         function $op(λ::UniformScaling, A::PertToeplitz{V}) where V
@@ -259,3 +260,55 @@ function InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::Tu
 end
 
 InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}) where T = InfToeplitz(A, bandwidths(A))
+
+
+####
+# Toeplitz layout
+####
+
+_pertdata(A::ConstRowMatrix{T}) where T = Array{T}(undef,size(A,1),0)
+_pertdata(A::Hcat{T,<:Tuple{Vector{T},<:ConstRowMatrix{T}}}) where T = 1
+_pertdata(A::PertConstRowMatrix) = A.args[1]
+function _pertdata(A::SubArray)
+    P = parent(A)
+    kr,jr = parentindices(A)
+    dat = _pertdata(P)
+    dat[kr,jr ∩ axes(dat,2)]
+end
+
+_constrows(A::ConstRowMatrix) = A.args[1]*getindex_value(A.args[2])
+_constrows(A::PertConstRowMatrix) = _constrows(A.args[2])
+_constrows(A::SubArray) = _constrows(parent(A))[parentindices(A)[1]]
+
+ConstRowMatrix(A::AbstractMatrix{T}) where T = ApplyMatrix(*, A[:,1], Ones{T}(1,size(A,2)))
+PertConstRowMatrix(A::AbstractMatrix{T}) where T = 
+    Hcat(_pertdata(A), ApplyMatrix(*, _constrows(A), Ones{T}(1,size(A,2))))
+
+struct ConstRows <: MemoryLayout end
+struct PertConstRows <: MemoryLayout end
+MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
+MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
+bandedcolumns(::ConstRows) = BandedToeplitzLayout()
+bandedcolumns(::PertConstRows) = PertToeplitzLayout()
+subarraylayout(::ConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = ConstRows() # no way to lose const rows
+subarraylayout(::PertConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = PertConstRows() # no way to lose const rows
+
+const BandedToeplitzLayout = BandedColumns{ConstRows}
+const PertToeplitzLayout = BandedColumns{PertConstRows}
+
+
+_BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) = 
+    _BandedMatrix(ConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)
+_BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) = 
+    _BandedMatrix(PertConstRowMatrix(bandeddata(A)), size(A,1), bandwidths(A)...)    
+
+# for Lay in (:BandedToeplitzLayout, :PertToeplitzLayout)
+#     @eval begin    
+#         subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},AbstractInfUnitRange{Int}}}) = $Lay()
+#         subarraylayout(::$Lay, ::Type{<:Tuple{Slice,AbstractInfUnitRange{Int}}}) = $Lay()
+#         subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},Slice}}) = $Lay()
+#         subarraylayout(::$Lay, ::Type{<:Tuple{Slice,Slice}}) = $Lay()
+
+#         sub_materialize(::$Lay, V) = BandedMatrix(V)    
+#     end
+# end

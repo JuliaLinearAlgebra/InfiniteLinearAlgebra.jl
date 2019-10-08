@@ -90,14 +90,24 @@ adjoint(Q::LowerHessenbergQ) = UpperHessenbergQ(adjoint.(Q.q))
 check_mul_axes(A::AbstractHessenbergQ, B, C...) =
     axes(A,2) == axes(B,1) || throw(DimensionMismatch("Second axis of A, $(axes(A,2)), and first axis of B, $(axes(B,1)) must match"))
 
+@lazymul AbstractHessenbergQ
+
+# ambiguities
+for Arr in (:AbstractBandedMatrix, :StridedVector, :StridedMatrix)
+    @eval begin
+        *(A::AbstractHessenbergQ, B::$Arr) = apply(*, A, B)
+        *(A::$Arr, B::AbstractHessenbergQ) = apply(*, A, B)
+    end
+end
 
 function lmul!(Q::LowerHessenbergQ{T}, x::AbstractVector) where T
     t = Array{T}(undef, 2)
+    nz = nzzeros(x,1)
     for n = 1:length(Q.q)
         v = view(x, n:n+1)
         mul!(t, Q.q[n], v)
         v .= t
-        all(iszero,t) && return x
+        n > nz && norm(t) ≤ 10floatmin(real(T)) && return x
     end
     x
 end
@@ -110,6 +120,13 @@ function lmul!(Q::UpperHessenbergQ{T}, x::AbstractVector) where T
         v .= t
     end
     x
+end
+
+function lmul!(Q::AbstractHessenbergQ, X::AbstractMatrix)
+    for j in axes(X,2)
+        lmul!(Q, view(X,:,j))
+    end
+    X
 end
 
 
