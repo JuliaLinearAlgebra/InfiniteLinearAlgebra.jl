@@ -106,7 +106,7 @@ getL(Q::QLHessenberg, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTrian
 nzzeros(A::AbstractArray, k) = size(A,k)
 nzzeros(::Zeros, k) = 0
 nzzeros(B::Vcat, k) = sum(size.(B.args[1:end-1],k))
-nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
+nzzeros(B::CachedArray, k) = max(B.datasize[k], nzzeros(B.array,k))
 function nzzeros(B::AbstractMatrix, k) 
     l,u = bandwidths(B)
     k == 1 ? size(B,2) + l : size(B,1) + u

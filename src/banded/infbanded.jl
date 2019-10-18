@@ -290,8 +290,13 @@ MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
 MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
 bandedcolumns(::ConstRows) = BandedToeplitzLayout()
 bandedcolumns(::PertConstRows) = PertToeplitzLayout()
-subarraylayout(::ConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = ConstRows() # no way to lose const rows
-subarraylayout(::PertConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = PertConstRows() # no way to lose const rows
+subarraylayout(::ConstRows, inds...) = subarraylayout(ApplyLayout{typeof(*)}(), inds...)
+subarraylayout(::PertConstRows, inds...) = subarraylayout(ApplyLayout{typeof(hcat)}(), inds...)
+for Typ in (:ConstRows, :PertConstRows)
+    @eval begin
+        subarraylayout(::$Typ, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = $Typ() # no way to lose const rows
+    end
+end
 
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}

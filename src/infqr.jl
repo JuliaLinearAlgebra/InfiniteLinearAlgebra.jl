@@ -91,7 +91,7 @@ end
 function lmul!(A::QRPackedQ{<:Any,<:AdaptiveQRFactors}, B::CachedVector{T,Vector{T},<:Zeros{T,1}}) where T
     require_one_based_indexing(B)
     mA, nA = size(A.factors)
-    sB = length(B.data)
+    sB = B.datasize[1]
     mB = length(B)
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
@@ -124,7 +124,7 @@ end
 
 function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::CachedVector{T,Vector{T},<:Zeros{T,1}}) where T
     COLGROWTH = 1000 # rate to grow columns
-    tol = floatmin(T)
+    tol = floatmin(real(T))
 
     require_one_based_indexing(B)
     A = adjA.parent
@@ -164,7 +164,12 @@ function (*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector
     lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
 end
 
-ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = materialize!(Ldiv(R, B))
+function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}}) 
+    n = B.datasize[1]
+    partialqr!(parent(R).data, n)
+    materialize!(Ldiv(UpperTriangular(view(parent(R).data.data.data,OneTo(n),OneTo(n))), view(B.data,OneTo(n))))
+    B
+end
 
 
 
