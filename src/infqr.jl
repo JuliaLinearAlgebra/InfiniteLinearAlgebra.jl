@@ -123,7 +123,7 @@ end
 
 
 function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::CachedVector{T,Vector{T},<:Zeros{T,1}}) where T
-    COLGROWTH = 100 # rate to grow columns
+    COLGROWTH = 1000 # rate to grow columns
     tol = floatmin(T)
 
     require_one_based_indexing(B)
