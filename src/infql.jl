@@ -277,3 +277,27 @@ function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVec
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
+
+ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
+
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{PertConstRows}},<:PaddedLayout})
+    A,b = M.A,M.B
+    require_one_based_indexing(A, b)
+    n = size(A, 2)
+    if !(n == length(b))
+        throw(DimensionMismatch("second dimension of left hand side A, $n, and length of right hand side b, $(length(b)), must be equal"))
+    end
+    data = triangulardata(A)
+    nz = nzzeros(b,1)
+    @inbounds for j in 1:n
+        iszero(data[j,j]) && throw(SingularException(j))
+        bj = b[j] = data[j,j] \ b[j]
+        allzero = j > nz && iszero(bj)
+        for i in (j+1:n) ∩ colsupport(data,j)
+            b[i] -= data[i,j] * bj
+            allzero = allzero && iszero(b[i])
+        end
+        allzero && break
+    end
+    b
+end

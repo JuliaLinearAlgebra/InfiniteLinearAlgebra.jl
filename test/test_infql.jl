@@ -159,4 +159,9 @@ import BandedMatrices: _BandedMatrix
         @test Qn[1:10,1:10] * diagm(0 => [Ones(5); -(-1).^(1:5)]) ≈ Q[1:10,1:10]
         @test diagm(0 => [Ones(5); -(-1).^(1:5)]) * Ln[1:10,1:10] ≈ L[1:10,1:10]
     end
+
+    @testset "solve with QL" begin
+        A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5,∞), 1 => Fill(0.5,∞))
+        @test (qr(A)\Vcat(1.0,Zeros(∞)))[1:1000] ≈ (ql(A)\Vcat(1.0,Zeros(∞)))[1:1000]
+    end
 end

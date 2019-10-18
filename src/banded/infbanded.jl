@@ -1,6 +1,6 @@
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
 const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}
-const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Matrix{T},<:ConstRowMatrix{T}}}
+const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Array{T},<:ConstRowMatrix{T}}}
 const InfToeplitz{T} = BandedMatrix{T,<:ConstRowMatrix{T},OneToInf{Int}}
 const PertToeplitz{T} = BandedMatrix{T,<:PertConstRowMatrix{T},OneToInf{Int}}
 
