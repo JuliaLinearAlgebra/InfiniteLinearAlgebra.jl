@@ -70,7 +70,7 @@ julia> @time [besselj(k-1, z) for k=0:11_000-1];
   0.188690 seconds (77.20 k allocations: 3.295 MiB)
 
 julia> @time J = A \ Vcat([besselj(1,z)], Zeros(∞));
-  0.036701 seconds (406.40 k allocations: 46.552 MiB, 24.43% gc time)
+  0.006354 seconds (90.93 k allocations: 6.791 MiB)
 ```
 
 
