@@ -7,7 +7,7 @@ import BlockArrays: _BlockArray
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix
-import LazyArrays: colsupport, ApplyStyle, MemoryLayout
+import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
     A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
@@ -47,6 +47,7 @@ end
         @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 
         A = BandedMatrix(-1 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([1.0+im],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
+        @test MemoryLayout(typeof(view(A.data,:,1:10))) == ApplyLayout{typeof(hcat)}()
         Ac = BandedMatrix(A')
         At = BandedMatrix(transpose(A))
         @test Ac[1:10,1:10] ≈ (A')[1:10,1:10] ≈ A[1:10,1:10]'

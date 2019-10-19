@@ -1,6 +1,6 @@
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
 const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}
-const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Matrix{T},<:ConstRowMatrix{T}}}
+const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Array{T},<:ConstRowMatrix{T}}}
 const InfToeplitz{T} = BandedMatrix{T,<:ConstRowMatrix{T},OneToInf{Int}}
 const PertToeplitz{T} = BandedMatrix{T,<:PertConstRowMatrix{T},OneToInf{Int}}
 
@@ -290,8 +290,13 @@ MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
 MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
 bandedcolumns(::ConstRows) = BandedToeplitzLayout()
 bandedcolumns(::PertConstRows) = PertToeplitzLayout()
-subarraylayout(::ConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = ConstRows() # no way to lose const rows
-subarraylayout(::PertConstRows, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = PertConstRows() # no way to lose const rows
+subarraylayout(::ConstRows, inds...) = subarraylayout(ApplyLayout{typeof(*)}(), inds...)
+subarraylayout(::PertConstRows, inds...) = subarraylayout(ApplyLayout{typeof(hcat)}(), inds...)
+for Typ in (:ConstRows, :PertConstRows)
+    @eval begin
+        subarraylayout(::$Typ, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = $Typ() # no way to lose const rows
+    end
+end
 
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}

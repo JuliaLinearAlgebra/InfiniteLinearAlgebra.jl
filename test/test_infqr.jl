@@ -62,7 +62,8 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1) 
         Q,R = qr(A);
         b = Vcat([1.,2,3],Zeros(∞))
-        @test lmul!(Q, Base.copymutable(b)).data ≈ qr(A[1:4,1:3]).Q*[1,2,3]
+        @test lmul!(Q, Base.copymutable(b)).datasize[1] == 4
+        @test lmul!(Q, Base.copymutable(b)).data[1:4] ≈ qr(A[1:4,1:3]).Q*[1,2,3]
 
         @test Q[1,1] ≈ -1/sqrt(2)
         @test Q[200_000,200_000] ≈ -1.0
@@ -111,10 +112,12 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         C = cache(AB);
         resizedata!(C,103,100); resizedata!(C,203,200);
         @test C[103,104] ≈ 1.0
+        C = qr(AB).factors.data.data;
+        resizedata!(C,102,104); resizedata!(C,202,204);
+        @test C[202,204] == AB[202,204]
         F = qr(AB);
-        partialqr!(F.factors.data, 100);
-        partialqr!(F.factors.data, 200);
-        @test norm(F.factors.data.data.data) ≤ 4000
+        partialqr!(F.factors.data, 100); partialqr!(F.factors.data, 200);
+        @test norm(F.factors.data.data.data[Base.OneTo.(F.factors.data.data.datasize)...]) ≤ 4000
         b = Vcat([3,4,5],Zeros(∞))
         @time x = qr(AB) \ b;
         @test x[1:300] ≈ AB[1:300,1:300] \ b[1:300]

@@ -106,7 +106,7 @@ getL(Q::QLHessenberg, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTrian
 nzzeros(A::AbstractArray, k) = size(A,k)
 nzzeros(::Zeros, k) = 0
 nzzeros(B::Vcat, k) = sum(size.(B.args[1:end-1],k))
-nzzeros(B::CachedArray, k) = max(size(B.data,k), nzzeros(B.array,k))
+nzzeros(B::CachedArray, k) = max(B.datasize[k], nzzeros(B.array,k))
 function nzzeros(B::AbstractMatrix, k) 
     l,u = bandwidths(B)
     k == 1 ? size(B,2) + l : size(B,1) + u
@@ -276,4 +276,28 @@ end
 function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
+end
+
+ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
+
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{PertConstRows}},<:PaddedLayout})
+    A,b = M.A,M.B
+    require_one_based_indexing(A, b)
+    n = size(A, 2)
+    if !(n == length(b))
+        throw(DimensionMismatch("second dimension of left hand side A, $n, and length of right hand side b, $(length(b)), must be equal"))
+    end
+    data = triangulardata(A)
+    nz = nzzeros(b,1)
+    @inbounds for j in 1:n
+        iszero(data[j,j]) && throw(SingularException(j))
+        bj = b[j] = data[j,j] \ b[j]
+        allzero = j > nz && iszero(bj)
+        for i in (j+1:n) ∩ colsupport(data,j)
+            b[i] -= data[i,j] * bj
+            allzero = allzero && iszero(b[i])
+        end
+        allzero && break
+    end
+    b
 end

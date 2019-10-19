@@ -13,6 +13,7 @@ import BandedMatrices: _BandedMatrix
             L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ∞, 2, 0)
             Qn,Ln = ql(A[1:1000,1:1000])
             @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
+            @test Array((Q'A)[1:10,1:10]) ≈ [(Q'A)[k,j] for k=1:10,j=1:10]
             @test (Q'A)[1:10,1:10] ≈ Ln[1:10,1:10] ≈ L[1:10,1:10]
 
             A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5+im,∞), 1 => Fill(0.5,∞))
@@ -37,7 +38,7 @@ import BandedMatrices: _BandedMatrix
                 @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
             end
 
-                for (Z,A,B)  in ((2,5.0im,0.5),
+            for (Z,A,B)  in ((2,5.0im,0.5),
                         (2,2.1+0.1im,0.5),
                         (2,2.1-0.1im,0.5),
                         (2,1.5+0.1im,0.5),
@@ -157,5 +158,10 @@ import BandedMatrices: _BandedMatrix
         Qn,Ln = ql(A[1:1000,1:1000])
         @test Qn[1:10,1:10] * diagm(0 => [Ones(5); -(-1).^(1:5)]) ≈ Q[1:10,1:10]
         @test diagm(0 => [Ones(5); -(-1).^(1:5)]) * Ln[1:10,1:10] ≈ L[1:10,1:10]
+    end
+
+    @testset "solve with QL" begin
+        A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5,∞), 1 => Fill(0.5,∞))
+        @test (qr(A)\Vcat(1.0,Zeros(∞)))[1:1000] ≈ (ql(A)\Vcat(1.0,Zeros(∞)))[1:1000]
     end
 end
