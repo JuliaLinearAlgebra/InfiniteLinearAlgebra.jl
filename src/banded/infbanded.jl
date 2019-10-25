@@ -295,8 +295,10 @@ subarraylayout(::PertConstRows, inds...) = subarraylayout(ApplyLayout{typeof(hca
 for Typ in (:ConstRows, :PertConstRows)
     @eval begin
         subarraylayout(::$Typ, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = $Typ() # no way to lose const rows
+        applybroadcaststyle(::Type{<:AbstractMatrix}, ::$Typ) = LazyArrayStyle{2}()
     end
 end
+
 
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}

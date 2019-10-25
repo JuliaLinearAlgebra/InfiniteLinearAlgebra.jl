@@ -10,7 +10,7 @@ import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractI
 import FillArrays: AbstractFill, getindex_value
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
-import LazyArrays: CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
+import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
                     colsupport, rowsupport, triangularlayout, factorize, subarraylayout, sub_materialize,
                     @lazymul, ApplyLayout, TriangularLayout, PaddedLayout, materialize!, MatLdivVec, triangulardata
