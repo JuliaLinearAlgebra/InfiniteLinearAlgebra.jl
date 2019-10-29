@@ -320,3 +320,17 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 #         sub_materialize(::$Lay, V) = BandedMatrix(V)    
 #     end
 # end
+
+
+##
+# UniformScaling
+##
+
+for op in (:+, :-), Typ in (:(BandedMatrix{<:Any,<:Any,OneToInf{Int}}), 
+                            :(Adjoint{<:Any,<:BandedMatrix{<:Any,<:Any,OneToInf{Int}}}),
+                            :(Transpose{<:Any,<:BandedMatrix{<:Any,<:Any,OneToInf{Int}}}))
+    @eval begin
+        $op(A::$Typ, λ::UniformScaling) = $op(A, Diagonal(Fill(λ.λ,∞)))
+        $op(λ::UniformScaling, A::$Typ) = $op(Diagonal(Fill(λ.λ,∞)), A)
+    end
+end
