@@ -38,6 +38,10 @@ function sizes_from_blocks(A::AbstractMatrix, ::Tuple{OneTo{Int}, OneToInf{Int}}
     BlockSizes((vcat(1, 1 .+ cumsum(R)), Vcat(1, 1 .+ cumsum(C))))
 end
 
+function sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) 
+    sz = size.(A.diag, 1), size.(A.diag,2)
+    BlockSizes(Vcat.(1,(c -> 1 .+ c).(cumsum.(sz))))
+end
 
 function sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) 
     sz = size.(A.d, 1), size.(A.d,2)
