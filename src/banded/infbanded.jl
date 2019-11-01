@@ -334,3 +334,5 @@ for op in (:+, :-), Typ in (:(BandedMatrix{<:Any,<:Any,OneToInf{Int}}),
         $op(λ::UniformScaling, A::$Typ) = $op(Diagonal(Fill(λ.λ,∞)), A)
     end
 end
+
+_default_banded_broadcast(bc::Broadcasted, ::Tuple{<:OneToInf,<:Any}) = copy(Broadcasted{LazyArrayStyle{2}}(bc.f, bc.args))

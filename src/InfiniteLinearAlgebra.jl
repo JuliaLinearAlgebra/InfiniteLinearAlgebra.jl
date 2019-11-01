@@ -4,15 +4,16 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
             show, getproperty
-import Base.Broadcast: BroadcastStyle
+import Base.Broadcast: BroadcastStyle, Broadcasted
 
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange
 import FillArrays: AbstractFill, getindex_value
-import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns
+import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
+                        _default_banded_broadcast
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
-                    colsupport, rowsupport, triangularlayout, factorize, subarraylayout, sub_materialize, LazyLayout,
+                    colsupport, rowsupport, triangularlayout, factorize, subarraylayout, sub_materialize, LazyLayout, LazyArrayStyle,
                     @lazymul, applylayout, ApplyLayout, TriangularLayout, PaddedLayout, materialize!, MatLdivVec, triangulardata
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
