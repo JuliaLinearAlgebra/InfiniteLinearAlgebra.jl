@@ -14,12 +14,14 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 
 
 [compat]
-BandedMatrices = "0.13"
+ArrayLayouts = "0.1"
+BandedMatrices = "0.14"
 BlockArrays = "0.10"
-BlockBandedMatrices = "0.5.1"
+BlockBandedMatrices = "0.6"
 FillArrays = "0.8"
 InfiniteArrays = "0.4"
-LazyArrays = "0.13"
+LazyArrays = "0.14"
+LazyBandedMatrices = "0.1"
 MatrixFactorizations = "0.2"
 julia = "1.2"
 
