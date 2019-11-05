@@ -31,6 +31,10 @@ end
 *(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = ApplyArray(*,a,b)
 
 
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), B::BroadcastArray{<:Any,1,Type{OneTo}}) = copy(B.args[1])
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), B::BroadcastArray{<:Any,1,Type{Fill},<:Tuple{<:Any,<:AbstractVector}}) = 
+    copy(B.args[2])
+
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = BlockSizes((Vcat(1, 1 .+ cumsum(length.(A))),))
 function sizes_from_blocks(A::AbstractMatrix, ::Tuple{OneTo{Int}, OneToInf{Int}})
     @assert size(A,1) == 1 
@@ -53,7 +57,7 @@ function _find_block(cs::Vcat, i::Integer)
     n = 0
     for a in cs.args
         i < first(a) && return n
-        if i ≤ last(a)
+        if isinf(length(a)) || i ≤ last(a)
             return _find_block(a, i) + n
         end
         n += length(a)

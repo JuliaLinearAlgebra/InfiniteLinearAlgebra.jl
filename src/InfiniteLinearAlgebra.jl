@@ -4,7 +4,7 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, FillArrays, 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
             show, getproperty
-import Base.Broadcast: BroadcastStyle, Broadcasted
+import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange
 import FillArrays: AbstractFill, getindex_value
