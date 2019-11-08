@@ -12,9 +12,8 @@ LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 
-
 [compat]
-BandedMatrices = "0.13"
+BandedMatrices = "0.13, 0.14"
 BlockArrays = "0.10"
 BlockBandedMatrices = "0.5.1"
 FillArrays = "0.8"
@@ -25,8 +24,8 @@ julia = "1.2"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test", "Random", "SpecialFunctions"]
