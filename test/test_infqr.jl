@@ -1,5 +1,6 @@
-using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays, SpecialFunctions
+using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays, SpecialFunctions, Test
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!
+import LazyBandedMatrices: BroadcastBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
 
@@ -109,6 +110,8 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         B = BandedMatrix(-2 => Ones(∞), -1 => Vcat(1, Zeros(∞)), 0 => Vcat([1,2,3],Zeros(∞)).+3, 1 => Vcat(1, Zeros(∞)), 2 => Ones(∞))
 
         AB = BroadcastArray(+,A,B)
+        @test MemoryLayout(typeof(AB)) isa BroadcastBandedLayout{typeof(+)}
+
         C = cache(AB);
         resizedata!(C,103,100); resizedata!(C,203,200);
         @test C[103,104] ≈ 1.0

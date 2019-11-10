@@ -93,7 +93,7 @@ check_mul_axes(A::AbstractHessenbergQ, B, C...) =
 @lazymul AbstractHessenbergQ
 
 # ambiguities
-for Arr in (:AbstractBandedMatrix, :StridedVector, :StridedMatrix)
+for Arr in (:AbstractBandedMatrix, :StridedVector, :StridedMatrix, :(BandedMatrix{<:Any,<:Any,<:OneToInf}))
     @eval begin
         *(A::AbstractHessenbergQ, B::$Arr) = apply(*, A, B)
         *(A::$Arr, B::AbstractHessenbergQ) = apply(*, A, B)
