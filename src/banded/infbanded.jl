@@ -290,11 +290,11 @@ MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
 MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
 bandedcolumns(::ConstRows) = BandedToeplitzLayout()
 bandedcolumns(::PertConstRows) = PertToeplitzLayout()
-subarraylayout(::ConstRows, inds...) = subarraylayout(ApplyLayout{typeof(*)}(), inds...)
-subarraylayout(::PertConstRows, inds...) = subarraylayout(ApplyLayout{typeof(hcat)}(), inds...)
+sublayout(::ConstRows, inds...) = sublayout(ApplyLayout{typeof(*)}(), inds...)
+sublayout(::PertConstRows, inds...) = sublayout(ApplyLayout{typeof(hcat)}(), inds...)
 for Typ in (:ConstRows, :PertConstRows)
     @eval begin
-        subarraylayout(::$Typ, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = $Typ() # no way to lose const rows
+        sublayout(::$Typ, ::Type{<:Tuple{Any,AbstractInfUnitRange{Int}}}) = $Typ() # no way to lose const rows
         applybroadcaststyle(::Type{<:AbstractMatrix}, ::$Typ) = LazyArrayStyle{2}()
         applylayout(::Type, ::$Typ, _...) = LazyLayout()
     end
@@ -312,10 +312,10 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 
 # for Lay in (:BandedToeplitzLayout, :PertToeplitzLayout)
 #     @eval begin    
-#         subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},AbstractInfUnitRange{Int}}}) = $Lay()
-#         subarraylayout(::$Lay, ::Type{<:Tuple{Slice,AbstractInfUnitRange{Int}}}) = $Lay()
-#         subarraylayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},Slice}}) = $Lay()
-#         subarraylayout(::$Lay, ::Type{<:Tuple{Slice,Slice}}) = $Lay()
+#         sublayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},AbstractInfUnitRange{Int}}}) = $Lay()
+#         sublayout(::$Lay, ::Type{<:Tuple{Slice,AbstractInfUnitRange{Int}}}) = $Lay()
+#         sublayout(::$Lay, ::Type{<:Tuple{AbstractInfUnitRange{Int},Slice}}) = $Lay()
+#         sublayout(::$Lay, ::Type{<:Tuple{Slice,Slice}}) = $Lay()
 
 #         sub_materialize(::$Lay, V) = BandedMatrix(V)    
 #     end

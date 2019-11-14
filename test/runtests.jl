@@ -2,12 +2,12 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
-
+import Base: BroadcastStyle
 import BlockArrays: _BlockArray                    
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
-import BandedMatrices: bandeddata, _BandedMatrix
-import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout
+import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
+import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
     A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
@@ -106,6 +106,10 @@ end
         @test Eye(∞) * A isa BandedMatrix
         @test A * Eye(∞) isa BandedMatrix
         b = 1:∞
+        @test BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
+        @test BroadcastStyle(typeof(A)) isa BandedStyle
+        @test BroadcastStyle(LazyArrayStyle{1}(), BandedStyle()) isa LazyArrayStyle{2}
+        @test BroadcastStyle(LazyArrayStyle{2}(), BandedStyle()) isa LazyArrayStyle{2}
         @test bandwidths(b .* A) == (0,1)
 
         @test colsupport(b.*A, 1) == 1:1
