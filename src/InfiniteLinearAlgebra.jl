@@ -16,7 +16,7 @@ import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ,
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle,
-                    @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!
+                    @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
 import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks

@@ -18,13 +18,17 @@ function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
         resizedata!(F.data,n+l,n+u+l);
         resize!(F.τ,n);
         ñ = F.ncols
-        factors = view(F.data.data,ñ+1:n+l,ñ+1:n);
         τ = view(F.τ,ñ+1:n);
-        _banded_qr!(factors, τ);
-        # multiply remaining columns
-        n̄ = max(ñ+1,n-l-u+1) # first column interacting with extra data
-        Q = QRPackedQ(view(F.data.data,n̄:n+l,n̄:n), view(F.τ,n̄:n))
-        lmul!(Q',view(F.data.data,n̄:n+l,n+1:n+u+l))
+        if l ≤ 0 
+            zero!(τ)
+        else
+            factors = view(F.data.data,ñ+1:n+l,ñ+1:n);
+            _banded_qr!(factors, τ);
+            # multiply remaining columns
+            n̄ = max(ñ+1,n-l-u+1) # first column interacting with extra data
+            Q = QRPackedQ(view(F.data.data,n̄:n+l,n̄:n), view(F.τ,n̄:n))
+            lmul!(Q',view(F.data.data,n̄:n+l,n+1:n+u+l))
+        end
         F.ncols = n
     end
     F
