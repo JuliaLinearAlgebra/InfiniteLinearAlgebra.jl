@@ -125,4 +125,11 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         @time x = qr(AB) \ b;
         @test x[1:300] ≈ AB[1:300,1:300] \ b[1:300]
     end
+
+    @testset "triangular infqr" begin
+        A = BandedMatrix(0 => 1:∞, 2 => Ones(∞))
+        F = qr(A)
+        @test F.Q[1:10,1:10] == Eye(10)
+        @test F.R[1:10,1:10] == A[1:10,1:10]
+    end
 end
