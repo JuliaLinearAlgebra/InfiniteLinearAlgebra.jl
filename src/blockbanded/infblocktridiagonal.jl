@@ -1,5 +1,5 @@
 const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{T},1,Tuple{Vector{Matrix{T}},Fill{Matrix{T},1,Tuple{OneToInf{Int}}}}}},
-                                        BlockSizes{2,NTuple{2,Vcat{Int,1,Tuple{Int,Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}}}
+                                        NTuple{2,CumsumBlockRange{Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
 
 
 function BlockTridiagonal(adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T
@@ -31,7 +31,7 @@ end
 *(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = ApplyArray(*,a,b)
 
 
-sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = BlockSizes((Vcat(1, 1 .+ cumsum(length.(A))),))
+sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (length.(A),)
 function sizes_from_blocks(A::AbstractMatrix, ::Tuple{OneTo{Int}, OneToInf{Int}})
     @assert size(A,1) == 1 
     R,C = vec(size.(A,1)[:,1]), vec(size.(A,2))
