@@ -30,36 +30,10 @@ end
 
 *(a::AbstractVector, b::AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}) = ApplyArray(*,a,b)
 
-
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (length.(A),)
-function sizes_from_blocks(A::AbstractMatrix, ::Tuple{OneTo{Int}, OneToInf{Int}})
-    @assert size(A,1) == 1 
-    R,C = vec(size.(A,1)[:,1]), vec(size.(A,2))
-    BlockSizes((vcat(1, 1 .+ cumsum(R)), Vcat(1, 1 .+ cumsum(C))))
-end
+sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.diag, 1), size.(A.diag,2)
 
-function sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) 
-    sz = size.(A.diag, 1), size.(A.diag,2)
-    BlockSizes(Vcat.(1,(c -> 1 .+ c).(cumsum.(sz))))
-end
-
-function sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) 
-    sz = size.(A.d, 1), size.(A.d,2)
-    BlockSizes(Vcat.(1,(c -> 1 .+ c).(cumsum.(sz))))
-end
-
-_find_block(cs::Number, i::Integer) = i ≤ cs ? 1 : 0
-function _find_block(cs::Vcat, i::Integer)
-    n = 0
-    for a in cs.args
-        i < first(a) && return n
-        if i ≤ last(a)
-            return _find_block(a, i) + n
-        end
-        n += length(a)
-    end 
-    return 0
-end
+sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
 
 print_matrix_row(io::IO,
         X::AbstractBlockVecOrMat, A::Vector,
@@ -98,7 +72,7 @@ function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
         bs∞[k] = bs∞[k-1] .+ size(A[Block(N+1-u+k-1,N+1)],1)
     end
 
-    BlockSkylineSizes(blocksizes(A),
+    BlockSkylineSizes(axes(A),
                         _BandedMatrix(Hcat(block_starts.data, Vcat(adjoint.(bs∞)...)), ∞, l, u),
                         Vcat(block_strides, Fill(block_stride∞,∞)),
                         Fill(l,∞),Fill(u,∞))

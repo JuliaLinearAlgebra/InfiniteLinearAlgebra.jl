@@ -9,6 +9,10 @@ import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
 
+@testset "∞-block arrays" begin
+    mortar(Fill([1,2],∞))
+end
+
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
     A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
     @test A isa InfToeplitz
