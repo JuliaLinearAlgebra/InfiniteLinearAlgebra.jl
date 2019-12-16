@@ -19,7 +19,7 @@ import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector,
                     @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
-import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, CumsumBlockRange
+import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, CumsumBlockRange
 
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
 
@@ -56,7 +56,7 @@ export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 include("banded/hessenbergq.jl")
 
 include("banded/infbanded.jl")
-include("blockbanded/infblocktridiagonal.jl")
+include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
@@ -80,4 +80,19 @@ ApplyStyle(::typeof(*), ::Type{<:Adjoint{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneT
     LazyArrayApplyStyle()
 ApplyStyle(::typeof(*), ::Type{<:Transpose{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneToInf}}}, ::Type{<:AbstractArray}) =
     LazyArrayApplyStyle()
+
+#######
+# block broadcasted
+######
+
+map(::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) = A.args[1]
+map(::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) = A.args[2]    
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) =
+    A.args[1]
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) =
+    A.args[2]   
+
+BlockArrays._length(::CumsumBlockRange, ::OneToInf) = ∞
+BlockArrays._last(::CumsumBlockRange, ::OneToInf) = ∞
+    
 end # module

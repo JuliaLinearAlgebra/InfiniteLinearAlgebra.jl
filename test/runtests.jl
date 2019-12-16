@@ -131,7 +131,15 @@ end
     end
     
     @testset "Triangle OP recurrences" begin
-        # mortar((n -> 1:n).(1:∞))
+        k = mortar(Base.OneTo.(1:∞))
+        n = mortar(Fill.(1:∞, 1:∞))
+        @test k[Block.(2:3)] isa BlockArray
+        @test n[Block.(2:3)] isa BlockArray
+        @test k[Block.(2:3)] == [1,2,1,2,3]
+        @test n[Block.(2:3)] == [2,2,3,3,3]
+        @test blocksize(BroadcastVector(exp,k)) == (∞,)
+        @test BroadcastVector(exp,k)[Block.(2:3)] == exp.([1,2,1,2,3])
+        # BroadcastVector(+,k,n)
     end
     # Multivariate OPs Corollary (3)
     # n = 5
