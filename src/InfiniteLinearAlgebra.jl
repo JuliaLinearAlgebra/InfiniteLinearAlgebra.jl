@@ -19,7 +19,7 @@ import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector,
                     @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
-import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, CumsumBlockRange
+import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange
 
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
 
@@ -92,7 +92,7 @@ broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{OneTo{Int},
 broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) =
     A.args[2]   
 
-BlockArrays._length(::CumsumBlockRange, ::OneToInf) = ∞
-BlockArrays._last(::CumsumBlockRange, ::OneToInf) = ∞
+BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
+BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
     
 end # module

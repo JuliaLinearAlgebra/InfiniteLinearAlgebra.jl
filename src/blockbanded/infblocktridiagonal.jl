@@ -1,5 +1,5 @@
 const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{T},1,Tuple{Vector{Matrix{T}},Fill{Matrix{T},1,Tuple{OneToInf{Int}}}}}},
-                                        NTuple{2,CumsumBlockRange{Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
+                                        NTuple{2,BlockedUnitRange{Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
 
 
 function BlockTridiagonal(adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T
