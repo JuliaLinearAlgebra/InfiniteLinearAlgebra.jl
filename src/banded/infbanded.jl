@@ -1,3 +1,9 @@
+###
+# Diagonal
+###
+
+getindex(D::Diagonal, k::InfAxes, j::InfAxes) = lazy_getindex(D, k, j)
+
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
 const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}
 const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Array{T},<:ConstRowMatrix{T}}}
@@ -322,6 +328,12 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 # end
 
 
+@inline sub_materialize(::MulBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
+@inline sub_materialize(::BroadcastBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
+@inline sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
+@inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
+
+
 ##
 # UniformScaling
 ##
@@ -336,3 +348,24 @@ for op in (:+, :-), Typ in (:(BandedMatrix{<:Any,<:Any,OneToInf{Int}}),
 end
 
 _default_banded_broadcast(bc::Broadcasted, ::Tuple{<:OneToInf,<:Any}) = copy(Broadcasted{LazyArrayStyle{2}}(bc.f, bc.args))
+
+
+###
+# BandedFill * BandedFill
+###
+
+copy(M::MulAdd{BandedMatrices.BandedColumns{FillLayout},BandedMatrices.BandedColumns{FillLayout},ZerosLayout}) =
+    _bandedfill_mul(M, axes(M.A), axes(M.B))
+
+_bandedfill_mul(M, _, _) = copyto!(similar(M), M)
+function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,InfAxes})
+    A, B = M.A, M.B
+    Al,Au = bandwidths(A)
+    Bl,Bu = bandwidths(B)
+    l,u = Al+Bl,Au+Bu
+    m = min(Au+Al,Bl+Bu)+1
+    λ = getindex_value(bandeddata(A))*getindex_value(bandeddata(B))
+    ret = _BandedMatrix(Hcat(Array{typeof(λ)}(undef, l+u+1,u), [1:m-1; Fill(m,l+u-2m+3); m-1:-1:1]*Fill(λ,1,∞)), ∞, l, u)
+    mul!(view(ret, 1:l+u,1:u), view(A,1:l+u,1:u+Bl), view(B,1:u+Bl,1:u))
+    ret
+end

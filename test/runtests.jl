@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, LinearAlgebra, Random
+using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
@@ -8,9 +8,12 @@ import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
+import InfiniteArrays: OneToInf
 
 @testset "∞-block arrays" begin
-    mortar(Fill([1,2],∞))
+    b = mortar(Fill([1,2],∞))
+    @test blockaxes(b,1) === Block.(OneToInf())
+    @test b[Block(5)] == [1,2]
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
@@ -32,6 +35,15 @@ end
     @test MemoryLayout(typeof(V)) == PertToeplitzLayout()
     @test BandedMatrix(V) isa PertToeplitz
     @test A[2:∞,2:∞] isa PertToeplitz
+
+    @testset "InfBanded" begin
+        A = _BandedMatrix(Fill(2,4,∞),∞,2,1)
+        B = _BandedMatrix(Fill(3,2,∞),∞,-1,2)
+        @test mul(A,A) isa PertToeplitz
+        @test A*A isa PertToeplitz
+        @test (A*A)[1:20,1:20] == A[1:20,1:23]*A[1:23,1:20]
+        @test (A*B)[1:20,1:20] == A[1:20,1:23]*B[1:23,1:20]
+    end
 end
 
 
@@ -64,7 +76,7 @@ end
         @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 
         A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
-        @test A*A isa ApplyArray
+        @test A*A isa BandedMatrix
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
         @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
     end
