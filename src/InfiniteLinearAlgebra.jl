@@ -14,7 +14,7 @@ import FillArrays: AbstractFill, getindex_value
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange, InfAxes                  
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
-                    CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
+                    resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, lazy_getindex,
                     @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!, MulAddStyle
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
@@ -30,6 +30,7 @@ import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMat
 
 
 LazyArrays.@lazymul BandedMatrix{<:Any,<:Any,<:OneToInf}
+*(A::BandedMatrix{<:Any,<:Any,<:OneToInf}, b::CachedVector) = apply(*,A,b)
 
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
