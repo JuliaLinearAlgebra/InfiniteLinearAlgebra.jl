@@ -91,6 +91,10 @@ ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:AbstractFill,<:OneToInf}},
 # block broadcasted
 ######
 
+const CumsumOneToInf2 = BroadcastArray{Int64,1,typeof(div),Tuple{BroadcastArray{Int64,1,typeof(*),Tuple{InfiniteArrays.OneToInf{Int64},InfiniteArrays.InfUnitRange{Int64}}},Int64}}
+BlockArrays.sortedunion(a::CumsumOneToInf2, ::CumsumOneToInf2) = a
+
+
 map(::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) = A.args[1]
 map(::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) = A.args[2]    
 broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) =

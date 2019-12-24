@@ -1,4 +1,4 @@
-sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (length.(A),)
+sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (map(length,A),)
 
 
 
