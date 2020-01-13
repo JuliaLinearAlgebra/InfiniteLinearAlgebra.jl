@@ -10,10 +10,23 @@ import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
 import InfiniteArrays: OneToInf
 
+@testset "∞-banded" begin
+    D = Diagonal(Fill(2,∞))
+    B = D[1:∞,2:∞]
+    @test B isa BandedMatrix
+    @test B[1:10,1:10] == diagm(-1 => Fill(2,9))
+    @test B[1:∞,2:∞] isa BandedMatrix
+end
+
 @testset "∞-block arrays" begin
+    k = Base.OneTo.(Base.OneTo(∞))
+    n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
+    @test broadcast(length,k) == map(length,k) == OneToInf()
+    @test broadcast(length,n) == map(length,n) == OneToInf()
     b = mortar(Fill([1,2],∞))
     @test blockaxes(b,1) === Block.(OneToInf())
     @test b[Block(5)] == [1,2]
+    @test length(axes(b,1)) == last(axes(b,1)) == ∞
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
