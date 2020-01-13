@@ -1,33 +1,37 @@
 module InfiniteLinearAlgebra
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, 
-        FillArrays, InfiniteArrays, MatrixFactorizations, LinearAlgebra
+        FillArrays, InfiniteArrays, MatrixFactorizations, ArrayLayouts, LinearAlgebra
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
-            show, getproperty
-import Base.Broadcast: BroadcastStyle, Broadcasted
+            show, getproperty, copy, map
+import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value      
-import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange                  
+import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange, InfAxes                  
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
-                    CachedMatrix, CachedArray, resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
-                    factorize, sub_materialize, LazyLayout, LazyArrayStyle,
-                    @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!
+                    resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
+                    factorize, sub_materialize, LazyLayout, LazyArrayStyle, lazy_getindex,
+                    @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!, MulAddStyle,
+                    LazyArray, LazyMatrix, LazyVector
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
-import BlockArrays: BlockSizes, cumulsizes, _find_block, AbstractBlockVecOrMat, sizes_from_blocks
+import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange
 
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
 
-import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, AbstractBlockSizes, cumulsizes, _BlockSkylineMatrix, BlockSizes, blockstart, blockstride,
+import LazyBandedMatrices: MulBandedLayout, BroadcastBandedLayout
+
+import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
 
 
 LazyArrays.@lazymul BandedMatrix{<:Any,<:Any,<:OneToInf}
+*(A::BandedMatrix{<:Any,<:Any,<:OneToInf}, b::CachedVector) = apply(*,A,b)
 
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
@@ -56,7 +60,7 @@ export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 include("banded/hessenbergq.jl")
 
 include("banded/infbanded.jl")
-include("blockbanded/infblocktridiagonal.jl")
+include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
@@ -80,4 +84,28 @@ ApplyStyle(::typeof(*), ::Type{<:Adjoint{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneT
     LazyArrayApplyStyle()
 ApplyStyle(::typeof(*), ::Type{<:Transpose{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneToInf}}}, ::Type{<:AbstractArray}) =
     LazyArrayApplyStyle()
+
+ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:AbstractFill,<:OneToInf}}, ::Type{<:BandedMatrix{<:Any,<:AbstractFill,<:OneToInf}}) =
+    MulAddStyle()    
+
+#######
+# block broadcasted
+######
+
+const CumsumOneToInf2 = BroadcastArray{Int64,1,typeof(div),Tuple{BroadcastArray{Int64,1,typeof(*),Tuple{InfiniteArrays.OneToInf{Int64},InfiniteArrays.InfUnitRange{Int64}}},Int64}}
+BlockArrays.sortedunion(a::CumsumOneToInf2, ::CumsumOneToInf2) = a
+
+
+map(::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) = A.args[1]
+map(::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) = A.args[2]    
+map(::typeof(length), A::BroadcastArray{<:Zeros,1,Type{Zeros}}) = A.args[1]    
+map(::typeof(length), A::BroadcastArray{<:Vcat,1,Type{Vcat}}) = broadcast(+,map.(length,A.args)...)
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) =
+    A.args[1]
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) =
+    A.args[2]   
+
+BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
+BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
+    
 end # module

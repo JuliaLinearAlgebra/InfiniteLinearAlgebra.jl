@@ -158,15 +158,16 @@ function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::C
     B
 end
 
-function (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector{S}) where {T,S}
+function _lmul_copymutable(A::AbstractMatrix{T}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
 end
 
-function (*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
-end
+(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector) where {T} = _lmul_copymutable(A, x)
+(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector) where {T} = _lmul_copymutable(A, x)
+(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LazyVector) where {T} = _lmul_copymutable(A, x)
+(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LazyVector) where {T} = _lmul_copymutable(A, x)
+
 
 function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}}) 
     n = B.datasize[1]

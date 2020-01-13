@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, LinearAlgebra, Random
+using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
@@ -8,6 +8,26 @@ import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
+import InfiniteArrays: OneToInf
+
+@testset "∞-banded" begin
+    D = Diagonal(Fill(2,∞))
+    B = D[1:∞,2:∞]
+    @test B isa BandedMatrix
+    @test B[1:10,1:10] == diagm(-1 => Fill(2,9))
+    @test B[1:∞,2:∞] isa BandedMatrix
+end
+
+@testset "∞-block arrays" begin
+    k = Base.OneTo.(Base.OneTo(∞))
+    n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
+    @test broadcast(length,k) == map(length,k) == OneToInf()
+    @test broadcast(length,n) == map(length,n) == OneToInf()
+    b = mortar(Fill([1,2],∞))
+    @test blockaxes(b,1) === Block.(OneToInf())
+    @test b[Block(5)] == [1,2]
+    @test length(axes(b,1)) == last(axes(b,1)) == ∞
+end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
     A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
@@ -28,6 +48,15 @@ import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayS
     @test MemoryLayout(typeof(V)) == PertToeplitzLayout()
     @test BandedMatrix(V) isa PertToeplitz
     @test A[2:∞,2:∞] isa PertToeplitz
+
+    @testset "InfBanded" begin
+        A = _BandedMatrix(Fill(2,4,∞),∞,2,1)
+        B = _BandedMatrix(Fill(3,2,∞),∞,-1,2)
+        @test mul(A,A) isa PertToeplitz
+        @test A*A isa PertToeplitz
+        @test (A*A)[1:20,1:20] == A[1:20,1:23]*A[1:23,1:20]
+        @test (A*B)[1:20,1:20] == A[1:20,1:23]*B[1:23,1:20]
+    end
 end
 
 
@@ -60,7 +89,7 @@ end
         @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 
         A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
-        @test A*A isa ApplyArray
+        @test A*A isa BandedMatrix
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
         @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
     end
@@ -82,7 +111,6 @@ end
         @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
         @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
     end
-    
 
     @testset "Fill" begin
         A = _BandedMatrix(Ones(1,∞),∞,-1,1)
@@ -127,7 +155,15 @@ end
     end
     
     @testset "Triangle OP recurrences" begin
-        # mortar((n -> 1:n).(1:∞))
+        k = mortar(Base.OneTo.(1:∞))
+        n = mortar(Fill.(1:∞, 1:∞))
+        @test k[Block.(2:3)] isa BlockArray
+        @test n[Block.(2:3)] isa BlockArray
+        @test k[Block.(2:3)] == [1,2,1,2,3]
+        @test n[Block.(2:3)] == [2,2,3,3,3]
+        @test blocksize(BroadcastVector(exp,k)) == (∞,)
+        @test BroadcastVector(exp,k)[Block.(2:3)] == exp.([1,2,1,2,3])
+        # BroadcastVector(+,k,n)
     end
     # Multivariate OPs Corollary (3)
     # n = 5
