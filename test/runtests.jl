@@ -98,7 +98,6 @@ end
         @test (I + A)[1:100,1:100] == I+A[1:100,1:100]
         @test (I - A)[1:100,1:100] == I-A[1:100,1:100]
     end
-    
 
     @testset "Fill" begin
         A = _BandedMatrix(Ones(1,∞),∞,-1,1)
