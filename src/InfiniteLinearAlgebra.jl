@@ -15,7 +15,7 @@ import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractI
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
-                    factorize, sub_materialize, LazyLayout, LazyArrayStyle, lazy_getindex,
+                    factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!, MulAddStyle,
                     LazyArray, LazyMatrix, LazyVector
 import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
