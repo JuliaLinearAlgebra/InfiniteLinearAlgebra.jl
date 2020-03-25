@@ -1,8 +1,9 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays, SpecialFunctions, Test
-import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!
+import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
+import SemiseparableMatrices: AlmostBandedLayout
 
 
 @testset "Adaptive QR" begin
@@ -131,5 +132,12 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         F = qr(A)
         @test F.Q[1:10,1:10] == Eye(10)
         @test F.R[1:10,1:10] == A[1:10,1:10]
+    end
+
+    @testset "almost-banded" begin
+        A = Vcat(Ones(1,∞), BandedMatrix(0 => -Ones(∞), 1 => 1:∞))
+        @test MemoryLayout(typeof(A)) == AlmostBandedLayout()
+        B,C = arguments(A)
+        
     end
 end

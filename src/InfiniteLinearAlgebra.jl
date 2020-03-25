@@ -1,5 +1,5 @@
 module InfiniteLinearAlgebra
-using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, 
+using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, SemiseparableMatrices,
         FillArrays, InfiniteArrays, MatrixFactorizations, ArrayLayouts, LinearAlgebra
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
