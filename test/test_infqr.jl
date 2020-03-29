@@ -1,9 +1,10 @@
-using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays, SpecialFunctions, Test
+using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
-import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
-import SemiseparableMatrices: AlmostBandedLayout
+import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, adaptiveqr
+import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
 
 @testset "Adaptive QR" begin
@@ -136,8 +137,15 @@ import SemiseparableMatrices: AlmostBandedLayout
 
     @testset "almost-banded" begin
         A = Vcat(Ones(1,∞), BandedMatrix(0 => -Ones(∞), 1 => 1:∞))
-        @test MemoryLayout(typeof(A)) == AlmostBandedLayout()
-        B,C = arguments(A)
-        
-    end
+        @test MemoryLayout(typeof(A)) isa VcatAlmostBandedLayout
+        V = view(A,1:10,1:10)
+        @test MemoryLayout(typeof(V)) isa VcatAlmostBandedLayout
+        @test A[1:10,1:10] isa AlmostBandedMatrix
+        @test AlmostBandedMatrix(V) == Matrix(V) == A[1:10,1:10]
+
+        C = cache(A)
+        @test C[1000,1000] ≡ 999.0
+        F = adaptiveqr(A);
+        partialqr!(F.factors.data,10)
+    end 
 end

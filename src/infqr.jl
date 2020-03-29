@@ -10,6 +10,15 @@ function AdaptiveQRData(::AbstractBandedLayout, A::AbstractMatrix{T}) where T
     data = BandedMatrix{T}(undef,(2l+u+1,0),(l,l+u)) # pad super
     AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
 end
+
+function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) where T 
+    l,u = almostbandwidths(A)
+    r = almostbandedrank(A)
+    data = AlmostBandedMatrix{T}(undef,(2l+u+1,0),(l,l+u),r) # pad super
+    
+    AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
+end
+
 AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(typeof(A)), A)
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
@@ -24,6 +33,28 @@ function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
         else
             factors = view(F.data.data,ñ+1:n+l,ñ+1:n);
             _banded_qr!(factors, τ);
+            # multiply remaining columns
+            n̄ = max(ñ+1,n-l-u+1) # first column interacting with extra data
+            Q = QRPackedQ(view(F.data.data,n̄:n+l,n̄:n), view(F.τ,n̄:n))
+            lmul!(Q',view(F.data.data,n̄:n+l,n+1:n+u+l))
+        end
+        F.ncols = n
+    end
+    F
+end
+
+function partialqr!(F::AdaptiveQRData{<:Any,<:AlmostBandedMatrix}, n::Int)
+    if n > F.ncols 
+        l,u = almostbandwidths(F.data.array)
+        resizedata!(F.data,n+l,n+u+l)
+        resize!(F.τ,n)
+        ñ = F.ncols
+        τ = view(F.τ,ñ+1:n)
+        if l ≤ 0 
+            zero!(τ)
+        else
+            factors = view(F.data.data,ñ+1:n+l,ñ+1:n)
+            _almostbanded_qr!(factors, τ)
             # multiply remaining columns
             n̄ = max(ñ+1,n-l-u+1) # first column interacting with extra data
             Q = QRPackedQ(view(F.data.data,n̄:n+l,n̄:n), view(F.τ,n̄:n))
@@ -82,10 +113,12 @@ end
 getR(Q::QR, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = UpperTriangular(Q.factors)
 
 
-function _banded_qr(::NTuple{2,OneToInf{Int}}, A)
+function adaptiveqr(A)
     data = AdaptiveQRData(A)
     QR(AdaptiveQRFactors(data), AdaptiveQRTau(data))
 end
+
+_banded_qr(::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 
 #########
 # lmul!

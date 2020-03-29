@@ -29,6 +29,7 @@ import LazyBandedMatrices: MulBandedLayout, BroadcastBandedLayout
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
 
+import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 LazyArrays.@lazymul BandedMatrix{<:Any,<:Any,<:OneToInf}
 *(A::BandedMatrix{<:Any,<:Any,<:OneToInf}, b::CachedVector) = apply(*,A,b)
