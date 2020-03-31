@@ -208,7 +208,7 @@ end
 # BlockTridiagonal
 ####
 
-function _ql(A::BlockTriPertToeplitz, d, e)
+function _blocktripert_ql(A, d, e)
     N = max(length(A.blocks.du.args[1])+1,length(A.blocks.d.args[1]),length(A.blocks.dl.args[1]))
     c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
     P,τ = blocktailiterate(c,a,b,d,e)
@@ -226,7 +226,7 @@ function _ql(A::BlockTriPertToeplitz, d, e)
             Vcat(F.τ,mortar(Fill(τ,∞)))), P[Block(1,1)], P[Block(1,2)]
 end
 
-ql(A::BlockTriPertToeplitz) = _ql(A, A[Block(2,3)], A[Block(3,3)])[1]
+ql(A::BlockTriPertToeplitz) = _blocktripert_ql(A, A[Block(2,3)], A[Block(3,3)])[1]
 
 ql(A::Adjoint{T,BlockTriPertToeplitz{T}}) where T = ql(BlockTridiagonal(A))
 

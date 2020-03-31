@@ -143,9 +143,26 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @test A[1:10,1:10] isa AlmostBandedMatrix
         @test AlmostBandedMatrix(V) == Matrix(V) == A[1:10,1:10]
 
-        C = cache(A)
+        C = cache(A);
         @test C[1000,1000] ≡ 999.0
         F = adaptiveqr(A);
-        partialqr!(F.factors.data,10)
+        partialqr!(F.factors.data,2);
+        @test F.factors.data.data[1:3,1:5] ≈ qr(A[1:3,1:5]).factors
+        partialqr!(F.factors.data,3);
+        @test F.factors.data.data[1:4,1:6] ≈ qr(A[1:4,1:6]).factors
+
+        F = adaptiveqr(A);
+        partialqr!(F.factors.data,10);
+        @test F.factors[1:11,1:10] ≈ qr(A[1:11,1:10]).factors        
+        @test F.τ[1:10] ≈ qr(A[1:11,1:10]).τ        
+        partialqr!(F.factors.data,20);
+        @test F.factors[1:21,1:20] ≈ qr(A[1:21,1:20]).factors      
+
+        @test adaptiveqr(A).R[1:10,1:10] ≈ qr(A[1:11,1:10]).R
+        
+        @test qr(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
+        @test factorize(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
+
+        @test (adaptiveqr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (qr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (A \ [ℯ; zeros(∞)])[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
     end 
 end
