@@ -113,6 +113,9 @@ end
 _qr(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 _qr(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 
+partialqr!(F::QR, n) = partialqr!(F.factors, n)
+partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
+
 #########
 # lmul!
 #########
