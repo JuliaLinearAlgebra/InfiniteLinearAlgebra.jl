@@ -60,7 +60,7 @@ end
 end
 
 
-@testset "Algebra" begin 
+# @testset "Algebra" begin 
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
         @test A isa BandedMatrix{ComplexF64}
@@ -170,7 +170,7 @@ end
     # BlockTridiagonal(Zeros.(1:∞,2:∞),
     #         (n -> Diagonal(((n+2).+(0:n)))/ (2n + 2)).(0:∞),
     #         Zeros.(2:∞,1:∞))
-end
+# end
 
 include("test_hessenbergq.jl")
 include("test_infql.jl")
