@@ -1,8 +1,10 @@
-using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays, FillArrays, SpecialFunctions, Test
-import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!
+using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices
+import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
-import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
+import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, adaptiveqr
+import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
 
 @testset "Adaptive QR" begin
@@ -26,7 +28,7 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
     end
 
     @testset "AdaptiveQRFactors" begin
-        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1) 
+        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
         F = qr(A);
         @test F.factors[1,1] ≈ -sqrt(2)
         @test F.factors[100,100] ≈ qrunblocked(A[1:101,1:100]).factors[100,100]
@@ -39,7 +41,7 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
     end
 
     @testset "col/rowsupport" begin
-        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1) 
+        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
         F = qr(A);
         @test MemoryLayout(typeof(F.factors)) isa AdaptiveLayout{BandedColumns{DenseColumnMajor}}
         @test bandwidths(F.factors) == (1,2)
@@ -60,7 +62,7 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
     end
 
     @testset "Qmul" begin
-        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1) 
+        A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
         Q,R = qr(A);
         b = Vcat([1.,2,3],Zeros(∞))
         @test lmul!(Q, Base.copymutable(b)).datasize[1] == 4
@@ -91,7 +93,7 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         @test qr(A[1:3000,1:3000]).Q'b[1:3000] ≈ (F.Q'b)[1:3000]
         @time J = A \ Vcat([besselj(1,z)], Zeros(∞))
         @test J[1:2000] ≈ [besselj(k,z) for k=0:1999]
-    
+
         z = 10_000; # the bigger z the longer before we see convergence
         A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
         @time J = A \ Vcat([besselj(1,z)], Zeros(∞))
@@ -131,5 +133,78 @@ import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout
         F = qr(A)
         @test F.Q[1:10,1:10] == Eye(10)
         @test F.R[1:10,1:10] == A[1:10,1:10]
+    end
+
+    @testset "almost-banded" begin
+        @testset "one-band" begin
+            A = Vcat(Ones(1,∞), BandedMatrix(0 => -Ones(∞), 1 => 1:∞))
+            @test MemoryLayout(typeof(A)) isa VcatAlmostBandedLayout
+            V = view(A,1:10,1:10)
+            @test MemoryLayout(typeof(V)) isa VcatAlmostBandedLayout
+            @test A[1:10,1:10] isa AlmostBandedMatrix
+            @test AlmostBandedMatrix(V) == Matrix(V) == A[1:10,1:10]
+
+            C = cache(A);
+            @test C[1000,1000] ≡ 999.0
+            F = adaptiveqr(A);
+            partialqr!(F.factors.data,2);
+            @test F.factors.data.data[1:3,1:5] ≈ qr(A[1:3,1:5]).factors
+            partialqr!(F.factors.data,3);
+            @test F.factors.data.data[1:4,1:6] ≈ qr(A[1:4,1:6]).factors
+
+            F = adaptiveqr(A);
+            partialqr!(F.factors.data,10);
+            @test F.factors[1:11,1:10] ≈ qr(A[1:11,1:10]).factors
+            @test F.τ[1:10] ≈ qr(A[1:11,1:10]).τ
+            partialqr!(F.factors.data,20);
+            @test F.factors[1:21,1:20] ≈ qr(A[1:21,1:20]).factors
+
+            @test adaptiveqr(A).R[1:10,1:10] ≈ qr(A[1:11,1:10]).R
+
+            @test qr(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
+            @test factorize(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
+
+            @test (adaptiveqr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (qr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (A \ [ℯ; zeros(∞)])[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+        end
+
+        @testset "two-bands" begin
+            B = BandedMatrix(0 => -Ones(∞), 2 => (1:∞).* (2:∞))
+            A = Vcat(Vcat(Ones(1,∞), ((-1).^(0:∞))'), B)
+            @test MemoryLayout(typeof(A)) isa VcatAlmostBandedLayout
+
+            @test qr(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
+            @test factorize(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
+            u = qr(A) \ [1; zeros(∞)]
+            x = 0.1
+            @test (exp(1 - x)*(-1 + exp(2 + 2x)))/(-1 + exp(4)) ≈ dot(u[1:1000], x.^(0:999))
+            u = qr(A) \ Vcat([ℯ,1/ℯ], zeros(∞))
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            u = qr(A) \ Vcat(ℯ,1/ℯ, zeros(∞))
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+
+            A = Vcat(Ones(1,∞), ((-1.0).^(0:∞))', B)
+            @test MemoryLayout(typeof(A)) isa VcatAlmostBandedLayout
+            u = A \ Vcat(ℯ,1/ℯ, zeros(∞))
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+
+            A = Vcat(Ones(1,∞), ((-1).^(0:∞))', B)
+            u = A \ Vcat(ℯ,1/ℯ, zeros(∞))
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]            
+        end
+
+        @testset "more bands" begin
+            L = Vcat(Ones(1,∞), ((-1).^(0:∞))', 
+                     BandedMatrix(-1 => Ones(∞), 1 => Ones(∞), 2 => 4:2:∞, 3 => Ones(∞), 5 => Ones(∞)))
+            F = qr(L).factors.data;
+            resizedata!(F.data,13,19)
+            @test F.data.data[2,8] == -1
+            F = qr(L);
+            partialqr!(F,10);
+            @test F.factors[1:10,1:10] ≈ qr(L[1:13,1:10]).factors[1:10,1:10]
+            @test qr(L).factors[1:10,1:10] ≈ qr(L[1:13,1:10]).factors[1:10,1:10]
+
+            u = L \ [1; 2; zeros(∞)]
+            @test L[1:1000,1:1000]*u[1:1000] ≈ [1; 2; zeros(998)]
+        end
     end
 end

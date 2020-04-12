@@ -10,24 +10,47 @@ function AdaptiveQRData(::AbstractBandedLayout, A::AbstractMatrix{T}) where T
     data = BandedMatrix{T}(undef,(2l+u+1,0),(l,l+u)) # pad super
     AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
 end
+
+function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) where T 
+    l,u = almostbandwidths(A)
+    r = almostbandedrank(A)
+    data = AlmostBandedMatrix{T}(undef,(2l+u+1,0),(l,l+u),r) # pad super
+    
+    AdaptiveQRData(CachedArray(data,A,(0,0)), Vector{T}(), 0)
+end
+
 AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(typeof(A)), A)
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
     if n > F.ncols 
-        l,u = bandwidths(F.data.array)
-        resizedata!(F.data,n+l,n+u+l);
+        l,u = bandwidths(F.data.data)
+        resizedata!(F.data,n+l,n+u);
         resize!(F.τ,n);
         ñ = F.ncols
         τ = view(F.τ,ñ+1:n);
         if l ≤ 0 
             zero!(τ)
         else
-            factors = view(F.data.data,ñ+1:n+l,ñ+1:n);
-            _banded_qr!(factors, τ);
-            # multiply remaining columns
-            n̄ = max(ñ+1,n-l-u+1) # first column interacting with extra data
-            Q = QRPackedQ(view(F.data.data,n̄:n+l,n̄:n), view(F.τ,n̄:n))
-            lmul!(Q',view(F.data.data,n̄:n+l,n+1:n+u+l))
+            factors = view(F.data.data,ñ+1:n+l,ñ+1:n+u);
+            _banded_qr!(factors, τ, n-ñ)
+        end
+        F.ncols = n
+    end
+    F
+end
+
+function partialqr!(F::AdaptiveQRData{<:Any,<:AlmostBandedMatrix}, n::Int)
+    if n > F.ncols 
+        l,u = almostbandwidths(F.data.data)
+        resizedata!(F.data,n+l,n+l+u);
+        resize!(F.τ,n);
+        ñ = F.ncols
+        τ = view(F.τ,ñ+1:n)
+        if l ≤ 0 
+            zero!(τ)
+        else
+            factors = view(F.data.data,ñ+1:n+l,ñ+1:n+l+u)
+            _almostbanded_qr!(factors, τ, n-ñ)
         end
         F.ncols = n
     end
@@ -82,10 +105,16 @@ end
 getR(Q::QR, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = UpperTriangular(Q.factors)
 
 
-function _banded_qr(::NTuple{2,OneToInf{Int}}, A)
+function adaptiveqr(A)
     data = AdaptiveQRData(A)
     QR(AdaptiveQRFactors(data), AdaptiveQRTau(data))
 end
+
+_qr(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+_qr(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+
+partialqr!(F::QR, n) = partialqr!(F.factors, n)
+partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
 
 #########
 # lmul!
@@ -142,11 +171,12 @@ function lmul!(adjA::Adjoint{<:Any,<:QRPackedQ{<:Any,<:AdaptiveQRFactors}}, B::C
 
     @inbounds begin
         while first(jr) < nA
+            j = first(jr)
             cs = colsupport(A.factors, last(jr))
             cs_max = maximum(cs)
-            kr = first(jr):cs_max
+            kr = j:cs_max
             resizedata!(B, min(cs_max,mB))
-            if (first(jr) > sB && maximum(abs,view(B.data,colsupport(A.factors,first(jr)))) ≤ tol)
+            if (j > sB && maximum(abs,view(B.data,j:last(colsupport(A.factors,j)))) ≤ tol)
                 break
             end
             partialqr!(A.factors.data, min(cs_max,nA))

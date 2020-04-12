@@ -2,7 +2,7 @@
 # Diagonal
 ###
 
-getindex(D::Diagonal, k::InfAxes, j::InfAxes) = lazy_getindex(D, k, j)
+getindex(D::Diagonal, k::InfAxes, j::InfAxes) = layout_getindex(D, k, j)
 
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
 const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}

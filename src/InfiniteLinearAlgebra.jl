@@ -1,5 +1,5 @@
 module InfiniteLinearAlgebra
-using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, 
+using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, SemiseparableMatrices,
         FillArrays, InfiniteArrays, MatrixFactorizations, ArrayLayouts, LinearAlgebra
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
@@ -7,7 +7,7 @@ import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, pr
             show, getproperty, copy, map
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
-import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout
+import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout, _qr
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value      
@@ -15,10 +15,10 @@ import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractI
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
-                    factorize, sub_materialize, LazyLayout, LazyArrayStyle, lazy_getindex,
+                    factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     @lazymul, applylayout, ApplyLayout, PaddedLayout, materialize!, zero!, MulAddStyle,
                     LazyArray, LazyMatrix, LazyVector
-import MatrixFactorizations: ql, ql!, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
+import MatrixFactorizations: ql, ql!, _ql, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ
 
 import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange
 
@@ -29,6 +29,7 @@ import LazyBandedMatrices: MulBandedLayout, BroadcastBandedLayout
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
 
+import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 LazyArrays.@lazymul BandedMatrix{<:Any,<:Any,<:OneToInf}
 *(A::BandedMatrix{<:Any,<:Any,<:OneToInf}, b::CachedVector) = apply(*,A,b)
