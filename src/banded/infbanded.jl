@@ -354,7 +354,7 @@ _default_banded_broadcast(bc::Broadcasted, ::Tuple{<:OneToInf,<:Any}) = copy(Bro
 # BandedFill * BandedFill
 ###
 
-copy(M::MulAdd{BandedMatrices.BandedColumns{FillLayout},BandedMatrices.BandedColumns{FillLayout},ZerosLayout}) =
+copy(M::MulAdd{BandedColumns{FillLayout},BandedColumns{FillLayout},ZerosLayout}) =
     _bandedfill_mul(M, axes(M.A), axes(M.B))
 
 _bandedfill_mul(M, _, _) = copyto!(similar(M), M)
@@ -369,3 +369,10 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     mul!(view(ret, 1:l+u,1:u), view(A,1:l+u,1:u+Bl), view(B,1:u+Bl,1:u))
     ret
 end
+
+mulapplystyle(::BandedColumns{FillLayout}, ::PertToeplitzLayout) = LazyArrayApplyStyle()
+mulapplystyle(::PertToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
+mulapplystyle(::BandedColumns{FillLayout}, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
+mulapplystyle(::BandedToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
+mulapplystyle(::QLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
+mulapplystyle(::QLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()

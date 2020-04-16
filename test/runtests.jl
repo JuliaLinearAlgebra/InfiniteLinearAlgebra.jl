@@ -3,7 +3,7 @@ import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
 import Base: BroadcastStyle
-import BlockArrays: _BlockArray                    
+import BlockArrays: _BlockArray
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
@@ -16,6 +16,12 @@ import InfiniteArrays: OneToInf
     @test B isa BandedMatrix
     @test B[1:10,1:10] == diagm(-1 => Fill(2,9))
     @test B[1:∞,2:∞] isa BandedMatrix
+
+    A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
+    x = [1; 2; zeros(∞)]
+    @test ApplyStyle(*, typeof(A), typeof(x)) isa LazyArrays.MulAddStyle
+    @test A*x isa Vcat
+    @test (A*x)[1:10] == A[1:10,1:10]*x[1:10]
 end
 
 @testset "∞-block arrays" begin
@@ -91,7 +97,7 @@ end
         A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
         @test A*A isa BandedMatrix
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
-        @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
+        @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10]  == ((A*A)*A)[1:10,1:10]  == (A*(A*A))[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
     end
 
     @testset "BlockTridiagonal" begin
@@ -152,6 +158,7 @@ end
         C = Diagonal( 2 ./ (1:2:∞))
         @test A*(B*C) isa MulMatrix
         @test bandwidths(A*(B*C)) == (-1,1)
+        @test bandwidths((A*B)*C) == (-1,1)
     end
     
     @testset "Triangle OP recurrences" begin

@@ -13,6 +13,7 @@ import BandedMatrices: _BandedMatrix
             L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ∞, 2, 0)
             Qn,Ln = ql(A[1:1000,1:1000])
             @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
+            @test Q'A isa MulMatrix
             @test Array((Q'A)[1:10,1:10]) ≈ [(Q'A)[k,j] for k=1:10,j=1:10]
             @test (Q'A)[1:10,1:10] ≈ Ln[1:10,1:10] ≈ L[1:10,1:10]
 

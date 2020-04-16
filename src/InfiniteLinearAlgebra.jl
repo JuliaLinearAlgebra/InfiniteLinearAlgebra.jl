@@ -4,7 +4,7 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMa
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, print_matrix_row, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
-            show, getproperty, copy, map
+            show, getproperty, copy, map, require_one_based_indexing
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout, _qr
@@ -49,13 +49,6 @@ function ^(A::BandedMatrix{T,<:Any,<:OneToInf}, p::Integer) where T
     end
 end
 
-if VERSION < v"1.2-"
-    import Base: has_offset_axes
-    require_one_based_indexing(A...) = !has_offset_axes(A...) || throw(ArgumentError("offset arrays are not supported but got an array with index other than 1"))
-else
-    import Base: require_one_based_indexing    
-end             
-
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
 include("banded/hessenbergq.jl")
@@ -65,29 +58,6 @@ include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
-
-###
-# temporary work arounds
-###
-
-# Fix ∞ BandedMatrix
-ApplyStyle(::typeof(*), ::Type{<:Diagonal}, ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) =
-    LmulStyle()
-ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, ::Type{<:Diagonal}) =
-    RmulStyle()    
-ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) =
-    LazyArrayApplyStyle()
-ApplyStyle(::typeof(*), ::Type{<:AbstractArray}, ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) =
-    LazyArrayApplyStyle()
-ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}, ::Type{<:AbstractArray}) =
-    LazyArrayApplyStyle()
-ApplyStyle(::typeof(*), ::Type{<:Adjoint{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneToInf}}}, ::Type{<:AbstractArray}) =
-    LazyArrayApplyStyle()
-ApplyStyle(::typeof(*), ::Type{<:Transpose{<:Any,<:BandedMatrix{<:Any,<:Any,<:OneToInf}}}, ::Type{<:AbstractArray}) =
-    LazyArrayApplyStyle()
-
-ApplyStyle(::typeof(*), ::Type{<:BandedMatrix{<:Any,<:AbstractFill,<:OneToInf}}, ::Type{<:BandedMatrix{<:Any,<:AbstractFill,<:OneToInf}}) =
-    MulAddStyle()    
 
 #######
 # block broadcasted
