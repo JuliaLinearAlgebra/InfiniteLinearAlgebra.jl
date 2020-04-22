@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
-        FillArrays, SpecialFunctions, Test, SemiseparableMatrices
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
@@ -206,5 +206,12 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             u = L \ [1; 2; zeros(∞)]
             @test L[1:1000,1:1000]*u[1:1000] ≈ [1; 2; zeros(998)]
         end
+    end
+
+    @testset "block-banded" begin
+        Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
+        C = KronTrav(Δ - 2I, Eye(∞))
+        
+        qr(C)
     end
 end

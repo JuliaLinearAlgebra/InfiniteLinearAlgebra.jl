@@ -24,10 +24,11 @@ import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUn
 
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
 
-import LazyBandedMatrices: MulBandedLayout, BroadcastBandedLayout
+import LazyBandedMatrices: MulBandedLayout, BroadcastBandedLayout, _krontrav_axes
 
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
-        BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal
+        BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal,
+        AbstractBlockBandedLayout
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
@@ -78,5 +79,13 @@ broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{<:Fill,1,Ty
 
 BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
 BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
+
+###
+# KronTrav
+###
+
+_krontrav_axes(A::NTuple{N,OneToInf{Int}}, B::NTuple{N,OneToInf{Int}}) where N = 
+     @. blockedrange(OneTo(length(A)))
+
     
 end # module

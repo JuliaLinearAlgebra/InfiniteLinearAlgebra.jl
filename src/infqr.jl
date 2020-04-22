@@ -19,6 +19,13 @@ function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) wher
     AdaptiveQRData(CachedArray(data,A,(0,0)), Vector{T}(), 0)
 end
 
+function AdaptiveQRData(::AbstractBlockBandedLayout, A::AbstractMatrix{T}) where T 
+    l,u = blockbandwidths(A)
+    m,n = axes(A)
+    data = BlockBandedMatrix{T}(undef,(m[Block.(1:2l+u+1)],n[Block.(1:0)]),(l,l+u)) # pad super
+    AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
+end
+
 AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(typeof(A)), A)
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
@@ -56,6 +63,28 @@ function partialqr!(F::AdaptiveQRData{<:Any,<:AlmostBandedMatrix}, n::Int)
     end
     F
 end
+
+function partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, N::Block{1})
+    n = last(axes(F.data,2)[N])
+    if n > F.ncols 
+        l,u = blockbandwidths(F.data.data)
+        resizedata!(F.data,N+l,N+u);
+        resize!(F.τ,n);
+        ñ = F.ncols
+        τ = view(F.τ,ñ+1:n);
+        if l ≤ 0 
+            zero!(τ)
+        else
+            factors = view(F.data.data,ñ+1:n+l,ñ+1:n+u);
+            _banded_qr!(factors, τ, n-ñ)
+        end
+        F.ncols = n
+    end
+    F
+end
+
+partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, n::Int) =
+    partialqr!(F, findblock(axes(F.data,2), n))
 
 struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: AbstractMatrix{T}
     data::AdaptiveQRData{T,DM,M}
@@ -112,6 +141,7 @@ end
 
 _qr(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 _qr(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+_qr(::AbstractBlockBandedLayout, ::NTuple{2,Infinity}, A) = adaptiveqr(A)
 
 partialqr!(F::QR, n) = partialqr!(F.factors, n)
 partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
