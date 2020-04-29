@@ -97,7 +97,7 @@ function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
 end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
-    (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
+    (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
 
 getL(Q::QL, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
@@ -112,7 +112,8 @@ function nzzeros(B::AbstractMatrix, k)
     k == 1 ? size(B,2) + l : size(B,1) + u
 end
 
-function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
+function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout})
+    A,B = M.A,M.B
     require_one_based_indexing(B)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
@@ -145,7 +146,8 @@ function lmul!(A::QLPackedQ{<:Any,<:InfBandedMatrix}, B::AbstractVecOrMat)
     B
 end
 
-function lmul!(adjA::Adjoint{<:Any,<:QLPackedQ{<:Any,<:InfBandedMatrix}}, B::AbstractVecOrMat)
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayout})
+    adjA,B = M.A,M.B
     require_one_based_indexing(B)
     A = adjA.parent
     mA, nA = size(A.factors)

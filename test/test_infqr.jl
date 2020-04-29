@@ -65,6 +65,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
         Q,R = qr(A);
         b = Vcat([1.,2,3],Zeros(∞))
+        @test colsupport(Q,1:3) == colsupport(Q.factors,1:3) == 1:4
         @test lmul!(Q, Base.copymutable(b)).datasize[1] == 4
         @test lmul!(Q, Base.copymutable(b)).data[1:4] ≈ qr(A[1:4,1:3]).Q*[1,2,3]
 
@@ -209,9 +210,18 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
     end
 
     @testset "block-banded" begin
+        using BlockBandedMatrices, LazyArrays, BlockArrays
+        import InfiniteLinearAlgebra: CachedArray, blockcolsupport
         Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
-        C = KronTrav(Δ - 2I, Eye(∞))
-        
-        qr(C)
+        A = KronTrav(Δ - 2I, Eye(∞))
+        @test bandwidths(view(A, Block(1,1))) == (1,1)
+
+        F = qr(A);
+        @test abs.(F.factors[1:15,1:10]) ≈ abs.(qr(A[1:15,1:10]).factors)
+
+        (F.Q' * [1; zeros(∞)])[1:100]
+        @test (F.Q*[1;zeros(∞)])[1:5] ≈ [-0.9701425001453321,0,0.24253562503633297,0,0]
+
+        F \ [1; zeros(∞)]
     end
 end

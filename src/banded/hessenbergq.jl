@@ -43,8 +43,8 @@ end
 end
 @inline getQ(F::QLHessenberg, _) = LowerHessenbergQ(F.q)
 
-getL(F::QLHessenberg) = getL(F, axes(F.factors))
-getQ(F::QLHessenberg) = getQ(F, axes(F.factors))
+getL(F::QLHessenberg) = getL(F, size(F.factors))
+getQ(F::QLHessenberg) = getQ(F, size(F.factors))
 
 function getproperty(F::QLHessenberg, d::Symbol)
     if d == :L
