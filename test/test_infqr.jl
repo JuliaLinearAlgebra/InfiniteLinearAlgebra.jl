@@ -1,7 +1,7 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
-        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
-import LazyBandedMatrices: BroadcastBandedLayout
+import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, adaptiveqr
 import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
@@ -210,8 +210,6 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
     end
 
     @testset "block-banded" begin
-        using BlockBandedMatrices, LazyArrays, BlockArrays
-        import InfiniteLinearAlgebra: CachedArray, blockcolsupport
         Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
         A = KronTrav(Δ - 2I, Eye(∞))
         @test bandwidths(view(A, Block(1,1))) == (1,1)
@@ -219,9 +217,22 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         F = qr(A);
         @test abs.(F.factors[1:15,1:10]) ≈ abs.(qr(A[1:15,1:10]).factors)
 
-        (F.Q' * [1; zeros(∞)])[1:100]
-        @test (F.Q*[1;zeros(∞)])[1:5] ≈ [-0.9701425001453321,0,0.24253562503633297,0,0]
+        @test (F.Q' * [1; zeros(∞)])[1:6] ≈ [-0.9701425001453321,0,-0.23386170701251197,0,0,-0.06193705069863463]
+        @test (F.Q*[1;zeros(∞)])[1:6] ≈ [-0.9701425001453321,0,0.24253562503633297,0,0,0]
 
-        F \ [1; zeros(∞)]
+        u = F \ [1; zeros(∞)]
+        @test (A*u)[1:10] ≈ [1; zeros(9)]
+
+        x = 0.1
+        θ = acos(x)
+        @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
+        
+
+        A = KronTrav(Eye(∞), Δ - 2I)
+        u = qr(A) \ [1; zeros(∞)]
+
+        @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
+
+        # InvDiagTrav(u[Block.(1:50)])
     end
 end
