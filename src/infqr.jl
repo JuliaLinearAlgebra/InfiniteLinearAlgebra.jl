@@ -260,7 +260,9 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
             CS_max = maximum(CS)
             KR = J:CS_max
             resizedata!(B, CS_max)
-            if (J > SB && maximum(abs,view(B,J:last(blockcolsupport(A.factors.data.data.array,J)))) ≤ tol)
+            mx = maximum(abs,view(B,J:last(blockcolsupport(A.factors.data.data.array,J))))
+            isnan(mx) && error("Not-a-number encounted")
+            if J > SB && mx ≤ tol
                 break
             end
             partialqr!(A.factors.data, CS_max)

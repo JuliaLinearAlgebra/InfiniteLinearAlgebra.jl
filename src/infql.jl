@@ -99,8 +99,8 @@ end
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
     (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
 
-getL(Q::QL, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
-getL(Q::QLHessenberg, ::Tuple{OneToInf{Int},OneToInf{Int}}) where T = LowerTriangular(Q.factors)
+getL(Q::QL, ::NTuple{2,Infinity}) where T = LowerTriangular(Q.factors)
+getL(Q::QLHessenberg, ::NTuple{2,Infinity}) where T = LowerTriangular(Q.factors)
 
 # number of structural non-zeros in axis k
 nzzeros(A::AbstractArray, k) = size(A,k)

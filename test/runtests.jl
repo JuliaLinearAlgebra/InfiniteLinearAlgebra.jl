@@ -8,8 +8,9 @@ import BlockArrays: _BlockArray
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
-import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
+import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
 import InfiniteArrays: OneToInf
+import LazyBandedMatrices: BroadcastBandedBlockBandedLayout
 
 @testset "∞-banded" begin
     D = Diagonal(Fill(2,∞))
@@ -160,6 +161,13 @@ end
         @test A*(B*C) isa MulMatrix
         @test bandwidths(A*(B*C)) == (-1,1)
         @test bandwidths((A*B)*C) == (-1,1)
+
+        A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
+        B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
+        @test MemoryLayout(A+B) isa BroadcastBandedLayout{typeof(+)}
+        @test MemoryLayout(2*(A+B)) isa BroadcastBandedLayout{typeof(*)}
+        @test bandwidths(A+B) == (0,1)
+        @test bandwidths(2*(A+B)) == (0,1)
     end
     
     @testset "Triangle OP recurrences" begin
@@ -188,8 +196,18 @@ end
         B = KronTrav(Eye(∞), Δ)
         @test B[Block(100,101)] isa BandedMatrix
         @test B[Block(100,100)] isa BandedMatrix
-
+        V = view(A+B, Block.(1:5), Block.(1:5))
+        @test MemoryLayout(typeof(V)) isa BroadcastBandedBlockBandedLayout{typeof(+)}
+        @test arguments(V) == (A[Block.(1:5),Block.(1:5)],B[Block.(1:5),Block.(1:5)])
         @test (A+B)[Block.(1:5), Block.(1:5)] == A[Block.(1:5), Block.(1:5)] + B[Block.(1:5), Block.(1:5)]
+        
+        @test blockbandwidths(A+B) == (1,1)
+        @test blockbandwidths(2A) == (1,1)
+        @test blockbandwidths(2*(A+B)) == (1,1)
+
+        @test subblockbandwidths(A+B) == (1,1)
+        @test subblockbandwidths(2A) == (1,1)
+        @test subblockbandwidths(2*(A+B)) == (1,1)
     end
 end
 

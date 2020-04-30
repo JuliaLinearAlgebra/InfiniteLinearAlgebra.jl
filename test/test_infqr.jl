@@ -1,7 +1,7 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
         FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
-import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav
+import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, adaptiveqr
 import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
@@ -228,11 +228,28 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
         
 
-        A = KronTrav(Eye(∞), Δ - 2I)
-        u = qr(A) \ [1; zeros(∞)]
+        B = KronTrav(Eye(∞), Δ - 2I)
+        u = B \ [1; zeros(∞)]
 
-        @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
+        @test dot(u[getindex.(Block.(1:50),1)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
 
-        # InvDiagTrav(u[Block.(1:50)])
+
+        L = A+B;
+        @test MemoryLayout(L) isa BroadcastBandedBlockBandedLayout{typeof(+)}
+        V = view(L,Block.(1:400),Block.(1:400))
+        @time u = L \ [1;zeros(∞)]
+        x,y = 0.1,0.2
+        θ,φ = acos(x),acos(y)
+        @test (sin.((1:50) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:50)]) * sin.((1:50) .* θ)/sin(θ) ≈ 1/(x+y-4)
+        @test (L*u)[1:10] ≈ [1; zeros(9)]
+
+        X = KronTrav(Δ,Eye(∞))
+        Y = KronTrav(Eye(∞),Δ)
+        II = KronTrav(Eye(∞),Eye(∞))
+        @test MemoryLayout(2X + Y - 4II) isa BroadcastBandedBlockBandedLayout
+        u =  (2X + Y - 8II) \ [1; zeros(∞)]
+        x,y = 0.1,0.2
+        θ,φ = acos(x),acos(y)
+        @test (sin.((1:100) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:100)]) * sin.((1:100) .* θ)/sin(θ) ≈ 1/(2x+y-8)
     end
 end
