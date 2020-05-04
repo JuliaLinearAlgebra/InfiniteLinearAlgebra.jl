@@ -7,7 +7,7 @@ import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, pr
             show, getproperty, copy, map, require_one_based_indexing
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
-import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout, _qr, MatLmulVec
+import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout, _qr, MatLmulVec, AbstractQLayout
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value      
