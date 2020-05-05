@@ -10,7 +10,7 @@ import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
 import InfiniteArrays: OneToInf
-import LazyBandedMatrices: BroadcastBandedBlockBandedLayout
+import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout
 
 @testset "∞-banded" begin
     D = Diagonal(Fill(2,∞))
