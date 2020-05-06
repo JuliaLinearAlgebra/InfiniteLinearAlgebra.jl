@@ -227,7 +227,6 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         θ = acos(x)
         @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
         
-
         B = KronTrav(Eye(∞), Δ - 2I)
         u = B \ [1; zeros(∞)]
 
@@ -238,6 +237,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @test MemoryLayout(L) isa BroadcastBandedBlockBandedLayout{typeof(+)}
         V = view(L,Block.(1:400),Block.(1:400))
         @time u = L \ [1;zeros(∞)]
+        
         x,y = 0.1,0.2
         θ,φ = acos(x),acos(y)
         @test (sin.((1:50) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:50)]) * sin.((1:50) .* θ)/sin(θ) ≈ 1/(x+y-4)
