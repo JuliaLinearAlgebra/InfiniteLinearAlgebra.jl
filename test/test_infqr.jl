@@ -1,7 +1,7 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
-        FillArrays, SpecialFunctions, Test, SemiseparableMatrices
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
-import LazyBandedMatrices: BroadcastBandedLayout
+import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, adaptiveqr
 import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
@@ -65,6 +65,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
         Q,R = qr(A);
         b = Vcat([1.,2,3],Zeros(∞))
+        @test colsupport(Q,1:3) == colsupport(Q.factors,1:3) == 1:4
         @test lmul!(Q, Base.copymutable(b)).datasize[1] == 4
         @test lmul!(Q, Base.copymutable(b)).data[1:4] ≈ qr(A[1:4,1:3]).Q*[1,2,3]
 
@@ -206,5 +207,49 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             u = L \ [1; 2; zeros(∞)]
             @test L[1:1000,1:1000]*u[1:1000] ≈ [1; 2; zeros(998)]
         end
+    end
+
+    @testset "block-banded" begin
+        Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
+        A = KronTrav(Δ - 2I, Eye(∞))
+        @test bandwidths(view(A, Block(1,1))) == (1,1)
+
+        F = qr(A);
+        @test abs.(F.factors[1:15,1:10]) ≈ abs.(qr(A[1:15,1:10]).factors)
+
+        @test (F.Q' * [1; zeros(∞)])[1:6] ≈ [-0.9701425001453321,0,-0.23386170701251197,0,0,-0.06193705069863463]
+        @test (F.Q*[1;zeros(∞)])[1:6] ≈ [-0.9701425001453321,0,0.24253562503633297,0,0,0]
+
+        u = F \ [1; zeros(∞)]
+        @test (A*u)[1:10] ≈ [1; zeros(9)]
+
+        x = 0.1
+        θ = acos(x)
+        @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
+        
+        B = KronTrav(Eye(∞), Δ - 2I)
+        u = B \ [1; zeros(∞)]
+
+        @test dot(u[getindex.(Block.(1:50),1)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
+
+
+        L = A+B;
+        @test MemoryLayout(L) isa BroadcastBandedBlockBandedLayout{typeof(+)}
+        V = view(L,Block.(1:400),Block.(1:400))
+        @time u = L \ [1;zeros(∞)]
+        
+        x,y = 0.1,0.2
+        θ,φ = acos(x),acos(y)
+        @test (sin.((1:50) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:50)]) * sin.((1:50) .* θ)/sin(θ) ≈ 1/(x+y-4)
+        @test (L*u)[1:10] ≈ [1; zeros(9)]
+
+        X = KronTrav(Δ,Eye(∞))
+        Y = KronTrav(Eye(∞),Δ)
+        II = KronTrav(Eye(∞),Eye(∞))
+        @test MemoryLayout(2X + Y - 4II) isa BroadcastBandedBlockBandedLayout
+        u =  (2X + Y - 8II) \ [1; zeros(∞)]
+        x,y = 0.1,0.2
+        θ,φ = acos(x),acos(y)
+        @test (sin.((1:100) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:100)]) * sin.((1:100) .* θ)/sin(θ) ≈ 1/(2x+y-8)
     end
 end

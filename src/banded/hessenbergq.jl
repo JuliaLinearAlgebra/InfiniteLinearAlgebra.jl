@@ -1,7 +1,13 @@
 isorthogonal(::AbstractQ) = true
 isorthogonal(q) = q'q ≈ I
 
+"""
+    QLHessenberg(factors, q)
 
+represents a Hessenberg QL factorization where factors contains L in its
+lower triangular components and q is a vector of 2x2 orthogonal transformations
+whose product gives Q.
+"""
 struct QLHessenberg{T,S<:AbstractMatrix{T},QT<:AbstractVector{<:AbstractMatrix{T}}} <: Factorization{T}
     factors::S
     q::QT
@@ -43,8 +49,8 @@ end
 end
 @inline getQ(F::QLHessenberg, _) = LowerHessenbergQ(F.q)
 
-getL(F::QLHessenberg) = getL(F, axes(F.factors))
-getQ(F::QLHessenberg) = getQ(F, axes(F.factors))
+getL(F::QLHessenberg) = getL(F, size(F.factors))
+getQ(F::QLHessenberg) = getQ(F, size(F.factors))
 
 function getproperty(F::QLHessenberg, d::Symbol)
     if d == :L
@@ -59,7 +65,7 @@ end
 Base.propertynames(F::QLHessenberg, private::Bool=false) =
     (:L, :Q, (private ? fieldnames(typeof(F)) : ())...)
 
-abstract type AbstractHessenbergQ{T} <: AbstractQ{T} end
+abstract type AbstractHessenbergQ{T} <: LayoutQ{T} end
 
 for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
     @eval begin
@@ -78,6 +84,7 @@ for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
 end
 
 size(Q::AbstractHessenbergQ, k::Integer) = length(Q.q)+1
+axes(Q::AbstractHessenbergQ, k::Integer) = Base.OneTo(length(Q.q)+1)
 size(F::QLHessenberg, dim::Integer) = size(getfield(F, :factors), dim)
 size(F::QLHessenberg) = size(getfield(F, :factors))
 
@@ -90,17 +97,14 @@ adjoint(Q::LowerHessenbergQ) = UpperHessenbergQ(adjoint.(Q.q))
 check_mul_axes(A::AbstractHessenbergQ, B, C...) =
     axes(A,2) == axes(B,1) || throw(DimensionMismatch("Second axis of A, $(axes(A,2)), and first axis of B, $(axes(B,1)) must match"))
 
-@lazymul AbstractHessenbergQ
+struct HessenbergQLayout{UPLO} <: AbstractQLayout end
 
-# ambiguities
-for Arr in (:AbstractBandedMatrix, :StridedVector, :StridedMatrix, :(BandedMatrix{<:Any,<:Any,<:OneToInf}))
-    @eval begin
-        *(A::AbstractHessenbergQ, B::$Arr) = apply(*, A, B)
-        *(A::$Arr, B::AbstractHessenbergQ) = apply(*, A, B)
-    end
-end
+MemoryLayout(::Type{<:UpperHessenbergQ}) = HessenbergQLayout{'U'}()
+MemoryLayout(::Type{<:LowerHessenbergQ}) = HessenbergQLayout{'L'}()
 
-function lmul!(Q::LowerHessenbergQ{T}, x::AbstractVector) where T
+function materialize!(L::MatLmulVec{<:HessenbergQLayout{'L'}})
+    Q, x = L.A,L.B
+    T = eltype(Q)
     t = Array{T}(undef, 2)
     nz = nzzeros(x,1)
     for n = 1:length(Q.q)
@@ -112,7 +116,9 @@ function lmul!(Q::LowerHessenbergQ{T}, x::AbstractVector) where T
     x
 end
 
-function lmul!(Q::UpperHessenbergQ{T}, x::AbstractVector) where T
+function materialize!(L::MatLmulVec{<:HessenbergQLayout{'U'}})
+    Q, x = L.A,L.B
+    T = eltype(Q)
     t = Array{T}(undef, 2)
     for n = min(length(Q.q),nzzeros(x,1)):-1:1
         v = view(x, n:n+1)
@@ -122,9 +128,10 @@ function lmul!(Q::UpperHessenbergQ{T}, x::AbstractVector) where T
     x
 end
 
-function lmul!(Q::AbstractHessenbergQ, X::AbstractMatrix)
+function materialize!(L::MatLmulMat{<:HessenbergQLayout})
+    Q,X = L.A,L.B
     for j in axes(X,2)
-        lmul!(Q, view(X,:,j))
+        ArrayLayouts.lmul!(Q, view(X,:,j))
     end
     X
 end

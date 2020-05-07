@@ -374,5 +374,5 @@ mulapplystyle(::BandedColumns{FillLayout}, ::PertToeplitzLayout) = LazyArrayAppl
 mulapplystyle(::PertToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
 mulapplystyle(::BandedColumns{FillLayout}, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
 mulapplystyle(::BandedToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
-mulapplystyle(::QLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::QLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()
+mulapplystyle(::AbstractQLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
+mulapplystyle(::AbstractQLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()

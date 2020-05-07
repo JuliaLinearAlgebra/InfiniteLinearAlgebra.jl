@@ -1,4 +1,5 @@
-using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random
+using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, 
+        MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
@@ -7,8 +8,9 @@ import BlockArrays: _BlockArray
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
-import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle
+import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
 import InfiniteArrays: OneToInf
+import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout
 
 @testset "∞-banded" begin
     D = Diagonal(Fill(2,∞))
@@ -66,7 +68,7 @@ end
 end
 
 
-# @testset "Algebra" begin 
+@testset "Algebra" begin 
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
         @test A isa BandedMatrix{ComplexF64}
@@ -159,6 +161,13 @@ end
         @test A*(B*C) isa MulMatrix
         @test bandwidths(A*(B*C)) == (-1,1)
         @test bandwidths((A*B)*C) == (-1,1)
+
+        A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
+        B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
+        @test MemoryLayout(A+B) isa BroadcastBandedLayout{typeof(+)}
+        @test MemoryLayout(2*(A+B)) isa BroadcastBandedLayout{typeof(*)}
+        @test bandwidths(A+B) == (0,1)
+        @test bandwidths(2*(A+B)) == (0,1)
     end
     
     @testset "Triangle OP recurrences" begin
@@ -177,7 +186,30 @@ end
     # BlockTridiagonal(Zeros.(1:∞,2:∞),
     #         (n -> Diagonal(((n+2).+(0:n)))/ (2n + 2)).(0:∞),
     #         Zeros.(2:∞,1:∞))
-# end
+
+    @testset "KronTrav" begin
+        Δ = BandedMatrix(1 => Ones(∞)/2, -1 => Ones(∞))
+        A = KronTrav(Δ, Eye(∞))
+        @test A[Block(100,101)] isa BandedMatrix
+        @test A[Block(100,100)] isa BandedMatrix
+        @test A[Block.(1:5), Block.(1:5)] isa BandedBlockBandedMatrix
+        B = KronTrav(Eye(∞), Δ)
+        @test B[Block(100,101)] isa BandedMatrix
+        @test B[Block(100,100)] isa BandedMatrix
+        V = view(A+B, Block.(1:5), Block.(1:5))
+        @test MemoryLayout(typeof(V)) isa BroadcastBandedBlockBandedLayout{typeof(+)}
+        @test arguments(V) == (A[Block.(1:5),Block.(1:5)],B[Block.(1:5),Block.(1:5)])
+        @test (A+B)[Block.(1:5), Block.(1:5)] == A[Block.(1:5), Block.(1:5)] + B[Block.(1:5), Block.(1:5)]
+        
+        @test blockbandwidths(A+B) == (1,1)
+        @test blockbandwidths(2A) == (1,1)
+        @test blockbandwidths(2*(A+B)) == (1,1)
+
+        @test subblockbandwidths(A+B) == (1,1)
+        @test subblockbandwidths(2A) == (1,1)
+        @test subblockbandwidths(2*(A+B)) == (1,1)
+    end
+end
 
 include("test_hessenbergq.jl")
 include("test_infql.jl")

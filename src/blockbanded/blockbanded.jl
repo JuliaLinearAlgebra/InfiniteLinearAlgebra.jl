@@ -16,7 +16,7 @@ blocklayout(::LazyLayout) = BlockLayout{LazyLayout}()
 # for LazyLay in (:(BlockLayout{LazyLayout}), :(TriangularLayout{UPLO,UNIT,BlockLayout{LazyLayout}} where {UPLO,UNIT}))
 #     @eval begin
 #         combine_mul_styles(::$LazyLay) = LazyArrayApplyStyle()
-#         mulapplystyle(::QLayout, ::$LazyLay) = LazyArrayApplyStyle()
+#         mulapplystyle(::AbstractQLayout, ::$LazyLay) = LazyArrayApplyStyle()
 #     end
 # end
 
