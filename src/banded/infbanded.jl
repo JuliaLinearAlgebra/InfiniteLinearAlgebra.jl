@@ -349,6 +349,18 @@ end
 
 _default_banded_broadcast(bc::Broadcasted, ::Tuple{<:OneToInf,<:Any}) = copy(Broadcasted{LazyArrayStyle{2}}(bc.f, bc.args))
 
+###
+# Banded * Banded
+###
+
+BandedMatrix{T}(::UndefInitializer, axes::Tuple{OneToInf{Int},OneTo{Int}}, lu::NTuple{2,Integer}) where T = 
+    BandedMatrix{T}(undef, map(length,axes), lu)
+
+similar(M::MulAdd{<:AbstractBandedLayout,<:AbstractBandedLayout}, ::Type{T}, axes::Tuple{OneTo{Int},OneToInf{Int}}) where T =
+    transpose(BandedMatrix{T}(undef, reverse(axes), reverse(bandwidths(M))))
+similar(M::MulAdd{<:AbstractBandedLayout,<:AbstractBandedLayout}, ::Type{T}, axes::Tuple{OneToInf{Int},OneTo{Int}}) where T =
+    BandedMatrix{T}(undef, axes, bandwidths(M))
+
 
 ###
 # BandedFill * BandedFill
