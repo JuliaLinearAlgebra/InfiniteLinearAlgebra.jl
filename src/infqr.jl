@@ -87,7 +87,7 @@ end
 partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, n::Int) =
     partialqr!(F, findblock(axes(F.data,2), n))
 
-struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: AbstractMatrix{T}
+struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: LayoutMatrix{T}
     data::AdaptiveQRData{T,DM,M}
 end
 
@@ -128,12 +128,7 @@ rowsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = rowsupport(F.factors, j
 blockcolsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = blockcolsupport(F.factors, j)
 
 
-Base.replace_in_print_matrix(A::AdaptiveQRFactors, i::Integer, j::Integer, s::AbstractString) =
-    i in colsupport(A,j) ? s : Base.replace_with_centered_mark(s)
-Base.replace_in_print_matrix(A::UpperTriangular{<:Any,<:AdaptiveQRFactors}, i::Integer, j::Integer, s::AbstractString) =
-    i in colsupport(A,j) ? s : Base.replace_with_centered_mark(s)
-
-struct AdaptiveQRTau{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: AbstractVector{T}
+struct AdaptiveQRTau{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: LayoutVector{T}
     data::AdaptiveQRData{T,DM,M}
 end
 

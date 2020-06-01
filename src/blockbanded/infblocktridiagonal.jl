@@ -34,16 +34,10 @@ sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.diag, 1), si
 
 sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
 
-print_matrix_row(io::IO,
-        X::AbstractBlockVecOrMat, A::Vector,
-        i::Integer, cols::AbstractVector{<:Infinity}, sep::AbstractString) = nothing
+axes_print_matrix_row(_, io, X, A, i, ::AbstractVector{<:Infinity}, sep) = nothing
+axes_print_matrix_row(::NTuple{2,BlockedUnitRange}, io, X, A, i, ::AbstractVector{<:Infinity}, sep) = nothing
 
-print_matrix_row(io::IO,
-        X::Union{AbstractTriangular{<:Any,<:AbstractBlockMatrix},
-                 Symmetric{<:Any,<:AbstractBlockMatrix},
-                 Hermitian{<:Any,<:AbstractBlockMatrix}}, A::Vector,
-        i::Integer, cols::AbstractVector{<:Infinity}, sep::AbstractString) = nothing        
-                                        
+
 function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
     N = max(length(A.blocks.du.args[1])+1,length(A.blocks.d.args[1]),length(A.blocks.dl.args[1]))
     block_sizes = Vector{Int}(undef, N) # assume square
