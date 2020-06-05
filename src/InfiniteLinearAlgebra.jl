@@ -66,7 +66,7 @@ include("infqr.jl")
 # block broadcasted
 ######
 
-const CumsumOneToInf2 = BroadcastArray{Int64,1,typeof(div),Tuple{BroadcastArray{Int64,1,typeof(*),Tuple{InfiniteArrays.OneToInf{Int64},InfiniteArrays.InfUnitRange{Int64}}},Int64}}
+const CumsumOneToInf2 = Cumsum{<:Any,1,<:OneToInf}
 BlockArrays.sortedunion(a::CumsumOneToInf2, ::CumsumOneToInf2) = a
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}},
