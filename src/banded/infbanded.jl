@@ -328,7 +328,7 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 # end
 
 
-@inline sub_materialize(::MulBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
+@inline sub_materialize(::ApplyBandedLayout{typeof(*)}, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BroadcastBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)

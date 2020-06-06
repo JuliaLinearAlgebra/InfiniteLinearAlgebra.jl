@@ -221,6 +221,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @test (F.Q*[1;zeros(∞)])[1:6] ≈ [-0.9701425001453321,0,0.24253562503633297,0,0,0]
 
         u = F \ [1; zeros(∞)]
+        @test blockisequal(axes(A,2),axes(u,1))
         @test (A*u)[1:10] ≈ [1; zeros(9)]
 
         x = 0.1
@@ -232,7 +233,6 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
         @test dot(u[getindex.(Block.(1:50),1)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
 
-
         L = A+B;
         @test MemoryLayout(L) isa BroadcastBandedBlockBandedLayout{typeof(+)}
         V = view(L,Block.(1:400),Block.(1:400))
@@ -240,6 +240,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         
         x,y = 0.1,0.2
         θ,φ = acos(x),acos(y)
+        @test u[Block.(1:50)] isa PseudoBlockArray
         @test (sin.((1:50) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:50)]) * sin.((1:50) .* θ)/sin(θ) ≈ 1/(x+y-4)
         @test (L*u)[1:10] ≈ [1; zeros(9)]
 
