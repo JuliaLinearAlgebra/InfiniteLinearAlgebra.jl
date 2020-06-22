@@ -164,5 +164,17 @@ import BandedMatrices: _BandedMatrix
     @testset "solve with QL" begin
         A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5,∞), 1 => Fill(0.5,∞))
         @test (qr(A)\Vcat(1.0,Zeros(∞)))[1:1000] ≈ (ql(A)\Vcat(1.0,Zeros(∞)))[1:1000]
+
+        J = BandedMatrix(0 => Vcat([1.0], Fill(0.0,∞)), 1 => Vcat(Float64[],Fill(0.5,∞)), -1 => Vcat(Float64[],Fill(0.5,∞)))
+        z = 3.5
+        A = J - z*I
+        F = ql(A)
+        Q,L = F
+        b = [1; zeros(∞)]
+        @test (Q'b)[1] ≈ 0.9892996329463546
+        @test L[1] == L[1,1]
+        @test (L*(L \ b))[1:10] ≈ [1; zeros(9)]
+        u = F \ b
+        @test (A*u)[1:10] ≈ [1; zeros(9)]
     end
 end
