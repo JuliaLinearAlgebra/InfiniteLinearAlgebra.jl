@@ -309,6 +309,7 @@ end
 
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}
+const PertTriangularToeplitzLayout{UPLO,UNIT} = TriangularLayout{UPLO,UNIT,BandedColumns{PertConstRows}}
 
 
 _BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) = 
