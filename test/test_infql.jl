@@ -173,6 +173,8 @@ import BandedMatrices: _BandedMatrix
         b = [1; zeros(∞)]
         @test (Q'b)[1] ≈ 0.9892996329463546
         @test L[1] == L[1,1]
+        
+        @test L[1:5,1:5] isa BandedMatrix
         @test (L*(L \ b))[1:10] ≈ [1; zeros(9)]
         u = F \ b
         @test (A*u)[1:10] ≈ [1; zeros(9)]
