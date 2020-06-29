@@ -7,8 +7,8 @@ import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, si
             show, getproperty, copy, map, require_one_based_indexing, similar
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
-import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, sublayout, _qr,
-                        MatLmulVec, MatLmulMat, AbstractQLayout, materialize!
+import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
+                        sublayout, _qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
@@ -22,7 +22,7 @@ import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector,
 import MatrixFactorizations: ql, ql!, _ql, QLPackedQ, getL, getR, reflector!, reflectorApply!, QL, QR, QRPackedQ,
                             QRPackedQLayout, AdjQRPackedQLayout, QLPackedQLayout, AdjQLPackedQLayout, LayoutQ
 
-import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange, blockcolsupport
+import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange, blockcolsupport, BlockLayout
 
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
 
@@ -61,6 +61,7 @@ include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
+include("inful.jl")
 
 #######
 # block broadcasted
