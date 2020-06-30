@@ -225,3 +225,4 @@ end
 include("test_hessenbergq.jl")
 include("test_infql.jl")
 include("test_infqr.jl")
+include("test_inful.jl")
