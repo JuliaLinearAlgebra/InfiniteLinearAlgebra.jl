@@ -12,6 +12,8 @@ import InfiniteLinearAlgebra: BlockTriToeplitzLayout, ul
         @test MemoryLayout(J) isa BlockTriToeplitzLayout
         U,L = ul(J)
         N = 10; @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
+
+        @test (J \ [1; zeros(∞)])[Block(1)] ≈ inv(L[Block(1,1)])[:,1]
     end
 
     @testset "Periodic Jacobi" begin
