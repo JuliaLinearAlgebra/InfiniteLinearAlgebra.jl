@@ -306,7 +306,7 @@ for Typ in (:ConstRows, :PertConstRows)
     end
 end
 
-
+const TridiagonalToeplitzLayout = Union{SymTridiagonalLayout{FillLayout},TridiagonalLayout{FillLayout}}
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}
 const PertTriangularToeplitzLayout{UPLO,UNIT} = TriangularLayout{UPLO,UNIT,BandedColumns{PertConstRows}}
