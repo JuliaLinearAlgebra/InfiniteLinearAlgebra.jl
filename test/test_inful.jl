@@ -10,7 +10,7 @@ import InfiniteLinearAlgebra: BlockTriToeplitzLayout, ul
         J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞)))
 
         @test MemoryLayout(J) isa BlockTriToeplitzLayout
-        U,L = ul(J)
+        U,L = ul(J, Val(false))
         N = 10; @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
 
         @test (J \ [1; zeros(∞)])[Block(1)] ≈ inv(L[Block(1,1)])[:,1]
@@ -22,7 +22,7 @@ import InfiniteLinearAlgebra: BlockTriToeplitzLayout, ul
         A = [1 1; 1 -1.0]
         C = Matrix(B')
         J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞))) - 10I
-        U,L = ul(J)
+        U,L = ul(J, Val(false))
         N = 10; @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
     end
 end
