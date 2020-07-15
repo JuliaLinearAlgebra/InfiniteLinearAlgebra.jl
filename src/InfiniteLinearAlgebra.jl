@@ -4,11 +4,12 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMa
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
-            show, getproperty, copy, map, require_one_based_indexing, similar
+            show, getproperty, copy, map, require_one_based_indexing, similar, inv
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
-                        sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata
+                        sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata,
+                        _bidiag_forwardsub!
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row

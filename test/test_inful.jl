@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, BlockArrays, ArrayLayouts, Test
-import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul
+import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
 
 @testset "Block Toeplitz UL" begin
     @testset "Toeplitz" begin
@@ -9,6 +9,10 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul
         U,L = ul(A)
         N = 10
         @test U[1:N,1:N+1]*L[1:N+1,1:N] ≈ A[1:N,1:N]
+
+        u =  adaptiveqr(A) \ [1; zeros(∞)]
+        v = L \ (U \ [1;zeros(∞)])
+        @test u ≈ v
     end
 
     @testset "Symmetric" begin
@@ -33,6 +37,7 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul
         C = Matrix(B')
         J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞))) - 10I
         U,L = ul(J, Val(false))
-        N = 10; @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
+        N = 10; 
+        @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
     end
 end

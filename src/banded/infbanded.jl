@@ -389,3 +389,35 @@ mulapplystyle(::BandedColumns{FillLayout}, ::BandedToeplitzLayout) = LazyArrayAp
 mulapplystyle(::BandedToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
 mulapplystyle(::AbstractQLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
 mulapplystyle(::AbstractQLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()
+
+function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
+    A, b_in = M.A, M.B
+    dv = diagonaldata(A)
+    ev = subdiagonaldata(A)
+    b = paddeddata(b_in)
+    N = length(b)
+    b[1] = bj1 = dv[1]\b[1]
+    @inbounds for j = 2:N
+        bj  = b[j]
+        bj -= ev[j - 1] * bj1
+        dvj = dv[j]
+        if iszero(dvj)
+            throw(SingularEbception(j))
+        end
+        bj   = dvj\bj
+        b[j] = bj1 = bj
+    end
+
+    @inbounds for j = N+1:length(b_in)
+        iszero(bj1) && break
+        bj = -ev[j - 1] * bj1
+        dvj = dv[j]
+        if iszero(dvj)
+            throw(SingularEbception(j))
+        end
+        bj   = dvj\bj
+        b_in[j] = bj1 = bj
+    end
+
+    b_in
+end
