@@ -16,16 +16,16 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
-ArrayLayouts = "0.3.5"
+ArrayLayouts = "0.3.7"
 BandedMatrices = "0.15.14"
 BlockArrays = "0.12.8"
 BlockBandedMatrices = "0.8.8"
 FillArrays = "0.8.11"
 InfiniteArrays = "0.7.3"
 LazyArrays = "0.16.13"
-LazyBandedMatrices = "0.2.11"
+LazyBandedMatrices = "0.2.12"
 MatrixFactorizations = "0.5"
-SemiseparableMatrices = "0.1"
+SemiseparableMatrices = "0.1.1"
 julia = "1.3"
 
 [extras]
