@@ -390,6 +390,13 @@ mulapplystyle(::BandedToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayAp
 mulapplystyle(::AbstractQLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
 mulapplystyle(::AbstractQLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()
 
+_mul(::BandedColumns{FillLayout}, ::PertToeplitzLayout, A, B) = ApplyArray(*, A, B)
+_mul(::PertToeplitzLayout, ::BandedColumns{FillLayout}, A, B) = ApplyArray(*, A, B)
+_mul(::BandedColumns{FillLayout}, ::BandedToeplitzLayout, A, B) = ApplyArray(*, A, B)
+_mul(::BandedToeplitzLayout, ::BandedColumns{FillLayout}, A, B) = ApplyArray(*, A, B)
+copy(L::Lmul{<:AbstractQLayout, <:BandedToeplitzLayout}) = ApplyArray(*, L.A, L.B)
+copy(L::Lmul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(*, L.A, L.B)
+
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
     A, b_in = M.A, M.B
     dv = diagonaldata(A)

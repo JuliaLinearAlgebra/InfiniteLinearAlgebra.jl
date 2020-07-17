@@ -9,7 +9,7 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
                         sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata,
-                        _bidiag_forwardsub!
+                        _bidiag_forwardsub!, _mul
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
@@ -34,9 +34,6 @@ import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMat
         AbstractBlockBandedLayout, _blockbanded_qr!, BlockBandedLayout
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
-
-LazyArrays.@lazymul BandedMatrix{<:Any,<:Any,<:OneToInf}
-*(A::BandedMatrix{<:Any,<:Any,<:OneToInf}, b::CachedVector) = apply(*,A,b)
 
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()

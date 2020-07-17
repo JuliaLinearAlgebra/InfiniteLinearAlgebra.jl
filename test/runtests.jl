@@ -97,8 +97,9 @@ end
         @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 
         A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
-        @test A*A isa BandedMatrix
+        @test A^2 isa BandedMatrix
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
+        @test A^3 isa ApplyMatrix{<:Any,typeof(*)}
         @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10]  == ((A*A)*A)[1:10,1:10]  == (A*(A*A))[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
 
         @testset "∞ x finite" begin
@@ -137,11 +138,11 @@ end
         @test_skip Ones(∞) .* A
         @test 2.0 .* A isa BandedMatrix{Float64,<:Fill}
         @test A .* 2.0 isa BandedMatrix{Float64,<:Fill}
-        @test Eye(∞)*A isa BandedMatrix{Float64,<:Fill}
-        @test A*Eye(∞) isa BandedMatrix{Float64,<:Fill}
+        @test Eye(∞)*A isa BandedMatrix{Float64,<:Ones}
+        @test A*Eye(∞) isa BandedMatrix{Float64,<:Ones}
     end
 
-    @testset "Banded Broadast" begin
+    @testset "Banded Broadcast" begin
         A = _BandedMatrix((1:∞)',∞,-1,1)
         @test 2.0 .* A isa BandedMatrix{Float64,<:Adjoint}
         @test A .* 2.0 isa BandedMatrix{Float64,<:Adjoint}
