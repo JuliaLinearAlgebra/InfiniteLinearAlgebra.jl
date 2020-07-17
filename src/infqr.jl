@@ -307,7 +307,9 @@ end
 ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) =
     ldiv!(F, copyto!(dest, b))
 ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) = ldiv!(F.R, lmul!(F.Q',b))
+ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector) = ldiv!(F.R, lmul!(F.Q',b))
 \(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = ldiv!(F.R, F.Q'B)
+\(F::QR{<:Any,<:AdaptiveQRFactors}, B::LayoutVector) = ldiv!(F.R, F.Q'B)
 
 
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
