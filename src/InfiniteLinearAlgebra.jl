@@ -9,7 +9,7 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
                         sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata,
-                        _bidiag_forwardsub!, _mul
+                        _bidiag_forwardsub!
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
@@ -18,7 +18,7 @@ import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ,
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
-                    @lazymul, applylayout, ApplyLayout, PaddedLayout, zero!, MulAddStyle,
+                    applylayout, ApplyLayout, PaddedLayout, zero!, MulAddStyle,
                     LazyArray, LazyMatrix, LazyVector, paddeddata
 import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, getU, reflector!, reflectorApply!, QL, QR, QRPackedQ,
                             QRPackedQLayout, AdjQRPackedQLayout, QLPackedQLayout, AdjQLPackedQLayout, LayoutQ
