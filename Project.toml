@@ -17,15 +17,15 @@ SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
 ArrayLayouts = "0.4"
-BandedMatrices = "0.15.14"
-BlockArrays = "0.12.8"
-BlockBandedMatrices = "0.8.8"
-FillArrays = "0.8.11"
+BandedMatrices = "0.15.15"
+BlockArrays = "0.12.11"
+BlockBandedMatrices = "0.9"
+FillArrays = "0.8.14"
 InfiniteArrays = "0.7.3"
 LazyArrays = "0.17"
-LazyBandedMatrices = "0.2.13"
+LazyBandedMatrices = "0.3"
 MatrixFactorizations = "0.5"
-SemiseparableMatrices = "0.1.1"
+SemiseparableMatrices = "0.1.2"
 julia = "1.4"
 
 [extras]

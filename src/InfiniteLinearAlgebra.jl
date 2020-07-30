@@ -16,7 +16,7 @@ import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange, InfAxes
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
-                    resizedata!, MemoryLayout, mulapplystyle, LmulStyle, RmulStyle,
+                    resizedata!, MemoryLayout, mulreduce, LmulStyle, RmulStyle,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     applylayout, ApplyLayout, PaddedLayout, zero!, MulAddStyle,
                     LazyArray, LazyMatrix, LazyVector, paddeddata

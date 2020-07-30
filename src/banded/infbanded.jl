@@ -383,19 +383,13 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     ret
 end
 
-mulapplystyle(::BandedColumns{FillLayout}, ::PertToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::PertToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
-mulapplystyle(::BandedColumns{FillLayout}, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::BandedToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
-mulapplystyle(::AbstractQLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::AbstractQLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()
+mulreduce(M::Mul{<:BandedColumns{FillLayout}, <:PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns}{FillLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedColumns{FillLayout}, <:BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedToeplitzLayout, <:BandedColumns}{FillLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, <:BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(M)
 
-copy(M::ArrayLayouts.Mul{BandedColumns{FillLayout}, PertToeplitzLayout}) = ApplyArray(M)
-copy(M::ArrayLayouts.Mul{PertToeplitzLayout, BandedColumns{FillLayout}}) = ApplyArray(M)
-copy(M::ArrayLayouts.Mul{BandedColumns{FillLayout}, BandedToeplitzLayout}) = ApplyArray(M)
-copy(M::ArrayLayouts.Mul{BandedToeplitzLayout, BandedColumns{FillLayout}}) = ApplyArray(M)
-copy(L::Lmul{<:AbstractQLayout, <:BandedToeplitzLayout}) = ApplyArray(L)
-copy(L::Lmul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(L)
 
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
     A, b_in = M.A, M.B
