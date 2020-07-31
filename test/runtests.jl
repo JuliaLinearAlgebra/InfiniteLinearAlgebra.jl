@@ -21,7 +21,6 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
     A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
     x = [1; 2; zeros(∞)]
-    @test ApplyStyle(*, typeof(A), typeof(x)) isa LazyArrays.MulAddStyle
     @test A*x isa Vcat
     @test (A*x)[1:10] == A[1:10,1:10]*x[1:10]
 end
@@ -66,7 +65,6 @@ end
         @test (A*B)[1:20,1:20] == A[1:20,1:23]*B[1:23,1:20]
     end
 end
-
 
 @testset "Algebra" begin 
     @testset "BandedMatrix" begin

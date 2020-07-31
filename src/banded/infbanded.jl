@@ -383,10 +383,10 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     ret
 end
 
-mulreduce(M::Mul{<:BandedColumns{FillLayout}, <:PertToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns}{FillLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:BandedColumns{FillLayout}, <:BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:BandedToeplitzLayout, <:BandedColumns}{FillLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, <:BandedToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(M)
 
