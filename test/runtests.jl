@@ -133,7 +133,9 @@ end
     @testset "Fill" begin
         A = _BandedMatrix(Ones(1,∞),∞,-1,1)
         @test 1.0 .* A isa BandedMatrix{Float64,<:Fill}
-        @test_skip Ones(∞) .* A
+        @test Zeros(∞) .* A ≡ Zeros(∞,∞) .* A ≡ A .* Zeros(1,∞) ≡ A .* Zeros(∞,∞) ≡ Zeros(∞,∞)
+        @test Ones(∞) .* A isa BandedMatrix{Float64,<:Ones}
+        @test A .* Ones(1,∞) isa BandedMatrix{Float64,<:Ones}
         @test 2.0 .* A isa BandedMatrix{Float64,<:Fill}
         @test A .* 2.0 isa BandedMatrix{Float64,<:Fill}
         @test Eye(∞)*A isa BandedMatrix{Float64,<:Ones}
@@ -168,7 +170,7 @@ end
         A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
         B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
         C = Diagonal( 2 ./ (1:2:∞))
-        @test A*(B*C) isa MulMatrix
+        @test A*(B*C) isa BroadcastMatrix
         @test bandwidths(A*(B*C)) == (-1,1)
         @test bandwidths((A*B)*C) == (-1,1)
 
