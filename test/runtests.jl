@@ -170,7 +170,6 @@ end
         A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
         B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
         C = Diagonal( 2 ./ (1:2:∞))
-        @test A*(B*C) isa BroadcastMatrix
         @test bandwidths(A*(B*C)) == (-1,1)
         @test bandwidths((A*B)*C) == (-1,1)
 
