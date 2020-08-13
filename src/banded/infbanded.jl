@@ -20,6 +20,8 @@ _prepad(p, a::Zeros{T,1}) where T = Zeros{T}(length(a)+p)
 _prepad(p, a::Ones{T,1}) where T = Ones{T}(length(a)+p)
 _prepad(p, a::AbstractFill{T,1}) where T = Fill{T}(getindex_value(a), length(a)+p)
 
+banded_similar(T, (m,n)::Tuple{Int,Infinity}, (l,u)::Tuple{Int,Int}) = BandedMatrix{T}(undef, (n,m), (u,l))'
+
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:AbstractVector}}},
                          ::NTuple{2,Infinity},
                          (l,u)::NTuple{2,Integer}) where T

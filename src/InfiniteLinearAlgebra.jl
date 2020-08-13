@@ -11,7 +11,7 @@ import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, trian
                         sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata,
                         _bidiag_forwardsub!, mulreduce
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
-                        _default_banded_broadcast
+                        _default_banded_broadcast, banded_similar
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange, InfAxes
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose

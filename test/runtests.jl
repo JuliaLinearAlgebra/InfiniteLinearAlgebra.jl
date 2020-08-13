@@ -104,10 +104,13 @@ end
             A = BandedMatrix(1 => 1:∞) + BandedMatrix(-1 => Fill(2,∞))
             B = _BandedMatrix(randn(3,5), ∞, 1,1)
 
-            @test_broken A*B isa BandedMatrix
-            @test B'A isa Transpose{<:Any,<:BandedMatrix}
+            @test lmul!(2.0,copy(B)')[:,1:10] ==  (2B')[:,1:10]
+            
+            @test_throws ArgumentError BandedMatrix(A)
+            @test A*B isa MulMatrix
+            @test B'A isa MulMatrix
 
-            @test_broken (A*B)[1:7,1:5] ≈ A[1:7,1:6] * B[1:6,1:5]
+            @test (A*B)[1:7,1:5] ≈ A[1:7,1:6] * B[1:6,1:5]
             @test (B'A)[1:5,1:7] ≈ (B')[1:5,1:6] * A[1:6,1:7]
         end
     end

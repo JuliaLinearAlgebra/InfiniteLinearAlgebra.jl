@@ -184,19 +184,23 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
             u = qr(A) \ Vcat(ℯ,1/ℯ, zeros(∞))
             @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            u = qr(A) \ [ℯ; 1/ℯ; zeros(∞)]
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
 
             A = Vcat(Ones(1,∞), ((-1.0).^(0:∞))', B)
             @test MemoryLayout(typeof(A)) isa VcatAlmostBandedLayout
             u = A \ Vcat(ℯ,1/ℯ, zeros(∞))
             @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            u = qr(A) \ [ℯ; 1/ℯ; zeros(∞)]
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
 
             A = Vcat(Ones(1,∞), ((-1).^(0:∞))', B)
-            u = A \ Vcat(ℯ,1/ℯ, zeros(∞))
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]            
+            u = A \ [ℯ; 1/ℯ; zeros(∞)]
+            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
         end
 
         @testset "more bands" begin
-            L = Vcat(Ones(1,∞), ((-1).^(0:∞))', 
+            L = Vcat(Ones(1,∞), ((-1).^(0:∞))',
                      BandedMatrix(-1 => Ones(∞), 1 => Ones(∞), 2 => 4:2:∞, 3 => Ones(∞), 5 => Ones(∞)))
             F = qr(L).factors.data;
             resizedata!(F.data,13,19)
@@ -229,7 +233,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         x = 0.1
         θ = acos(x)
         @test dot(u[getindex.(Block.(1:50),1:50)], sin.((1:50) .* θ)/sin(θ)) ≈ 1/(x-2)
-        
+
         B = KronTrav(Eye(∞), Δ - 2I)
         u = B \ [1; zeros(∞)]
 
@@ -239,7 +243,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @test MemoryLayout(L) isa BroadcastBandedBlockBandedLayout{typeof(+)}
         V = view(L,Block.(1:400),Block.(1:400))
         @time u = L \ [1;zeros(∞)]
-        
+
         x,y = 0.1,0.2
         θ,φ = acos(x),acos(y)
         @test u[Block.(1:50)] isa PseudoBlockArray
