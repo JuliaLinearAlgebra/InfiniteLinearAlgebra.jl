@@ -21,7 +21,6 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
     A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
     x = [1; 2; zeros(∞)]
-    @test ApplyStyle(*, typeof(A), typeof(x)) isa LazyArrays.MulAddStyle
     @test A*x isa Vcat
     @test (A*x)[1:10] == A[1:10,1:10]*x[1:10]
 end
@@ -67,7 +66,6 @@ end
     end
 end
 
-
 @testset "Algebra" begin 
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
@@ -97,18 +95,22 @@ end
         @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 
         A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
-        @test A*A isa BandedMatrix
+        @test A^2 isa BandedMatrix
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
+        @test A^3 isa ApplyMatrix{<:Any,typeof(*)}
         @test (A^3)[1:10,1:10] == (A*A*A)[1:10,1:10]  == ((A*A)*A)[1:10,1:10]  == (A*(A*A))[1:10,1:10] == (A[1:100,1:100]^3)[1:10,1:10]
 
         @testset "∞ x finite" begin
             A = BandedMatrix(1 => 1:∞) + BandedMatrix(-1 => Fill(2,∞))
             B = _BandedMatrix(randn(3,5), ∞, 1,1)
 
-            @test_broken A*B isa BandedMatrix
-            @test B'A isa Transpose{<:Any,<:BandedMatrix}
+            @test lmul!(2.0,copy(B)')[:,1:10] ==  (2B')[:,1:10]
+            
+            @test_throws ArgumentError BandedMatrix(A)
+            @test A*B isa MulMatrix
+            @test B'A isa MulMatrix
 
-            @test_broken (A*B)[1:7,1:5] ≈ A[1:7,1:6] * B[1:6,1:5]
+            @test (A*B)[1:7,1:5] ≈ A[1:7,1:6] * B[1:6,1:5]
             @test (B'A)[1:5,1:7] ≈ (B')[1:5,1:6] * A[1:6,1:7]
         end
     end
@@ -134,14 +136,16 @@ end
     @testset "Fill" begin
         A = _BandedMatrix(Ones(1,∞),∞,-1,1)
         @test 1.0 .* A isa BandedMatrix{Float64,<:Fill}
-        @test_skip Ones(∞) .* A
+        @test Zeros(∞) .* A ≡ Zeros(∞,∞) .* A ≡ A .* Zeros(1,∞) ≡ A .* Zeros(∞,∞) ≡ Zeros(∞,∞)
+        @test Ones(∞) .* A isa BandedMatrix{Float64,<:Ones}
+        @test A .* Ones(1,∞) isa BandedMatrix{Float64,<:Ones}
         @test 2.0 .* A isa BandedMatrix{Float64,<:Fill}
         @test A .* 2.0 isa BandedMatrix{Float64,<:Fill}
-        @test Eye(∞)*A isa BandedMatrix{Float64,<:Fill}
-        @test A*Eye(∞) isa BandedMatrix{Float64,<:Fill}
+        @test Eye(∞)*A isa BandedMatrix{Float64,<:Ones}
+        @test A*Eye(∞) isa BandedMatrix{Float64,<:Ones}
     end
 
-    @testset "Banded Broadast" begin
+    @testset "Banded Broadcast" begin
         A = _BandedMatrix((1:∞)',∞,-1,1)
         @test 2.0 .* A isa BandedMatrix{Float64,<:Adjoint}
         @test A .* 2.0 isa BandedMatrix{Float64,<:Adjoint}
@@ -169,7 +173,6 @@ end
         A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
         B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
         C = Diagonal( 2 ./ (1:2:∞))
-        @test A*(B*C) isa MulMatrix
         @test bandwidths(A*(B*C)) == (-1,1)
         @test bandwidths((A*B)*C) == (-1,1)
 
@@ -225,3 +228,4 @@ end
 include("test_hessenbergq.jl")
 include("test_infql.jl")
 include("test_infqr.jl")
+include("test_inful.jl")

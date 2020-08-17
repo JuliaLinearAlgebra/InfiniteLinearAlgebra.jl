@@ -19,7 +19,7 @@ function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) wher
     AdaptiveQRData(CachedArray(data,A,(0,0)), Vector{T}(), 0)
 end
 
-function AdaptiveQRData(::AbstractBlockBandedLayout, A::AbstractMatrix{T}) where T
+function AdaptiveQRData(::AbstractBlockLayout, A::AbstractMatrix{T}) where T
     l,u = blockbandwidths(A)
     m,n = axes(A)
     data = BlockBandedMatrix{T}(undef,(m[Block.(1:2l+u+1)],n[Block.(1:0)]),(l,l+u)) # pad super
@@ -149,6 +149,7 @@ end
 
 _qr(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 _qr(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+__qr(_, ::NTuple{2,Infinity}, A) = adaptiveqr(A)
 _qr(::AbstractBlockBandedLayout, ::NTuple{2,Infinity}, A) = adaptiveqr(A)
 
 partialqr!(F::QR, n) = partialqr!(F.factors, n)
@@ -306,7 +307,9 @@ end
 ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) =
     ldiv!(F, copyto!(dest, b))
 ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) = ldiv!(F.R, lmul!(F.Q',b))
+ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector) = ldiv!(F.R, lmul!(F.Q',b))
 \(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = ldiv!(F.R, F.Q'B)
+\(F::QR{<:Any,<:AdaptiveQRFactors}, B::LayoutVector) = ldiv!(F.R, F.Q'B)
 
 
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)

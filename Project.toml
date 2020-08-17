@@ -1,6 +1,6 @@
 name = "InfiniteLinearAlgebra"
 uuid = "cde9dba0-b1de-11e9-2c62-0bab9446c55c"
-version = "0.3.5"
+version = "0.4.0"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -16,17 +16,18 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
-ArrayLayouts = "0.3.5"
-BandedMatrices = "0.15.13"
-BlockArrays = "0.12.8"
-BlockBandedMatrices = "0.8.7"
-FillArrays = "0.8.11, 0.9"
-InfiniteArrays = "0.7.3"
-LazyArrays = "0.16.13"
-LazyBandedMatrices = "0.2.11"
-MatrixFactorizations = "0.4.1, 0.5"
-SemiseparableMatrices = "0.1"
-julia = "1.3"
+ArrayLayouts = "0.4.3"
+BandedMatrices = "0.15.17"
+BlockArrays = "0.12.12"
+BlockBandedMatrices = "0.9"
+FillArrays = "0.9.4"
+InfiniteArrays = "0.8"
+LazyArrays = "0.17.3"
+LazyBandedMatrices = "0.3.1"
+MatrixFactorizations = "0.5.2"
+SemiseparableMatrices = "0.1.2"
+julia = "1.5"
+
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

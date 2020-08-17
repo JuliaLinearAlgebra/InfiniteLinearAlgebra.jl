@@ -20,6 +20,8 @@ _prepad(p, a::Zeros{T,1}) where T = Zeros{T}(length(a)+p)
 _prepad(p, a::Ones{T,1}) where T = Ones{T}(length(a)+p)
 _prepad(p, a::AbstractFill{T,1}) where T = Fill{T}(getindex_value(a), length(a)+p)
 
+banded_similar(T, (m,n)::Tuple{Int,Infinity}, (l,u)::Tuple{Int,Int}) = BandedMatrix{T}(undef, (n,m), (u,l))'
+
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:AbstractVector}}},
                          ::NTuple{2,Infinity},
                          (l,u)::NTuple{2,Integer}) where T
@@ -306,7 +308,7 @@ for Typ in (:ConstRows, :PertConstRows)
     end
 end
 
-
+const TridiagonalToeplitzLayout = Union{SymTridiagonalLayout{FillLayout},TridiagonalLayout{FillLayout}}
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}
 const PertTriangularToeplitzLayout{UPLO,UNIT} = TriangularLayout{UPLO,UNIT,BandedColumns{PertConstRows}}
@@ -383,9 +385,42 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     ret
 end
 
-mulapplystyle(::BandedColumns{FillLayout}, ::PertToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::PertToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
-mulapplystyle(::BandedColumns{FillLayout}, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::BandedToeplitzLayout, ::BandedColumns{FillLayout}) = LazyArrayApplyStyle()
-mulapplystyle(::AbstractQLayout, ::BandedToeplitzLayout) = LazyArrayApplyStyle()
-mulapplystyle(::AbstractQLayout, ::PertToeplitzLayout) = LazyArrayApplyStyle()
+mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, <:BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(M)
+
+
+function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
+    A, b_in = M.A, M.B
+    dv = diagonaldata(A)
+    ev = subdiagonaldata(A)
+    b = paddeddata(b_in)
+    N = length(b)
+    b[1] = bj1 = dv[1]\b[1]
+    @inbounds for j = 2:N
+        bj  = b[j]
+        bj -= ev[j - 1] * bj1
+        dvj = dv[j]
+        if iszero(dvj)
+            throw(SingularEbception(j))
+        end
+        bj   = dvj\bj
+        b[j] = bj1 = bj
+    end
+
+    @inbounds for j = N+1:length(b_in)
+        iszero(bj1) && break
+        bj = -ev[j - 1] * bj1
+        dvj = dv[j]
+        if iszero(dvj)
+            throw(SingularEbception(j))
+        end
+        bj   = dvj\bj
+        b_in[j] = bj1 = bj
+    end
+
+    b_in
+end
