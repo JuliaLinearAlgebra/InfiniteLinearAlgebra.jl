@@ -313,3 +313,4 @@ ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector) = ldiv!(F.R, lmul!(F.Q'
 
 
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
+qr(A::SymTridiagonal{T,<:AbstractFill{T,1,Tuple{OneToInf{Int}}}}) where T = adaptiveqr(A)

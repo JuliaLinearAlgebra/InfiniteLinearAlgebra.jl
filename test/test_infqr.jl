@@ -259,4 +259,14 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         θ,φ = acos(x),acos(y)
         @test (sin.((1:100) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:100)]) * sin.((1:100) .* θ)/sin(θ) ≈ 1/(2x+y-8)
     end
+
+    @testset "SymTridiagonal Toeplitz" begin
+        Δ = SymTridiagonal(Fill(-2,∞), Fill(1,∞))
+        h = 0.01
+        A = I - h*Δ
+        b = [1; 2; 3; zeros(∞)]
+        qr(A) \ b
+        
+        ul(A) \ b
+    end
 end
