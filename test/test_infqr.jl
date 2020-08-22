@@ -265,8 +265,6 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         h = 0.01
         A = I - h*Δ
         b = [1; 2; 3; zeros(∞)]
-        qr(A) \ b
-        
-        ul(A) \ b
+        @test (qr(A) \ b) ≈ (ul(A) \ b)
     end
 end
