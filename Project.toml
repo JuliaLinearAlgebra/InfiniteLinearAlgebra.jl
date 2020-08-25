@@ -24,10 +24,9 @@ FillArrays = "0.9.4"
 InfiniteArrays = "0.8"
 LazyArrays = "0.17.3"
 LazyBandedMatrices = "0.3.1"
-MatrixFactorizations = "0.5.2"
+MatrixFactorizations = "0.5.2, 0.6"
 SemiseparableMatrices = "0.1.2"
 julia = "1.5"
-
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
