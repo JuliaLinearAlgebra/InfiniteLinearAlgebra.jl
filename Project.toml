@@ -1,6 +1,6 @@
 name = "InfiniteLinearAlgebra"
 uuid = "cde9dba0-b1de-11e9-2c62-0bab9446c55c"
-version = "0.4.1"
+version = "0.4.2"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -22,7 +22,7 @@ BlockArrays = "0.12.12"
 BlockBandedMatrices = "0.9"
 FillArrays = "0.9.5"
 InfiniteArrays = "0.8"
-LazyArrays = "0.17.5"
+LazyArrays = "0.17.5, 0.18"
 LazyBandedMatrices = "0.3.2"
 MatrixFactorizations = "0.6"
 SemiseparableMatrices = "0.1.3"
