@@ -1,4 +1,19 @@
 ###
+# BandIndexing
+###
+
+struct InfBandCartesianIndices <: AbstractVector{CartesianIndex{2}}
+    b::Int
+end
+
+InfBandCartesianIndices(b::Band) = InfBandCartesianIndices(b.i)
+
+size(::InfBandCartesianIndices) = (∞,)
+getindex(B::InfBandCartesianIndices, k::Int) = B.b ≥ 0 ? CartesianIndex(k, k+B.b) : CartesianIndex(k-B.b, k)
+
+Base.checkindex(::Type{Bool}, ::NTuple{2,OneToInf{Int}}, ::InfBandCartesianIndices) = true
+BandedMatrices.band_to_indices(_, ::NTuple{2,OneToInf{Int}}, b) = (InfBandCartesianIndices(b),)
+###
 # Diagonal
 ###
 
@@ -424,3 +439,4 @@ function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
 
     b_in
 end
+

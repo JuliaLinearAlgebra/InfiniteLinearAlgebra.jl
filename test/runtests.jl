@@ -1,7 +1,7 @@
 using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, 
         MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
-                    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, 
+                    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
 import Base: BroadcastStyle
 import BlockArrays: _BlockArray
@@ -12,8 +12,11 @@ import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayS
 import InfiniteArrays: OneToInf
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout
 
+
+
 @testset "∞-banded" begin
     D = Diagonal(Fill(2,∞))
+
     B = D[1:∞,2:∞]
     @test B isa BandedMatrix
     @test B[1:10,1:10] == diagm(-1 => Fill(2,9))
@@ -23,6 +26,14 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
     x = [1; 2; zeros(∞)]
     @test A*x isa Vcat
     @test (A*x)[1:10] == A[1:10,1:10]*x[1:10]
+
+    @test InfBandCartesianIndices(0)[1:5] == CartesianIndex.(1:5,1:5)
+    @test InfBandCartesianIndices(1)[1:5] == CartesianIndex.(1:5,2:6)
+    @test InfBandCartesianIndices(-1)[1:5] == CartesianIndex.(2:6,1:5)
+
+    @test D[band(0)] ≡ Fill(2,∞)
+    @test D[band(1)] ≡ Fill(0,∞)
+    @test A[band(0)][2:10] == 2:10
 end
 
 @testset "∞-block arrays" begin
