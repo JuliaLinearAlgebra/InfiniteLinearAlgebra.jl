@@ -22,11 +22,14 @@ _ultailL1(c::Number, a::Number, b::Number) = (a + sign(a)*sqrt(a^2-4b*c))/2
 
 function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
     d = size(A,1)
-    λs = filter!(λ -> abs(λ) ≤ 1, eigvals([zeros(2,2) -B; -C -A], [B zeros(2,2); zeros(2,2) -B]))
+    λs = filter!(λ -> abs(λ) ≤ 1, eigvals([zeros(d,d) -B; -C -A], [B zeros(d,d); zeros(d,d) -B]))
     @assert length(λs) == d
     V = Matrix{eltype(λs)}(undef, d, d)
-    for (j,λ) in enumerate(λs)
-        V[:,j] = svd(A-λ*B - C/λ).V[:,end] # nullspace(A-λ*B - C/λ)
+    j = 1
+    for λ in union(λs)
+        c = count(==(λ), λs) # multiplicities
+        V[:,j:j+c-1] = svd(A-λ*B - C/λ).V[:,end-c+1:end] # nullspace(A-λ*B - C/λ)
+        j += c
     end
     C*(V*Diagonal(inv.(λs))/V)
 end
@@ -73,3 +76,6 @@ _inf_getL(::BlockTridiagonalToeplitzLayout, F::UL) = mortar(Bidiagonal(F.factors
 
 getU(F::UL, ::NTuple{2,Infinity}) = _inf_getU(MemoryLayout(F.factors), F)
 getL(F::UL, ::NTuple{2,Infinity}) = _inf_getL(MemoryLayout(F.factors), F)
+
+getU(F::UL{T,<:Tridiagonal}, ::NTuple{2,Infinity}) where T = _inf_getU(MemoryLayout(F.factors), F)
+getL(F::UL{T,<:Tridiagonal}, ::NTuple{2,Infinity}) where T = _inf_getL(MemoryLayout(F.factors), F)

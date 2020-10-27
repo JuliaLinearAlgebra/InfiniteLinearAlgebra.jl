@@ -1,4 +1,36 @@
 ###
+# BandIndexing
+###
+
+struct InfBandCartesianIndices <: AbstractVector{CartesianIndex{2}}
+    b::Int
+end
+
+InfBandCartesianIndices(b::Band) = InfBandCartesianIndices(b.i)
+
+size(::InfBandCartesianIndices) = (∞,)
+getindex(B::InfBandCartesianIndices, k::Int) = B.b ≥ 0 ? CartesianIndex(k, k+B.b) : CartesianIndex(k-B.b, k)
+
+Base.checkindex(::Type{Bool}, ::NTuple{2,OneToInf{Int}}, ::InfBandCartesianIndices) = true
+BandedMatrices.band_to_indices(_, ::NTuple{2,OneToInf{Int}}, b) = (InfBandCartesianIndices(b),)
+Base.BroadcastStyle(::Type{<:SubArray{<:Any,1,<:Any,Tuple{InfBandCartesianIndices}}}) = LazyArrayStyle{1}()
+
+_inf_banded_sub_materialize(_, V) = V
+function _inf_banded_sub_materialize(::BandedColumns, V)
+    A = parent(V)
+    b = parentindices(V)[1].b
+    data = bandeddata(A)
+    l,u = bandwidths(A)
+    if -l ≤ b ≤ u
+        data[u+1-b, max(1,b+1):end]
+    else
+        Zeros{eltype(V)}(∞) # Not type stable
+    end
+end
+
+sub_materialize(_, V::SubArray{<:Any,1,<:AbstractMatrix,Tuple{InfBandCartesianIndices}}, ::Tuple{InfAxes}) =
+    _inf_banded_sub_materialize(MemoryLayout(parent(V)), V)
+###
 # Diagonal
 ###
 
@@ -424,3 +456,4 @@ function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
 
     b_in
 end
+
