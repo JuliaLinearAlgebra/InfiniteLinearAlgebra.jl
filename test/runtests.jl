@@ -161,6 +161,20 @@ end
         @test A .* 2.0 isa BandedMatrix{Float64,<:Fill}
         @test Eye(∞)*A isa BandedMatrix{Float64,<:Ones}
         @test A*Eye(∞) isa BandedMatrix{Float64,<:Ones}
+
+        @test A*A isa BandedMatrix
+        @test (A*A)[1:10,1:10] == BandedMatrix(2 => Ones(8))
+
+        Ã = _BandedMatrix(Fill(1,1,∞), ∞, -1,1)
+        @test A*Ã isa BandedMatrix
+        @test Ã*A isa BandedMatrix
+        @test Ã*Ã isa BandedMatrix
+
+        B = _BandedMatrix(Ones(1,10),∞,-1,1)
+        C = _BandedMatrix(Ones(1,10),10,-1,1)
+        D = _BandedMatrix(Ones(1,∞),10,-1,1)
+
+        @test (A*B)[1:10,1:10] == (B*C)[1:10,1:10] == (D*A)[1:10,1:10] == D*B == (C*D)[1:10,1:10] == BandedMatrix(2 => Ones(8))
     end
 
     @testset "Banded Broadcast" begin
