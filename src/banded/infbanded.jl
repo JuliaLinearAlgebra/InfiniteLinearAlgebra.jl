@@ -401,7 +401,7 @@ similar(M::MulAdd{<:AbstractBandedLayout,<:AbstractBandedLayout}, ::Type{T}, axe
 # BandedFill * BandedFill
 ###
 
-copy(M::MulAdd{BandedColumns{FillLayout},BandedColumns{FillLayout},ZerosLayout}) =
+copy(M::MulAdd{<:BandedColumns{<:AbstractFillLayout},<:BandedColumns{<:AbstractFillLayout},ZerosLayout}) =
     _bandedfill_mul(M, axes(M.A), axes(M.B))
 
 _bandedfill_mul(M, _, _) = copyto!(similar(M), M)
@@ -416,6 +416,13 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     mul!(view(ret, 1:l+u,1:u), view(A,1:l+u,1:u+Bl), view(B,1:u+Bl,1:u))
     ret
 end
+
+_bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,Any}, ::Tuple{Any,Any}) = ApplyArray(*, M.A, M.B)
+_bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,Any}, ::Tuple{Any,InfAxes}) = ApplyArray(*, M.A, M.B)
+_bandedfill_mul(M::MulAdd, ::Tuple{Any,Any}, ::Tuple{Any,InfAxes}) = ApplyArray(*, M.A, M.B)
+_bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,InfAxes}) = ApplyArray(*, M.A, M.B)
+_bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyArray(*, M.A, M.B)
+_bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyArray(*, M.A, M.B)
 
 mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:PertToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
