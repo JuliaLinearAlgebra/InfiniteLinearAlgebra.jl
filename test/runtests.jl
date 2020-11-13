@@ -37,14 +37,25 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 end
 
 @testset "∞-block arrays" begin
-    k = Base.OneTo.(Base.OneTo(∞))
-    n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
-    @test broadcast(length,k) == map(length,k) == OneToInf()
-    @test broadcast(length,n) == map(length,n) == OneToInf()
-    b = mortar(Fill([1,2],∞))
-    @test blockaxes(b,1) === Block.(OneToInf())
-    @test b[Block(5)] == [1,2]
-    @test length(axes(b,1)) == last(axes(b,1)) == ∞
+    @testset "fixed block size" begin
+        k = Base.OneTo.(Base.OneTo(∞))
+        n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
+        @test broadcast(length,k) == map(length,k) == OneToInf()
+        @test broadcast(length,n) == map(length,n) == OneToInf()
+        b = mortar(Fill([1,2],∞))
+        @test blockaxes(b,1) === Block.(OneToInf())
+        @test b[Block(5)] == [1,2]
+        @test length(axes(b,1)) == last(axes(b,1)) == ∞
+    end
+
+    @testset "1:∞ blocks" begin
+        a = blockedrange(Base.OneTo(∞))
+        @test axes(a,1) == a
+        o = Ones((a,))
+        b = exp.(a)
+        @test o .* b isa typeof(b)
+        @test b .* o isa typeof(b)
+    end
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
