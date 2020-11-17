@@ -17,6 +17,11 @@ function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{AbstractA
     convert(AbstractArray{promote_type(T,V),N}, a)
 end
 
+_block_interlace_axes(::Int, ax::Tuple{OneToInf{Int}}...) = (blockedrange(Fill(length(ax), ∞)),)
+
+_block_interlace_axes(nbc::Int, ax::NTuple{2,OneToInf{Int}}...) =
+    (blockedrange(Fill(length(ax) ÷ nbc, ∞)),blockedrange(Fill(mod1(length(ax),nbc), ∞)))
+
 
 include("infblocktridiagonal.jl")
 

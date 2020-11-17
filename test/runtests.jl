@@ -56,6 +56,23 @@ end
         @test o .* b isa typeof(b)
         @test b .* o isa typeof(b)
     end
+
+    @testset "BlockInterlace" begin
+        a = 1:∞
+        b = exp.(a)
+        c = BlockInterlace(a,b)
+        @test length(c) == ∞
+        @test blocksize(c) == (∞,)
+        @test c[Block(5)] == [a[5],b[5]]
+
+        A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
+        B = BlockInterlace(2, A, Zeros(∞,∞), Zeros(∞,∞), A)
+        @test B[Block(3,3)] == [A[3,3] 0; 0 A[3,3]]
+        @test B[Block(3,4)] == [A[3,4] 0; 0 A[3,4]]
+        @test B[Block(3,5)] == [A[3,5] 0; 0 A[3,5]]
+        @test blockbandwidths(B) == (1,1)
+        @test subblockbandwidths(B) == (2,2)
+    end
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
