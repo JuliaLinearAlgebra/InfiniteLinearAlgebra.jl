@@ -218,8 +218,6 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
     @testset "block-banded" begin
         Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
         A = KronTrav(Δ - 2I, Eye(∞))
-        @test bandwidths(view(A, Block(1,1))) == (1,1)
-
         F = qr(A);
         @test abs.(F.factors[1:15,1:10]) ≈ abs.(qr(A[1:15,1:10]).factors)
 
@@ -242,6 +240,8 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         L = A+B;
         @test MemoryLayout(L) isa BroadcastBandedBlockBandedLayout{typeof(+)}
         V = view(L,Block.(1:400),Block.(1:400))
+        @test blockbandwidths(V) == blockbandwidths(L)
+        @test subblockbandwidths(V) == blockbandwidths(L)
         @time u = L \ [1;zeros(∞)]
 
         x,y = 0.1,0.2

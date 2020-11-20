@@ -1,9 +1,19 @@
+const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
+
+BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
+
+function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}},
+                                 b::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}})
+    @assert a == b
+    a
+end
+
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (map(length,A),)
 
-const OneToInfBlocks = BlockedUnitRange{Accumulate{Int,1,typeof(+),Array{Int,1},OneToInf{Int}}}
+const OneToInfBlocks = BlockedUnitRange{OneToInfCumsum}
 
 axes(a::OneToInfBlocks) = (a,)
-Base.BroadcastStyle(::Type{OneToInfBlocks}) = LazyArrayStyle{1}()
+
 
 function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{Ones{T,1,Tuple{OneToInfBlocks}},AbstractArray{V,N}}}) where {N,T,V}
     a,b = bc.args
@@ -25,3 +35,29 @@ _block_interlace_axes(nbc::Int, ax::NTuple{2,OneToInf{Int}}...) =
 
 include("infblocktridiagonal.jl")
 
+
+#######
+# block broadcasted
+######
+
+
+
+
+map(::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) = A.args[1]
+map(::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) = A.args[2]
+map(::typeof(length), A::BroadcastArray{<:Zeros,1,Type{Zeros}}) = A.args[1]
+map(::typeof(length), A::BroadcastArray{<:Vcat,1,Type{Vcat}}) = broadcast(+,map.(length,A.args)...)
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) =
+    A.args[1]
+broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) =
+    A.args[2]
+
+BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
+BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
+
+###
+# KronTrav
+###
+
+_krontrav_axes(A::NTuple{N,OneToInf{Int}}, B::NTuple{N,OneToInf{Int}}) where N =
+     @. blockedrange(OneTo(length(A)))

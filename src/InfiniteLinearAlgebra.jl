@@ -61,38 +61,5 @@ include("infql.jl")
 include("infqr.jl")
 include("inful.jl")
 
-#######
-# block broadcasted
-######
-
-const CumsumOneToInf2 = Cumsum{<:Any,1,<:OneToInf}
-BlockArrays.sortedunion(a::CumsumOneToInf2, ::CumsumOneToInf2) = a
-
-function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}},
-                                 b::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}})
-    @assert a == b
-    a
-end
-
-
-map(::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) = A.args[1]
-map(::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) = A.args[2]
-map(::typeof(length), A::BroadcastArray{<:Zeros,1,Type{Zeros}}) = A.args[1]
-map(::typeof(length), A::BroadcastArray{<:Vcat,1,Type{Vcat}}) = broadcast(+,map.(length,A.args)...)
-broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) =
-    A.args[1]
-broadcasted(::LazyArrayStyle{1}, ::typeof(length), A::BroadcastArray{<:Fill,1,Type{Fill}}) =
-    A.args[2]
-
-BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
-BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
-
-###
-# KronTrav
-###
-
-_krontrav_axes(A::NTuple{N,OneToInf{Int}}, B::NTuple{N,OneToInf{Int}}) where N =
-     @. blockedrange(OneTo(length(A)))
-
 
 end # module

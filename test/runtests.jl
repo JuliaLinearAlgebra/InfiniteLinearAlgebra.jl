@@ -13,7 +13,6 @@ import InfiniteArrays: OneToInf
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout
 
 
-
 @testset "∞-banded" begin
     D = Diagonal(Fill(2,∞))
 
@@ -52,7 +51,9 @@ end
         a = blockedrange(Base.OneTo(∞))
         @test axes(a,1) == a
         o = Ones((a,))
+        @test Base.BroadcastStyle(typeof(a)) isa LazyArrayStyle{1}
         b = exp.(a)
+        @test axes(b,1) == a
         @test o .* b isa typeof(b)
         @test b .* o isa typeof(b)
     end
@@ -72,6 +73,19 @@ end
         @test B[Block(3,5)] == [A[3,5] 0; 0 A[3,5]]
         @test blockbandwidths(B) == (1,1)
         @test subblockbandwidths(B) == (2,2)
+        @test B[Block.(1:10), Block.(1:10)] isa BlockSkylineMatrix
+    end
+
+    @testset "KronTrav" begin
+        Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
+        A = KronTrav(Δ - 2I, Eye(∞))
+        @test axes(A,1) isa InfiniteLinearAlgebra.OneToInfBlocks
+        V = view(A, Block.(Base.OneTo(3)), Block.(Base.OneTo(3)))
+        @test MemoryLayout(V) isa BlockBandedMatrices.BandedBlockBandedLayout
+
+        u = A * [1; zeros(∞)]
+        @test u[1:3] == A[1:3,1]
+        @test bandwidths(view(A, Block(1,1))) == (1,1)
     end
 end
 
