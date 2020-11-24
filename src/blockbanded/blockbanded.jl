@@ -1,6 +1,8 @@
 const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
+const OneToCumsum = InfiniteArrays.RangeCumsum{Int,OneTo{Int}}
 
 BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
+BlockArrays.sortedunion(a::OneToCumsum, ::OneToCumsum) = a
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}},
                                  b::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}})
@@ -11,8 +13,10 @@ end
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (map(length,A),)
 
 const OneToInfBlocks = BlockedUnitRange{OneToInfCumsum}
+const OneToBlocks = BlockedUnitRange{OneToCumsum}
 
 axes(a::OneToInfBlocks) = (a,)
+axes(a::OneToBlocks) = (a,)
 
 
 function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{Ones{T,1,Tuple{OneToInfBlocks}},AbstractArray{V,N}}}) where {N,T,V}
@@ -41,6 +45,8 @@ include("infblocktridiagonal.jl")
 ######
 
 
+BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tuple{II}}}},false}}) where {T,N,Arr<:BlockArray,II<:InfRanges} = 
+    LazyArrayStyle{N}()
 
 
 map(::typeof(length), A::BroadcastArray{OneTo{Int},1,Type{OneTo}}) = A.args[1]

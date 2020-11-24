@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, 
+using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test,
         MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
@@ -87,6 +87,247 @@ end
         @test u[1:3] == A[1:3,1]
         @test bandwidths(view(A, Block(1,1))) == (1,1)
     end
+
+    @testset "triangle recurrences" begin
+        n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+        k = mortar(Base.OneTo.(Base.OneTo(∞)))
+
+        FillArrays.getindex_value(V::SubArray{<:Any,1,<:BlockArray,<:Tuple{BlockArrays.BlockSlice{<:Block{1}}}}) =
+            FillArrays.getindex_value(getblock(parent(V), Int(parentindices(V)[1].block)))
+
+        @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ Fill(5,5)
+
+        N = 1000
+        v = view(n,Block.(Base.OneTo(N)))
+        @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+        @test @allocated(axes(v)) ≤ 40
+
+        dest = PseudoBlockArray{Float64}(undef, axes(v))
+        @test copyto!(dest, v) == v
+        @test @allocated(copyto!(dest, v)) ≤ 40
+
+        v = view(k,Block.(Base.OneTo(N)))
+        @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+        @test @allocated(axes(v)) ≤ 40
+        @test copyto!(dest, v) == v
+
+        # fast
+        # function fastcopyto!(dest, N)
+        #     cur = 1
+        #     @inbounds for K = 1:N, j = 1:K
+        #         dest[cur] = K
+        #         cur += 1
+        #     end
+        #     dest
+        # end
+
+        # function fastcopyto!(dest, N)
+        #     cur = 0
+        #     @inbounds for K = 1:N
+        #         fill!(view(dest, cur+1:cur+N), K)
+        #         cur += K
+        #     end
+        #     dest
+        # end
+
+        # function fastcopyto!(dest)
+        #     @inbounds for K = blockaxes(dest,1)
+        #         fill!(view(dest, K), Int(K))
+        #     end
+        #     dest
+        # end
+
+        # function fastcopyto!(dest, n)
+        #     @inbounds for K = blockaxes(dest,1)
+        #         copyto!(view(dest, K), n[K])
+        #     end
+        #     dest
+        # end
+
+        import ArrayLayouts: MemoryLayout, _copyto!
+        struct UnitRangeLayout <: MemoryLayout end
+        MemoryLayout(::Type{<:AbstractUnitRange}) = UnitRangeLayout()
+        @test MemoryLayout(view(k,Block(5))) isa UnitRangeLayout
+        first(view(k,Block(5)))
+        function _copyto!(_, ::UnitRangeLayout, dest::AbstractVector, src::AbstractVector)
+            @inbounds for k in axes(dest,1)
+                dest[k] = k
+            end
+            dest
+        end
+
+        @ent dest .= view(cos.(n), Block.(1:N))
+
+        v = view(exp.(n), Block.(1:N))
+        @ent Base.BroadcastStyle(typeof(v))
+        @time copyto!(dest, Base.broadcasted(BlockArrays.BlockStyle{1}(), cos, view(k,Block.(Base.OneTo(N)))));
+        @time copyto!(dest, Base.broadcasted(BlockArrays.BlockStyle{1}(), cos, view(n,Block.(Base.OneTo(N)))));
+
+        @time copyto!(dest, Base.broadcasted(BlockArrays.BlockStyle{1}(), /, view(k,Block.(Base.OneTo(N))), view(n,Block.(Base.OneTo(N)))));
+
+        v = view(k,Block.(Base.OneTo(N)))
+        w = view(n,Block.(Base.OneTo(N)))
+
+        @time atan.(v, w)
+
+        @test Base.BroadcastStyle(typeof(view(k,Block.(1:N)))) isa BlockArrays.BlockStyle{1}
+
+        v = view(k,Block.(2:∞))
+        @test Base.BroadcastStyle(typeof(v)) isa LazyArrayStyle{1}
+        @test v[Block(1)] == 1:2
+        @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
+
+
+
+
+        @time k[Block.(Base.OneTo(N))]
+        MemoryLayout()
+        exp.(view(n, Block(5)))
+
+        @test axes(n,1) isa BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,OneToInf{Int64}}}
+
+
+        a = b = c =0.0
+        d = (k .+ (c-1)) .* ( k .- n .- 1 ) ./ (2k .+ (b+c-1))
+        N = 1000
+        @time d[Block.(Base.OneTo(N))];
+        v = view(d,Block.(Base.OneTo(N)));
+        dest = PseudoBlockArray{Float64}(undef, axes(v));
+        @time copyto!(dest, v);
+
+        @time (d')[1,Block.(Base.OneTo(N))];
+        @ent (d')[:,Block.(Base.OneTo(N))];
+        @ent layout_getindex(d',:,Block.(Base.OneTo(N)));
+
+        copyto!(dest', view(d',:,Block.(Base.OneTo(N))))
+
+
+
+
+        v = view(k',:,Block.(Base.OneTo(N)))'
+        MemoryLayout(v.parent.parent)
+
+        v = view(d',:,Block.(Base.OneTo(N)))'
+        dest = PseudoBlockArray{Float64}(undef, axes(v))
+        @ent ArrayLayouts._copyto!(dest, v);
+
+
+
+        b = ß
+
+        v = view(b,Block.(1:N))
+        MemoryLayout(v)
+
+        a = b = c = 0.0
+        dat = BlockVcat(
+            ((k .+ (c-1)) .* ( k .- n .- 1 ) ./ (2k .+ (b+c-1)))',
+            (k .* (k .- n .- a) ./ (2k .+ (b+c-1)))'
+            )
+        @testset "BlockHcat" begin
+            a = b = c = 0.0
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            D = BlockHcat(((k .+ (c-1)) .* ( k .- n .- 1 ) ./ (2k .+ (b+c-1))),
+                            k .* (k .- n .- a) ./ (2k .+ (b+c-1)))
+
+
+            N = 1000
+            V = view(D,Block.(Base.OneTo(N)), :)
+            @test axes(V) ≡ (BlockArrays._BlockedUnitRange(1, InfiniteArrays.RangeCumsum(Base.OneTo(N))), blockedrange(SVector(1,1)))
+            @test @allocated(axes(V)) ≤ 50
+            dest = PseudoBlockArray{Float64}(undef, axes(V))
+            @ent copyto!(dest, V);
+
+            w = view(D.arrays[1],Block.(Base.OneTo(N)));
+            @time copyto!(view(dest,Block(N),1), view(w,Block(N)));
+            bc = LazyArrays._broadcastarray2broadcasted(w)
+            @test axes(bc)[1] ≡ axes(w,1)
+            @test @allocated(axes(bc)) ≤ 40
+            dest = PseudoBlockArray{Float64}(undef, axes(w));
+            @time copyto!(dest, v);
+            @time copyto!(dest, w);
+
+            dest = PseudoBlockArray{Float64}(undef, axes(V));
+            @time copyto!(view(dest,:,1), w);
+
+            @time copyto!(view(dest,:,1), w);
+            @ent copyto!(view(dest,:,1), w)
+
+            dest = PseudoBlockArray{Float64}(undef, axes(w))
+            @time copyto!(dest,w);
+
+            u = view(D.arrays[2],Block.(Base.OneTo(N)));
+            @time copyto!(view(dest,:,2), u);
+
+            # u = view(k .* (k .- n .- a) ./ (2k .+ (b+c-1)), Block.(Base.OneTo(N)))
+            bc1 = LazyArrays._broadcastarray2broadcasted((k .+ 0) .* (k .- n .- a) ./ (2k .+ (b+c-1)))
+            bc2 = LazyArrays._broadcastarray2broadcasted((k) .* (k .- n .- a) ./ (2k .+ (b+c-1)))
+
+
+            axes(bc2)[1]
+            axes(bc1)[1]
+
+
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            a = b = c = 0.0
+            N = 100
+            u = view((k .+ 0) .* (k .- n .- a) ./ (2k .+ (b+c-1)), Block.(Base.OneTo(N)))
+
+            @code_warntype arguments(view(u, Block(4)))
+            @code_warntype(arguments(u))
+            arg = arguments(u)[1]
+            @ent MemoryLayout(typeof(parent(arg)))
+            @code_native LazyArrays._broadcastarray2broadcasted(MemoryLayout(arg),arg)
+            u = view((k) .* (k .- n .- a) ./ (2k .+ (b+c-1)), Block.(Base.OneTo(N)))
+            dest = PseudoBlockArray{Float64}(undef, (axes(u,1),blockedrange(SVector(1,1))))
+            dest = view(dest,:,2)
+            bc = Base.broadcasted(u)
+            BS = BlockArrays.BlockStyle{1}
+            import BlockArrays: combine_blockaxes
+            bc = Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{BS}(bc.f, bc.args, combine_blockaxes.(axes(dest),axes(bc))))
+            @code_warntype copyto!(dest, bc)
+            @inferred LazyArrays._broadcastarray2broadcasted(u)
+
+            axes(bc1)[1]
+            axes(bc2)[1]
+
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            N = 1000
+            u = view((k) .* (k) ./ (k), Block.(Base.OneTo(N)))
+            @time bc1 = LazyArrays._broadcastarray2broadcasted(view(u, Block(5)));
+            @test @allocated(axes(bc1)) ≤ 20
+            @time v = view(u, Block(5));
+            a = arguments(v)[1]
+            @time lay = MemoryLayout(a)
+            @inferred LazyArrays._broadcastarray2broadcasted(a)
+
+            a = 0.0
+            N
+            u = view((k) .* (k .- n .- a) ./ (k), Block.(Base.OneTo(N)));
+            using StaticArrays
+            
+
+            @time v = view(u, Block(5));
+            @code_warntype LazyArrays._broadcastarray2broadcasted(v)
+            a = arguments(v)[1]
+            @time lay = MemoryLayout(a)
+            @code_warntype LazyArrays._broadcastarray2broadcasted(a)
+            b = arguments(lay, a)[2]
+            @code_warntype LazyArrays._broadcastarray2broadcasted(b)
+            lay = MemoryLayout(typeof(b))
+            @code_warntype LazyArrays._broadcastarray2broadcasted(lay, b)
+            lay = MemoryLayout(a)
+            bcs = map(LazyArrays._broadcastarray2broadcasted, arguments(lay, a))
+            @time LazyArrays.call(lay, a)
+            @time Base.broadcasted(*, bcs)
+
+            @time bc2 = LazyArrays._broadcastarray2broadcasted(v);
+            @test @allocated(axes(bc2)) ≤ 20
+            @time copyto!(view(dest,:,2), u)
+        end
+    end
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
@@ -119,7 +360,7 @@ end
     end
 end
 
-@testset "Algebra" begin 
+@testset "Algebra" begin
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
         @test A isa BandedMatrix{ComplexF64}
@@ -158,7 +399,7 @@ end
             B = _BandedMatrix(randn(3,5), ∞, 1,1)
 
             @test lmul!(2.0,copy(B)')[:,1:10] ==  (2B')[:,1:10]
-            
+
             @test_throws ArgumentError BandedMatrix(A)
             @test A*B isa MulMatrix
             @test B'A isa MulMatrix
@@ -171,11 +412,11 @@ end
     end
 
     @testset "BlockTridiagonal" begin
-        A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
-                            Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
+        A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)),
+                            Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)),
                             Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
-                            
-        @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz                       
+
+        @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz
         @test isblockbanded(A)
 
         @test A[Block.(1:2),Block(1)] == A[1:3,1:1] == reshape([0.,1.,1.],3,1)
@@ -257,7 +498,7 @@ end
         @test bandwidths(A+B) == (0,1)
         @test bandwidths(2*(A+B)) == (0,1)
     end
-    
+
     @testset "Triangle OP recurrences" begin
         k = mortar(Base.OneTo.(1:∞))
         n = mortar(Fill.(1:∞, 1:∞))
@@ -288,7 +529,7 @@ end
         @test MemoryLayout(typeof(V)) isa BroadcastBandedBlockBandedLayout{typeof(+)}
         @test arguments(V) == (A[Block.(1:5),Block.(1:5)],B[Block.(1:5),Block.(1:5)])
         @test (A+B)[Block.(1:5), Block.(1:5)] == A[Block.(1:5), Block.(1:5)] + B[Block.(1:5), Block.(1:5)]
-        
+
         @test blockbandwidths(A+B) == (1,1)
         @test blockbandwidths(2A) == (1,1)
         @test blockbandwidths(2*(A+B)) == (1,1)
