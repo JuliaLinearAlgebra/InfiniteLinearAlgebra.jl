@@ -92,9 +92,6 @@ end
         n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
         k = mortar(Base.OneTo.(Base.OneTo(∞)))
 
-        FillArrays.getindex_value(V::SubArray{<:Any,1,<:BlockArray,<:Tuple{BlockArrays.BlockSlice{<:Block{1}}}}) =
-            FillArrays.getindex_value(getblock(parent(V), Int(parentindices(V)[1].block)))
-
         @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ Fill(5,5)
 
         N = 1000
@@ -111,39 +108,7 @@ end
         @test @allocated(axes(v)) ≤ 40
         @test copyto!(dest, v) == v
 
-        # fast
-        # function fastcopyto!(dest, N)
-        #     cur = 1
-        #     @inbounds for K = 1:N, j = 1:K
-        #         dest[cur] = K
-        #         cur += 1
-        #     end
-        #     dest
-        # end
-
-        # function fastcopyto!(dest, N)
-        #     cur = 0
-        #     @inbounds for K = 1:N
-        #         fill!(view(dest, cur+1:cur+N), K)
-        #         cur += K
-        #     end
-        #     dest
-        # end
-
-        # function fastcopyto!(dest)
-        #     @inbounds for K = blockaxes(dest,1)
-        #         fill!(view(dest, K), Int(K))
-        #     end
-        #     dest
-        # end
-
-        # function fastcopyto!(dest, n)
-        #     @inbounds for K = blockaxes(dest,1)
-        #         copyto!(view(dest, K), n[K])
-        #     end
-        #     dest
-        # end
-
+        
         import ArrayLayouts: MemoryLayout, _copyto!
         struct UnitRangeLayout <: MemoryLayout end
         MemoryLayout(::Type{<:AbstractUnitRange}) = UnitRangeLayout()
@@ -326,6 +291,32 @@ end
             @time bc2 = LazyArrays._broadcastarray2broadcasted(v);
             @test @allocated(axes(bc2)) ≤ 20
             @time copyto!(view(dest,:,2), u)
+        end
+
+        @testset "BlockBanded" begin
+            a = b = c = 0.0
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            Dy = BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))', axes(k,1), (-1,1), (-1,1))
+            N = 1000; @time Dy[Block.(1:N), Block.(1:N)];
+            c = BroadcastVector((k,bc) -> k + bc, k, b+c)
+            c = BroadcastVector(+, k, b+c)
+            @time c[Block.(1:N)];
+            @ent (Dy.data')[Block.(1:N)];
+
+            v = view(Dy.data',Block.(1:N))
+            MemoryLayout(v)
+
+            N = 1000;
+            k = mortar(Base.OneTo.(Base.OneTo(N)))
+            @time k .+ 1
+
+
+            dat = Hcat(
+                BroadcastVector((n,k,a,b,c) -> ((k+b-1) * (n+k+b+c-1)) / (2k+b+c-1), n, k, a, b, c),
+                BroadcastVector((n,k,a,b,c) -> (n+k+a+b+c) * (k+b+c) / (2k+b+c-1), n, k, a, b, c)
+                )
+            Dx = BlockBandedMatrices._BandedBlockBandedMatrix(dat', axes(k,1), (-1,1), (0,1))
         end
     end
 end
