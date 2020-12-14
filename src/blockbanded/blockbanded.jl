@@ -48,6 +48,8 @@ include("infblocktridiagonal.jl")
 BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tuple{II}}}},false}}) where {T,N,Arr<:BlockArray,II<:InfRanges} = 
     LazyArrayStyle{N}()
 
+BlockArrays.blockbroadcaststyle(style::LazyArrayStyle{N}, ::Type{NTuple{N,BlockedUnitRange{RangeCumsum{Int,OneToInf{Int}}}}}) where N =
+    style
 
 BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
 BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞

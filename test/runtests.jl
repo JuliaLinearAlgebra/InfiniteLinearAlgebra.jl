@@ -39,13 +39,13 @@ end
     @testset "fixed block size" begin
         k = Base.OneTo.(Base.OneTo(∞))
         n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
-        @test broadcast(length,k) == map(length,k) == OneToInf()
-        @test broadcast(length,n) == map(length,n) == OneToInf()
+        @test broadcast(length,k) ≡ map(length,k) ≡ OneToInf()
+        @test broadcast(length,n) ≡ map(length,n) ≡ OneToInf()
         b = mortar(Fill([1,2],∞))
-        @test blockaxes(b,1) === Block.(OneToInf())
+        @test blockaxes(b,1) ≡ Block.(OneToInf())
         @test b[Block(5)] == [1,2]
-        @test length(axes(b,1)) == last(axes(b,1)) == ∞
-    end
+        @test length(axes(b,1)) ≡ last(axes(b,1)) ≡ ∞
+    endå
 
     @testset "1:∞ blocks" begin
         a = blockedrange(Base.OneTo(∞))
@@ -58,10 +58,10 @@ end
         @test b .* o isa typeof(b)
     end
 
-    @testset "BlockInterlace" begin
+    @testset "concat" begin
         a = 1:∞
         b = exp.(a)
-        c = BlockInterlace(a,b)
+        c = BlockBroadcastArray(vcat,a,b)
         @test length(c) == ∞
         @test blocksize(c) == (∞,)
         @test c[Block(5)] == [a[5],b[5]]
@@ -93,6 +93,8 @@ end
         k = mortar(Base.OneTo.(Base.OneTo(∞)))
 
         @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ Fill(5,5)
+        @test Base.BroadcastStyle(typeof(n)) isa LazyArrays.LazyArrayStyle{1}
+        @test Base.BroadcastStyle(typeof(k)) isa LazyArrays.LazyArrayStyle{1}
 
         N = 1000
         v = view(n,Block.(Base.OneTo(N)))
@@ -108,6 +110,44 @@ end
         @test @allocated(axes(v)) ≤ 40
         @test copyto!(dest, v) == v
 
+
+        @testset "BlockHcat copyto!" begin
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+
+            a = b = c = 0.0
+            dat = BlockHcat(
+                BroadcastArray((n,k,b,bc1) -> (k + b-1) * (n + k + bc1) / (2k + bc1), n, k, b, b+c-1),
+                BroadcastArray((n,k,abc,bc,bc1) -> (n + k + abc) * (k + bc) / (2k + bc1), n, k, a+b+c,b+c,b+c-1)
+                )
+            N = 1000
+            KR = Block.(Base.OneTo(N))
+            V = view(dat,Block.(Base.OneTo(N)),:)
+            @test MemoryLayout(V) isa LazyArrays.ApplyLayout{typeof(hcat)}
+            @test PseudoBlockArray(V)[Block.(1:5),:] == dat[Block.(1:5),:]
+            V = view(dat',:,Block.(Base.OneTo(N)))
+            @test MemoryLayout(V) isa LazyArrays.ApplyLayout{typeof(vcat)}
+            a = dat.arrays[1]'
+            N = 100
+            KR = Block.(Base.OneTo(N))
+            v = view(a,:,KR); @time r = PseudoBlockArray(v)
+
+            b = LazyArrays._broadcastarray2broadcasted(v).args[1]'
+            r = BlockArray(b)
+            @time copyto!(r, b);
+            
+            @time ArrayLayouts._copyto!(r, b);
+            @ent ArrayLayouts.copyto!(r, view(n,KR));
+            @time n[KR];
+            MemoryLayout(b)
+
+            @ent ArrayLayouts._copyto!(r, v)
+            @time ArrayLayouts._copyto!(r', v')
+            @time PseudoBlockArray(V)
+            @ent (dat.arrays[1]')[:,Block.(1:N)];
+            N = 10
+            MemoryLayout(dat.arrays[1]')
+        end
         
         import ArrayLayouts: MemoryLayout, _copyto!
         struct UnitRangeLayout <: MemoryLayout end
