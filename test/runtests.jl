@@ -93,12 +93,14 @@ end
         n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
         k = mortar(Base.OneTo.(Base.OneTo(∞)))
 
-        @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ Fill(5,5)
+        @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ view(n,Block(5)) ≡ Fill(5,5)
+        @test k[Block(5)] ≡ layout_getindex(k, Block(5)) ≡ view(k,Block(5)) ≡ Base.OneTo(5)
         @test Base.BroadcastStyle(typeof(n)) isa LazyArrays.LazyArrayStyle{1}
         @test Base.BroadcastStyle(typeof(k)) isa LazyArrays.LazyArrayStyle{1}
 
         N = 1000
         v = view(n,Block.(Base.OneTo(N)))
+        @test view(v,Block(2)) ≡ Fill(2,2)
         @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
         @test @allocated(axes(v)) ≤ 40
 
@@ -107,6 +109,7 @@ end
         @test @allocated(copyto!(dest, v)) ≤ 40
 
         v = view(k,Block.(Base.OneTo(N)))
+        @test view(v,Block(2)) ≡ Base.OneTo(2)
         @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
         @test @allocated(axes(v)) ≤ 40
         @test copyto!(dest, v) == v
