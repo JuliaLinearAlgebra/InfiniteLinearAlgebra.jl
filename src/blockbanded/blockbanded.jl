@@ -31,9 +31,9 @@ function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{AbstractA
     convert(AbstractArray{promote_type(T,V),N}, a)
 end
 
-_block_interlace_axes(::Int, ax::Tuple{OneToInf{Int}}...) = (blockedrange(Fill(length(ax), ∞)),)
+_block_interlace_axes(::Int, ax::Tuple{BlockedUnitRange{OneToInf{Int}}}...) = (blockedrange(Fill(length(ax), ∞)),)
 
-_block_interlace_axes(nbc::Int, ax::NTuple{2,OneToInf{Int}}...) =
+_block_interlace_axes(nbc::Int, ax::NTuple{2,BlockedUnitRange{OneToInf{Int}}}...) =
     (blockedrange(Fill(length(ax) ÷ nbc, ∞)),blockedrange(Fill(mod1(length(ax),nbc), ∞)))
 
 
@@ -45,11 +45,16 @@ include("infblocktridiagonal.jl")
 ######
 
 
-BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tuple{II}}}},false}}) where {T,N,Arr<:BlockArray,II<:InfRanges} = 
+BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tuple{II}}}},false}}) where {T,N,Arr<:BlockArray,II<:InfRanges} =
     LazyArrayStyle{N}()
 
-BlockArrays.blockbroadcaststyle(style::LazyArrayStyle{N}, ::Type{NTuple{N,BlockedUnitRange{RangeCumsum{Int,OneToInf{Int}}}}}) where N =
-    style
+# TODO: generalise following
+for Ax in (:(RangeCumsum{Int,OneToInf{Int}}), :(OneToInf{Int}))
+    @eval begin
+        BlockArrays.blockbroadcaststyle(style::LazyArrayStyle{N}, ::Type{NTuple{N,BlockedUnitRange{$Ax}}}) where N = style
+        BlockArrays.pseudoblockbroadcaststyle(style::LazyArrayStyle{N}, ::Type{NTuple{N,BlockedUnitRange{$Ax}}}) where N = style
+    end
+end
 
 BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
 BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞

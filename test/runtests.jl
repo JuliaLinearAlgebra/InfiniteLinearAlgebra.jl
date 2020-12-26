@@ -45,7 +45,7 @@ end
         @test blockaxes(b,1) ≡ Block.(OneToInf())
         @test b[Block(5)] == [1,2]
         @test length(axes(b,1)) ≡ last(axes(b,1)) ≡ ∞
-    endå
+    end
 
     @testset "1:∞ blocks" begin
         a = blockedrange(Base.OneTo(∞))
@@ -59,15 +59,16 @@ end
     end
 
     @testset "concat" begin
-        a = 1:∞
+        unitblocks(a::AbstractArray) = PseudoBlockArray(a, Ones{Int}.(axes(a))...)
+        a = unitblocks(1:∞)
         b = exp.(a)
         c = BlockBroadcastArray(vcat,a,b)
         @test length(c) == ∞
         @test blocksize(c) == (∞,)
         @test c[Block(5)] == [a[5],b[5]]
 
-        A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
-        B = BlockInterlace(2, A, Zeros(∞,∞), Zeros(∞,∞), A)
+        A = unitblocks(BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞)))
+        B = BlockBroadcastArray(hvcat, 2, A, Zeros(axes(A)), Zeros(axes(A)), A)
         @test B[Block(3,3)] == [A[3,3] 0; 0 A[3,3]]
         @test B[Block(3,4)] == [A[3,4] 0; 0 A[3,4]]
         @test B[Block(3,5)] == [A[3,5] 0; 0 A[3,5]]
