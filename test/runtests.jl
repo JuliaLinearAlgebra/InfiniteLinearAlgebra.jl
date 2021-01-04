@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test,
-        MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices
+        MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
@@ -134,127 +134,52 @@ end
             a = dat.arrays[1]'
             N = 100
             KR = Block.(Base.OneTo(N))
-            v = view(a,:,KR); @time r = PseudoBlockArray(v)
-
-            b = LazyArrays._broadcastarray2broadcasted(v).args[1]'
-            r = BlockArray(b)
-            @time copyto!(r, b);
-            
-            @time ArrayLayouts._copyto!(r, b);
-            @ent ArrayLayouts.copyto!(r, view(n,KR));
-            @time n[KR];
-            MemoryLayout(b)
-
-            @ent ArrayLayouts._copyto!(r, v)
-            @time ArrayLayouts._copyto!(r', v')
-            @time PseudoBlockArray(V)
-            @ent (dat.arrays[1]')[:,Block.(1:N)];
-            N = 10
-            MemoryLayout(dat.arrays[1]')
+            v = view(a,:,KR)
+            @time r = PseudoBlockArray(v)
+            @test v == r
         end
         
-        import ArrayLayouts: MemoryLayout, _copyto!
-        struct UnitRangeLayout <: MemoryLayout end
-        MemoryLayout(::Type{<:AbstractUnitRange}) = UnitRangeLayout()
-        @test MemoryLayout(view(k,Block(5))) isa UnitRangeLayout
-        first(view(k,Block(5)))
-        function _copyto!(_, ::UnitRangeLayout, dest::AbstractVector, src::AbstractVector)
-            @inbounds for k in axes(dest,1)
-                dest[k] = k
-            end
-            dest
-        end
-
-        @ent dest .= view(cos.(n), Block.(1:N))
-
-        v = view(exp.(n), Block.(1:N))
-        @ent Base.BroadcastStyle(typeof(v))
-        @time copyto!(dest, Base.broadcasted(BlockArrays.BlockStyle{1}(), cos, view(k,Block.(Base.OneTo(N)))));
-        @time copyto!(dest, Base.broadcasted(BlockArrays.BlockStyle{1}(), cos, view(n,Block.(Base.OneTo(N)))));
-
-        @time copyto!(dest, Base.broadcasted(BlockArrays.BlockStyle{1}(), /, view(k,Block.(Base.OneTo(N))), view(n,Block.(Base.OneTo(N)))));
-
-        v = view(k,Block.(Base.OneTo(N)))
-        w = view(n,Block.(Base.OneTo(N)))
-
-        @time atan.(v, w)
-
-        @test Base.BroadcastStyle(typeof(view(k,Block.(1:N)))) isa BlockArrays.BlockStyle{1}
-
         v = view(k,Block.(2:∞))
         @test Base.BroadcastStyle(typeof(v)) isa LazyArrayStyle{1}
         @test v[Block(1)] == 1:2
         @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
 
-
-
-
-        @time k[Block.(Base.OneTo(N))]
-        MemoryLayout()
-        exp.(view(n, Block(5)))
-
         @test axes(n,1) isa BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,OneToInf{Int64}}}
 
-
-        a = b = c =0.0
-        d = (k .+ (c-1)) .* ( k .- n .- 1 ) ./ (2k .+ (b+c-1))
-        N = 1000
-        @time d[Block.(Base.OneTo(N))];
-        v = view(d,Block.(Base.OneTo(N)));
-        dest = PseudoBlockArray{Float64}(undef, axes(v));
-        @time copyto!(dest, v);
-
-        @time (d')[1,Block.(Base.OneTo(N))];
-        @ent (d')[:,Block.(Base.OneTo(N))];
-        @ent layout_getindex(d',:,Block.(Base.OneTo(N)));
-
-        copyto!(dest', view(d',:,Block.(Base.OneTo(N))))
-
-
-
-
-        v = view(k',:,Block.(Base.OneTo(N)))'
-        MemoryLayout(v.parent.parent)
-
-        v = view(d',:,Block.(Base.OneTo(N)))'
-        dest = PseudoBlockArray{Float64}(undef, axes(v))
-        @ent ArrayLayouts._copyto!(dest, v);
-
-
-
-        b = ß
-
-        v = view(b,Block.(1:N))
-        MemoryLayout(v)
-
-        a = b = c = 0.0
-        dat = BlockVcat(
-            ((k .+ (c-1)) .* ( k .- n .- 1 ) ./ (2k .+ (b+c-1)))',
-            (k .* (k .- n .- a) ./ (2k .+ (b+c-1)))'
-            )
         @testset "BlockHcat" begin
             a = b = c = 0.0
             n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
             k = mortar(Base.OneTo.(Base.OneTo(∞)))
-            D = BlockHcat(((k .+ (c-1)) .* ( k .- n .- 1 ) ./ (2k .+ (b+c-1))),
-                            k .* (k .- n .- a) ./ (2k .+ (b+c-1)))
+            D = BlockHcat(
+                                BroadcastVector((n,k,a,b,c) -> ((k+b-1) * (n+k+b+c-1)) / (2k+b+c-1), n, k, a, b, c),
+                                BroadcastVector((n,k,a,b,c) -> (n+k+a+b+c) * (k+b+c) / (2k+b+c-1), n, k, a, b, c)
+                                )
 
 
+            @test arguments(view(D.arrays[1], Block(3))) ≡ (Fill(3,3), Base.OneTo(3), 0.0, 0.0, 0.0)
+
+            
             N = 1000
+            @ent arguments(view(D.arrays[1], Block(3)))
+            
+
             V = view(D,Block.(Base.OneTo(N)), :)
             @test axes(V) ≡ (BlockArrays._BlockedUnitRange(1, InfiniteArrays.RangeCumsum(Base.OneTo(N))), blockedrange(SVector(1,1)))
             @test @allocated(axes(V)) ≤ 50
             dest = PseudoBlockArray{Float64}(undef, axes(V))
-            @ent copyto!(dest, V);
+            @time copyto!(dest, V);
+            @time ArrayLayouts._copyto!(dest, V);
+
+            a = D.arrays[1]
 
             w = view(D.arrays[1],Block.(Base.OneTo(N)));
-            @time copyto!(view(dest,Block(N),1), view(w,Block(N)));
+            
             bc = LazyArrays._broadcastarray2broadcasted(w)
             @test axes(bc)[1] ≡ axes(w,1)
             @test @allocated(axes(bc)) ≤ 40
             dest = PseudoBlockArray{Float64}(undef, axes(w));
-            @time copyto!(dest, v);
             @time copyto!(dest, w);
+            
 
             dest = PseudoBlockArray{Float64}(undef, axes(V));
             @time copyto!(view(dest,:,1), w);
