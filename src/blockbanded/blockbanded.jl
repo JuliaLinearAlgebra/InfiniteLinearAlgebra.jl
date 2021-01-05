@@ -51,8 +51,8 @@ BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tupl
 # TODO: generalise following
 for Ax in (:(RangeCumsum{Int,OneToInf{Int}}), :(OneToInf{Int}))
     @eval begin
-        BlockArrays.blockbroadcaststyle(style::LazyArrayStyle{N}, ::Type{NTuple{N,BlockedUnitRange{$Ax}}}) where N = style
-        BlockArrays.pseudoblockbroadcaststyle(style::LazyArrayStyle{N}, ::Type{NTuple{N,BlockedUnitRange{$Ax}}}) where N = style
+        BroadcastStyle(::Type{BlockArray{T,N,Arr,NTuple{N,BlockedUnitRange{$Ax}}}}) where {T,N,Arr} = LazyArrayStyle{N}()
+        BroadcastStyle(::Type{PseudoBlockArray{T,N,Arr,NTuple{N,BlockedUnitRange{$Ax}}}}) where {T,N,Arr} = LazyArrayStyle{N}()
     end
 end
 
