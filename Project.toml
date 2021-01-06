@@ -16,22 +16,23 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
-ArrayLayouts = "0.4.10"
-BandedMatrices = "0.15.23"
+ArrayLayouts = "0.5"
+BandedMatrices = "0.16"
 BlockArrays = "0.14"
 BlockBandedMatrices = "0.9"
 FillArrays = "0.11"
 InfiniteArrays = "0.9"
 LazyArrays = "0.19"
 LazyBandedMatrices = "0.4"
-MatrixFactorizations = "0.6, 0.7"
+MatrixFactorizations = "0.7.1"
 SemiseparableMatrices = "0.2"
 julia = "1.5"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Random", "SpecialFunctions"]
+test = ["Test", "Random", "SpecialFunctions", "StaticArrays"]

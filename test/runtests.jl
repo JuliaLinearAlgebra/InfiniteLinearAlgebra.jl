@@ -73,7 +73,15 @@ end
         @test B[Block(3,4)] == [A[3,4] 0; 0 A[3,4]]
         @test B[Block(3,5)] == [A[3,5] 0; 0 A[3,5]]
         @test blockbandwidths(B) == (1,1)
-        @test subblockbandwidths(B) == (2,2)
+        @test subblockbandwidths(B) == (0,0)
+        @test B[Block.(1:10), Block.(1:10)] isa BlockSkylineMatrix
+
+        C = BlockBroadcastArray(hvcat, 2, A, A, A, A)
+        @test C[Block(3,3)] == fill(A[3,3],2,2)
+        @test C[Block(3,4)] == fill(A[3,4],2,2)
+        @test C[Block(3,5)] == fill(A[3,5],2,2)
+        @test blockbandwidths(C) == (1,1)
+        @test subblockbandwidths(C) == (1,1)
         @test B[Block.(1:10), Block.(1:10)] isa BlockSkylineMatrix
     end
 
@@ -90,30 +98,38 @@ end
     end
 
     @testset "triangle recurrences" begin
-        n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-        k = mortar(Base.OneTo.(Base.OneTo(∞)))
+        @testset "n and k" begin
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
 
-        @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ view(n,Block(5)) ≡ Fill(5,5)
-        @test k[Block(5)] ≡ layout_getindex(k, Block(5)) ≡ view(k,Block(5)) ≡ Base.OneTo(5)
-        @test Base.BroadcastStyle(typeof(n)) isa LazyArrays.LazyArrayStyle{1}
-        @test Base.BroadcastStyle(typeof(k)) isa LazyArrays.LazyArrayStyle{1}
+            @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ view(n,Block(5)) ≡ Fill(5,5)
+            @test k[Block(5)] ≡ layout_getindex(k, Block(5)) ≡ view(k,Block(5)) ≡ Base.OneTo(5)
+            @test Base.BroadcastStyle(typeof(n)) isa LazyArrays.LazyArrayStyle{1}
+            @test Base.BroadcastStyle(typeof(k)) isa LazyArrays.LazyArrayStyle{1}
 
-        N = 1000
-        v = view(n,Block.(Base.OneTo(N)))
-        @test view(v,Block(2)) ≡ Fill(2,2)
-        @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
-        @test @allocated(axes(v)) ≤ 40
+            N = 1000
+            v = view(n,Block.(Base.OneTo(N)))
+            @test view(v,Block(2)) ≡ Fill(2,2)
+            @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test @allocated(axes(v)) ≤ 40
 
-        dest = PseudoBlockArray{Float64}(undef, axes(v))
-        @test copyto!(dest, v) == v
-        @test @allocated(copyto!(dest, v)) ≤ 40
+            dest = PseudoBlockArray{Float64}(undef, axes(v))
+            @test copyto!(dest, v) == v
+            @test @allocated(copyto!(dest, v)) ≤ 40
 
-        v = view(k,Block.(Base.OneTo(N)))
-        @test view(v,Block(2)) ≡ Base.OneTo(2)
-        @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
-        @test @allocated(axes(v)) ≤ 40
-        @test copyto!(dest, v) == v
+            v = view(k,Block.(Base.OneTo(N)))
+            @test view(v,Block(2)) ≡ Base.OneTo(2)
+            @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test @allocated(axes(v)) ≤ 40
+            @test copyto!(dest, v) == v
 
+            v = view(k,Block.(2:∞))
+            @test Base.BroadcastStyle(typeof(v)) isa LazyArrayStyle{1}
+            @test v[Block(1)] == 1:2
+            @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
+
+            @test axes(n,1) isa BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,OneToInf{Int64}}}
+        end
 
         @testset "BlockHcat copyto!" begin
             n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
@@ -138,154 +154,14 @@ end
             @time r = PseudoBlockArray(v)
             @test v == r
         end
-        
-        v = view(k,Block.(2:∞))
-        @test Base.BroadcastStyle(typeof(v)) isa LazyArrayStyle{1}
-        @test v[Block(1)] == 1:2
-        @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
-
-        @test axes(n,1) isa BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,OneToInf{Int64}}}
-
-        @testset "BlockHcat" begin
-            a = b = c = 0.0
-            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-            k = mortar(Base.OneTo.(Base.OneTo(∞)))
-            D = BlockHcat(
-                                BroadcastVector((n,k,a,b,c) -> ((k+b-1) * (n+k+b+c-1)) / (2k+b+c-1), n, k, a, b, c),
-                                BroadcastVector((n,k,a,b,c) -> (n+k+a+b+c) * (k+b+c) / (2k+b+c-1), n, k, a, b, c)
-                                )
-
-
-            @test arguments(view(D.arrays[1], Block(3))) ≡ (Fill(3,3), Base.OneTo(3), 0.0, 0.0, 0.0)
-
-            
-            N = 1000
-            @ent arguments(view(D.arrays[1], Block(3)))
-            
-
-            V = view(D,Block.(Base.OneTo(N)), :)
-            @test axes(V) ≡ (BlockArrays._BlockedUnitRange(1, InfiniteArrays.RangeCumsum(Base.OneTo(N))), blockedrange(SVector(1,1)))
-            @test @allocated(axes(V)) ≤ 50
-            dest = PseudoBlockArray{Float64}(undef, axes(V))
-            @time copyto!(dest, V);
-            @time ArrayLayouts._copyto!(dest, V);
-
-            a = D.arrays[1]
-
-            w = view(D.arrays[1],Block.(Base.OneTo(N)));
-            
-            bc = LazyArrays._broadcastarray2broadcasted(w)
-            @test axes(bc)[1] ≡ axes(w,1)
-            @test @allocated(axes(bc)) ≤ 40
-            dest = PseudoBlockArray{Float64}(undef, axes(w));
-            @time copyto!(dest, w);
-            
-
-            dest = PseudoBlockArray{Float64}(undef, axes(V));
-            @time copyto!(view(dest,:,1), w);
-
-            @time copyto!(view(dest,:,1), w);
-            @ent copyto!(view(dest,:,1), w)
-
-            dest = PseudoBlockArray{Float64}(undef, axes(w))
-            @time copyto!(dest,w);
-
-            u = view(D.arrays[2],Block.(Base.OneTo(N)));
-            @time copyto!(view(dest,:,2), u);
-
-            # u = view(k .* (k .- n .- a) ./ (2k .+ (b+c-1)), Block.(Base.OneTo(N)))
-            bc1 = LazyArrays._broadcastarray2broadcasted((k .+ 0) .* (k .- n .- a) ./ (2k .+ (b+c-1)))
-            bc2 = LazyArrays._broadcastarray2broadcasted((k) .* (k .- n .- a) ./ (2k .+ (b+c-1)))
-
-
-            axes(bc2)[1]
-            axes(bc1)[1]
-
-
-            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-            k = mortar(Base.OneTo.(Base.OneTo(∞)))
-            a = b = c = 0.0
-            N = 100
-            u = view((k .+ 0) .* (k .- n .- a) ./ (2k .+ (b+c-1)), Block.(Base.OneTo(N)))
-
-            @code_warntype arguments(view(u, Block(4)))
-            @code_warntype(arguments(u))
-            arg = arguments(u)[1]
-            @ent MemoryLayout(typeof(parent(arg)))
-            @code_native LazyArrays._broadcastarray2broadcasted(MemoryLayout(arg),arg)
-            u = view((k) .* (k .- n .- a) ./ (2k .+ (b+c-1)), Block.(Base.OneTo(N)))
-            dest = PseudoBlockArray{Float64}(undef, (axes(u,1),blockedrange(SVector(1,1))))
-            dest = view(dest,:,2)
-            bc = Base.broadcasted(u)
-            BS = BlockArrays.BlockStyle{1}
-            import BlockArrays: combine_blockaxes
-            bc = Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{BS}(bc.f, bc.args, combine_blockaxes.(axes(dest),axes(bc))))
-            @code_warntype copyto!(dest, bc)
-            @inferred LazyArrays._broadcastarray2broadcasted(u)
-
-            axes(bc1)[1]
-            axes(bc2)[1]
-
-            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-            k = mortar(Base.OneTo.(Base.OneTo(∞)))
-            N = 1000
-            u = view((k) .* (k) ./ (k), Block.(Base.OneTo(N)))
-            @time bc1 = LazyArrays._broadcastarray2broadcasted(view(u, Block(5)));
-            @test @allocated(axes(bc1)) ≤ 20
-            @time v = view(u, Block(5));
-            a = arguments(v)[1]
-            @time lay = MemoryLayout(a)
-            @inferred LazyArrays._broadcastarray2broadcasted(a)
-
-            a = 0.0
-            N
-            u = view((k) .* (k .- n .- a) ./ (k), Block.(Base.OneTo(N)));
-            using StaticArrays
-            
-
-            @time v = view(u, Block(5));
-            @code_warntype LazyArrays._broadcastarray2broadcasted(v)
-            a = arguments(v)[1]
-            @time lay = MemoryLayout(a)
-            @code_warntype LazyArrays._broadcastarray2broadcasted(a)
-            b = arguments(lay, a)[2]
-            @code_warntype LazyArrays._broadcastarray2broadcasted(b)
-            lay = MemoryLayout(typeof(b))
-            @code_warntype LazyArrays._broadcastarray2broadcasted(lay, b)
-            lay = MemoryLayout(a)
-            bcs = map(LazyArrays._broadcastarray2broadcasted, arguments(lay, a))
-            @time LazyArrays.call(lay, a)
-            @time Base.broadcasted(*, bcs)
-
-            @time bc2 = LazyArrays._broadcastarray2broadcasted(v);
-            @test @allocated(axes(bc2)) ≤ 20
-            @time copyto!(view(dest,:,2), u)
-        end
 
         @testset "BlockBanded" begin
             a = b = c = 0.0
             n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
             k = mortar(Base.OneTo.(Base.OneTo(∞)))
             Dy = BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))', axes(k,1), (-1,1), (-1,1))
-            N = 1000; @time Dy[Block.(1:N), Block.(1:N)];
-            c = BroadcastVector((k,bc) -> k + bc, k, b+c)
-            c = BroadcastVector(+, k, b+c)
-            @time c[Block.(1:N)];
-            @ent (Dy.data')[Block.(1:N)];
-
-            v = view(Dy.data',Block.(1:N))
-            MemoryLayout(v)
-
-            N = 1000;
-            k = mortar(Base.OneTo.(Base.OneTo(N)))
-            @time k .+ 1
-
-
-            dat = Hcat(
-                BroadcastVector((n,k,a,b,c) -> ((k+b-1) * (n+k+b+c-1)) / (2k+b+c-1), n, k, a, b, c),
-                BroadcastVector((n,k,a,b,c) -> (n+k+a+b+c) * (k+b+c) / (2k+b+c-1), n, k, a, b, c)
-                )
-            Dx = BlockBandedMatrices._BandedBlockBandedMatrix(dat', axes(k,1), (-1,1), (0,1))
+            N = 100; 
+            @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))[Block.(1:N)]', axes(k,1)[Block.(1:N)], (-1,1), (-1,1))
         end
     end
 end
