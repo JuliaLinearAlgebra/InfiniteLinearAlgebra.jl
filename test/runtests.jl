@@ -59,7 +59,6 @@ end
     end
 
     @testset "concat" begin
-        unitblocks(a::AbstractArray) = PseudoBlockArray(a, Ones{Int}.(axes(a))...)
         a = unitblocks(1:∞)
         b = exp.(a)
         c = BlockBroadcastArray(vcat,a,b)
