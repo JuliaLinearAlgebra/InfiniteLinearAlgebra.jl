@@ -384,8 +384,8 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 
 
 
-ArrayLayouts._apply(::NTuple{2,Infinity}, op, Λ::UniformScaling, A::AbstractMatrix) = op(Diagonal(Fill(Λ.λ,∞)), A)
-ArrayLayouts._apply(::NTuple{2,Infinity}, op, A::AbstractMatrix, Λ::UniformScaling) = op(A, Diagonal(Fill(Λ.λ,∞)))
+ArrayLayouts._apply(_, ::NTuple{2,Infinity}, op, Λ::UniformScaling, A::AbstractMatrix) = op(Diagonal(Fill(Λ.λ,∞)), A)
+ArrayLayouts._apply(_, ::NTuple{2,Infinity}, op, A::AbstractMatrix, Λ::UniformScaling) = op(A, Diagonal(Fill(Λ.λ,∞)))
 
 _default_banded_broadcast(bc::Broadcasted, ::Tuple{<:OneToInf,<:Any}) = copy(Broadcasted{LazyArrayStyle{2}}(bc.f, bc.args))
 
