@@ -38,7 +38,7 @@ import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
-function ^(A::BandedMatrix{T,<:Any,<:OneToInf}, p::Integer) where T
+function ArrayLayouts._power_by_squaring(_, ::NTuple{2,Infinity}, A::AbstractMatrix{T}, p::Integer) where T
     if p < 0
         inv(A)^(-p)
     elseif p == 0
