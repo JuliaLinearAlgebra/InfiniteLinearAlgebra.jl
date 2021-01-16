@@ -1,5 +1,5 @@
-using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test, 
-        MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices
+using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test,
+        MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
                     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
@@ -11,7 +11,6 @@ import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
 import InfiniteArrays: OneToInf
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout
-
 
 
 @testset "∞-banded" begin
@@ -37,14 +36,133 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 end
 
 @testset "∞-block arrays" begin
-    k = Base.OneTo.(Base.OneTo(∞))
-    n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
-    @test broadcast(length,k) == map(length,k) == OneToInf()
-    @test broadcast(length,n) == map(length,n) == OneToInf()
-    b = mortar(Fill([1,2],∞))
-    @test blockaxes(b,1) === Block.(OneToInf())
-    @test b[Block(5)] == [1,2]
-    @test length(axes(b,1)) == last(axes(b,1)) == ∞
+    @testset "fixed block size" begin
+        k = Base.OneTo.(Base.OneTo(∞))
+        n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
+        @test broadcast(length,k) ≡ map(length,k) ≡ OneToInf()
+        @test broadcast(length,n) ≡ map(length,n) ≡ OneToInf()
+        b = mortar(Fill([1,2],∞))
+        @test blockaxes(b,1) ≡ Block.(OneToInf())
+        @test b[Block(5)] == [1,2]
+        @test length(axes(b,1)) ≡ last(axes(b,1)) ≡ ∞
+    end
+
+    @testset "1:∞ blocks" begin
+        a = blockedrange(Base.OneTo(∞))
+        @test axes(a,1) == a
+        o = Ones((a,))
+        @test Base.BroadcastStyle(typeof(a)) isa LazyArrayStyle{1}
+        b = exp.(a)
+        @test axes(b,1) == a
+        @test o .* b isa typeof(b)
+        @test b .* o isa typeof(b)
+    end
+
+    @testset "concat" begin
+        a = unitblocks(1:∞)
+        b = exp.(a)
+        c = BlockBroadcastArray(vcat,a,b)
+        @test length(c) == ∞
+        @test blocksize(c) == (∞,)
+        @test c[Block(5)] == [a[5],b[5]]
+
+        A = unitblocks(BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞)))
+        B = BlockBroadcastArray(hvcat, 2, A, Zeros(axes(A)), Zeros(axes(A)), A)
+        @test B[Block(3,3)] == [A[3,3] 0; 0 A[3,3]]
+        @test B[Block(3,4)] == [A[3,4] 0; 0 A[3,4]]
+        @test B[Block(3,5)] == [A[3,5] 0; 0 A[3,5]]
+        @test blockbandwidths(B) == (1,1)
+        @test subblockbandwidths(B) == (0,0)
+        @test B[Block.(1:10), Block.(1:10)] isa BlockSkylineMatrix
+
+        C = BlockBroadcastArray(hvcat, 2, A, A, A, A)
+        @test C[Block(3,3)] == fill(A[3,3],2,2)
+        @test C[Block(3,4)] == fill(A[3,4],2,2)
+        @test C[Block(3,5)] == fill(A[3,5],2,2)
+        @test blockbandwidths(C) == (1,1)
+        @test subblockbandwidths(C) == (1,1)
+        @test B[Block.(1:10), Block.(1:10)] isa BlockSkylineMatrix
+    end
+
+    @testset "KronTrav" begin
+        Δ = BandedMatrix(1 => Ones(∞), -1 => Ones(∞))/2
+        A = KronTrav(Δ - 2I, Eye(∞))
+        @test axes(A,1) isa InfiniteLinearAlgebra.OneToInfBlocks
+        V = view(A, Block.(Base.OneTo(3)), Block.(Base.OneTo(3)))
+        @test MemoryLayout(V) isa BlockBandedMatrices.BandedBlockBandedLayout
+
+        u = A * [1; zeros(∞)]
+        @test u[1:3] == A[1:3,1]
+        @test bandwidths(view(A, Block(1,1))) == (1,1)
+    end
+
+    @testset "triangle recurrences" begin
+        @testset "n and k" begin
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+
+            @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ view(n,Block(5)) ≡ Fill(5,5)
+            @test k[Block(5)] ≡ layout_getindex(k, Block(5)) ≡ view(k,Block(5)) ≡ Base.OneTo(5)
+            @test Base.BroadcastStyle(typeof(n)) isa LazyArrays.LazyArrayStyle{1}
+            @test Base.BroadcastStyle(typeof(k)) isa LazyArrays.LazyArrayStyle{1}
+
+            N = 1000
+            v = view(n,Block.(Base.OneTo(N)))
+            @test view(v,Block(2)) ≡ Fill(2,2)
+            @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test @allocated(axes(v)) ≤ 40
+
+            dest = PseudoBlockArray{Float64}(undef, axes(v))
+            @test copyto!(dest, v) == v
+            @test @allocated(copyto!(dest, v)) ≤ 40
+
+            v = view(k,Block.(Base.OneTo(N)))
+            @test view(v,Block(2)) ≡ Base.OneTo(2)
+            @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test @allocated(axes(v)) ≤ 40
+            @test copyto!(dest, v) == v
+
+            v = view(k,Block.(2:∞))
+            @test Base.BroadcastStyle(typeof(v)) isa LazyArrayStyle{1}
+            @test v[Block(1)] == 1:2
+            @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
+
+            @test axes(n,1) isa BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,OneToInf{Int64}}}
+        end
+
+        @testset "BlockHcat copyto!" begin
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+
+            a = b = c = 0.0
+            dat = BlockHcat(
+                BroadcastArray((n,k,b,bc1) -> (k + b-1) * (n + k + bc1) / (2k + bc1), n, k, b, b+c-1),
+                BroadcastArray((n,k,abc,bc,bc1) -> (n + k + abc) * (k + bc) / (2k + bc1), n, k, a+b+c,b+c,b+c-1)
+                )
+            N = 1000
+            KR = Block.(Base.OneTo(N))
+            V = view(dat,Block.(Base.OneTo(N)),:)
+            @test MemoryLayout(V) isa LazyArrays.ApplyLayout{typeof(hcat)}
+            @test PseudoBlockArray(V)[Block.(1:5),:] == dat[Block.(1:5),:]
+            V = view(dat',:,Block.(Base.OneTo(N)))
+            @test MemoryLayout(V) isa LazyArrays.ApplyLayout{typeof(vcat)}
+            a = dat.arrays[1]'
+            N = 100
+            KR = Block.(Base.OneTo(N))
+            v = view(a,:,KR)
+            @time r = PseudoBlockArray(v)
+            @test v == r
+        end
+
+        @testset "BlockBanded" begin
+            a = b = c = 0.0
+            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
+            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            Dy = BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))', axes(k,1), (-1,1), (-1,1))
+            N = 100; 
+            @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))[Block.(1:N)]', axes(k,1)[Block.(1:N)], (-1,1), (-1,1))
+        end
+    end
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
@@ -77,7 +195,7 @@ end
     end
 end
 
-@testset "Algebra" begin 
+@testset "Algebra" begin
     @testset "BandedMatrix" begin
         A = BandedMatrix(-3 => Fill(7/10,∞), -2 => 1:∞, 1 => Fill(2im,∞))
         @test A isa BandedMatrix{ComplexF64}
@@ -116,7 +234,7 @@ end
             B = _BandedMatrix(randn(3,5), ∞, 1,1)
 
             @test lmul!(2.0,copy(B)')[:,1:10] ==  (2B')[:,1:10]
-            
+
             @test_throws ArgumentError BandedMatrix(A)
             @test A*B isa MulMatrix
             @test B'A isa MulMatrix
@@ -129,11 +247,11 @@ end
     end
 
     @testset "BlockTridiagonal" begin
-        A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)), 
-                            Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)), 
+        A = BlockTridiagonal(Vcat([fill(1.0,2,1),Matrix(1.0I,2,2),Matrix(1.0I,2,2),Matrix(1.0I,2,2)],Fill(Matrix(1.0I,2,2), ∞)),
+                            Vcat([zeros(1,1)], Fill(zeros(2,2), ∞)),
                             Vcat([fill(1.0,1,2),Matrix(1.0I,2,2)], Fill(Matrix(1.0I,2,2), ∞)))
-                            
-        @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz                       
+
+        @test A isa InfiniteLinearAlgebra.BlockTriPertToeplitz
         @test isblockbanded(A)
 
         @test A[Block.(1:2),Block(1)] == A[1:3,1:1] == reshape([0.,1.,1.],3,1)
@@ -215,7 +333,7 @@ end
         @test bandwidths(A+B) == (0,1)
         @test bandwidths(2*(A+B)) == (0,1)
     end
-    
+
     @testset "Triangle OP recurrences" begin
         k = mortar(Base.OneTo.(1:∞))
         n = mortar(Fill.(1:∞, 1:∞))
@@ -246,7 +364,7 @@ end
         @test MemoryLayout(typeof(V)) isa BroadcastBandedBlockBandedLayout{typeof(+)}
         @test arguments(V) == (A[Block.(1:5),Block.(1:5)],B[Block.(1:5),Block.(1:5)])
         @test (A+B)[Block.(1:5), Block.(1:5)] == A[Block.(1:5), Block.(1:5)] + B[Block.(1:5), Block.(1:5)]
-        
+
         @test blockbandwidths(A+B) == (1,1)
         @test blockbandwidths(2A) == (1,1)
         @test blockbandwidths(2*(A+B)) == (1,1)
