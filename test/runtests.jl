@@ -33,6 +33,9 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
     @test D[band(0)] ≡ Fill(2,∞)
     @test D[band(1)] ≡ Fill(0,∞)
     @test A[band(0)][2:10] == 2:10
+
+    @test B*A*x isa Vcat
+    @test (B*A*x)[1:10] == [0; 10; 14; 12; zeros(6)]
 end
 
 @testset "∞-block arrays" begin
