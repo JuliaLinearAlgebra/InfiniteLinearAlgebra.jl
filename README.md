@@ -2,7 +2,8 @@
 
 A Julia repository for linear algebra with infinite banded and block-banded matrices
 
-[![Build Status](https://travis-ci.org/JuliaMatrices/InfiniteLinearAlgebra.jl.svg?branch=master)](https://travis-ci.org/JuliaMatrices/InfiniteLinearAlgebra.jl)
+
+[![Build Status](https://github.com/JuliaMatrices/InfiniteLinearAlgebra.jl/workflows/CI/badge.svg)](https://github.com/JuliaMatrices/InfiniteLinearAlgebra.jl/actions)
 
 [![codecov](https://codecov.io/gh/JuliaMatrices/InfiniteLinearAlgebra.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaMatrices/InfiniteLinearAlgebra.jl)
 
