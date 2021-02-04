@@ -1,6 +1,16 @@
 const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
 const OneToCumsum = InfiniteArrays.RangeCumsum{Int,OneTo{Int}}
 
+BlockArrays.sortedunion(::AbstractVector{Infinity}, ::AbstractVector{Infinity}) = [∞]
+function BlockArrays.sortedunion(::AbstractVector{Infinity}, b)
+    @assert isinf(length(b))
+    b
+end
+
+function BlockArrays.sortedunion(b, ::AbstractVector{Infinity})
+    @assert isinf(length(b))
+    b
+end
 BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
 BlockArrays.sortedunion(a::OneToCumsum, ::OneToCumsum) = a
 

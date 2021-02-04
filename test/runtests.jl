@@ -166,6 +166,11 @@ end
             @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))[Block.(1:N)]', axes(k,1)[Block.(1:N)], (-1,1), (-1,1))
         end
     end
+
+    @testset "blockdiag" begin
+        D = Diagonal(mortar(Fill.((-(0:∞)-(0:∞).^2), 1:2:∞)))
+        D * [randn(5); zeros(∞)]
+    end
 end
 
 @testset "∞-Toeplitz and Pert-Toeplitz" begin
