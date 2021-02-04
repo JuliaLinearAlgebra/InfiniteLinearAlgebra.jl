@@ -1,8 +1,23 @@
 const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
 const OneToCumsum = InfiniteArrays.RangeCumsum{Int,OneTo{Int}}
 
+BlockArrays.sortedunion(::AbstractVector{Infinity}, ::AbstractVector{Infinity}) = [∞]
+function BlockArrays.sortedunion(::AbstractVector{Infinity}, b)
+    @assert isinf(length(b))
+    b
+end
+
+function BlockArrays.sortedunion(b, ::AbstractVector{Infinity})
+    @assert isinf(length(b))
+    b
+end
 BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
 BlockArrays.sortedunion(a::OneToCumsum, ::OneToCumsum) = a
+function BlockArrays.sortedunion(a::RangeCumsum{<:Any,<:InfStepRange}, b::RangeCumsum{<:Any,<:InfStepRange})
+    @assert a == b
+    a
+end
+
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}},
                                  b::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}})
@@ -49,12 +64,11 @@ BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tupl
     LazyArrayStyle{N}()
 
 # TODO: generalise following
-for Ax in (:(RangeCumsum{Int,OneToInf{Int}}), :(OneToInf{Int}))
-    @eval begin
-        BroadcastStyle(::Type{BlockArray{T,N,Arr,NTuple{N,BlockedUnitRange{$Ax}}}}) where {T,N,Arr} = LazyArrayStyle{N}()
-        BroadcastStyle(::Type{PseudoBlockArray{T,N,Arr,NTuple{N,BlockedUnitRange{$Ax}}}}) where {T,N,Arr} = LazyArrayStyle{N}()
-    end
-end
+BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedUnitRange{<:InfRanges}}}}) where {T,N} = LazyArrayStyle{N}()
+BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedUnitRange{<:InfRanges}}}}) where {T,N} = LazyArrayStyle{N}()
+BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
+BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
+
 
 BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
 BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞

@@ -48,6 +48,7 @@ end
         @test blockaxes(b,1) ≡ Block.(OneToInf())
         @test b[Block(5)] == [1,2]
         @test length(axes(b,1)) ≡ last(axes(b,1)) ≡ ∞
+        @test Base.BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
     end
 
     @testset "1:∞ blocks" begin
@@ -165,6 +166,20 @@ end
             N = 100; 
             @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))[Block.(1:N)]', axes(k,1)[Block.(1:N)], (-1,1), (-1,1))
         end
+    end
+
+    @testset "blockdiag" begin
+        D = Diagonal(mortar(Fill.((-(0:∞)-(0:∞).^2), 1:2:∞)))
+        x = [randn(5); zeros(∞)]
+        x̃ = PseudoBlockArray(x, (axes(D,1),))
+        @test (D * x)[1:10] == (D * x̃)[1:10]
+    end
+
+    @testset "sortedunion" begin
+        a = cumsum(1:2:∞)
+        @test BlockArrays.sortedunion(a,a) ≡ a
+        @test BlockArrays.sortedunion([∞],a) ≡ BlockArrays.sortedunion(a,[∞]) ≡ a
+        @test BlockArrays.sortedunion([∞],[∞]) == [∞]
     end
 end
 
