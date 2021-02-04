@@ -169,7 +169,9 @@ end
 
     @testset "blockdiag" begin
         D = Diagonal(mortar(Fill.((-(0:∞)-(0:∞).^2), 1:2:∞)))
-        D * [randn(5); zeros(∞)]
+        x = [randn(5); zeros(∞)]
+        x̃ = PseudoBlockArray(x, (axes(D,1),))
+        @test (D * x)[1:10] == (D * x̃)[1:10]
     end
 end
 
