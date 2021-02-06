@@ -186,7 +186,14 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    sB = length(B.data)
+    sB = B.datasize[1]
+    l,u = bandwidths(A.factors)
+    if l == 0 # diagonal special case
+        partialqr!(A.factors.data, sB)
+        view(B.data,1:sB) .*= view(A.factors.data.data.data.data,u+1,1:sB)
+        return B
+    end
+
     jr = 1:min(COLGROWTH,nA)
 
     @inbounds begin
