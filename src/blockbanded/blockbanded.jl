@@ -33,7 +33,7 @@ const OneToBlocks = BlockedUnitRange{OneToCumsum}
 axes(a::OneToInfBlocks) = (a,)
 axes(a::OneToBlocks) = (a,)
 
-Base.unitrange(b::OneToInfBlocks) = first(b):∞
+unitrange(b::OneToInfBlocks) = first(b):∞
 
 
 function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{Ones{T,1,Tuple{OneToInfBlocks}},AbstractArray{V,N}}}) where {N,T,V}

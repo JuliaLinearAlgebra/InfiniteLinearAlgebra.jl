@@ -39,7 +39,7 @@ import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 if VERSION < v"1.6-"
     oneto(n) = Base.OneTo(n)
 else
-    import Base: oneto
+    import Base: oneto, unitrange
 end
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
