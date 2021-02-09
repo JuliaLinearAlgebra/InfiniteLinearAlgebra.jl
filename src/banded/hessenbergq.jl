@@ -84,7 +84,7 @@ for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
 end
 
 size(Q::AbstractHessenbergQ, k::Integer) = length(Q.q)+1
-axes(Q::AbstractHessenbergQ, k::Integer) = Base.OneTo(length(Q.q)+1)
+axes(Q::AbstractHessenbergQ, k::Integer) = oneto(length(Q.q)+1)
 size(F::QLHessenberg, dim::Integer) = size(getfield(F, :factors), dim)
 size(F::QLHessenberg) = size(getfield(F, :factors))
 

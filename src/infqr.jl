@@ -164,9 +164,9 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:Padded
     A,B = M.A,M.B
     sB = B.datasize[1]
     partialqr!(A.factors.data,sB)
-    jr = Base.OneTo(sB)
+    jr = oneto(sB)
     m = maximum(colsupport(A,jr))
-    kr = Base.OneTo(m)
+    kr = oneto(m)
     resizedata!(B, m)
     b = paddeddata(B)
     lmul!(_view_QRPackedQ(A,kr,jr), b)
@@ -186,7 +186,12 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    sB = length(B.data)
+    sB = B.datasize[1]
+    l,u = bandwidths(A.factors)
+    if l == 0 # diagonal special case
+        return B
+    end
+
     jr = 1:min(COLGROWTH,nA)
 
     @inbounds begin
@@ -287,7 +292,7 @@ end
 function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}})
     n = B.datasize[1]
     partialqr!(parent(R).data, n)
-    materialize!(Ldiv(UpperTriangular(view(parent(R).data.data.data,OneTo(n),OneTo(n))), view(B.data,OneTo(n))))
+    materialize!(Ldiv(UpperTriangular(view(parent(R).data.data.data,oneto(n),oneto(n))), view(B.data,oneto(n))))
     B
 end
 

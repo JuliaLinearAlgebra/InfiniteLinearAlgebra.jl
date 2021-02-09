@@ -136,6 +136,12 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             @test F.Q[1:10,1:10] == Eye(10)
             @test F.R[1:10,1:10] == A[1:10,1:10]
         end
+
+        @testset "diag special case" begin
+            A = _BandedMatrix((1:∞)', ∞, 0, 0)
+            b = [[1,2,3]; zeros(∞)]
+            @test A \ b == [ones(3); zeros(∞)]
+        end
     end
 
     @testset "almost-banded" begin
