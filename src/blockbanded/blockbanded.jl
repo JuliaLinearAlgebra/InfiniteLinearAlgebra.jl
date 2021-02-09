@@ -33,6 +33,8 @@ const OneToBlocks = BlockedUnitRange{OneToCumsum}
 axes(a::OneToInfBlocks) = (a,)
 axes(a::OneToBlocks) = (a,)
 
+Base.unitrange(b::OneToInfBlocks) = first(b):∞
+
 
 function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{Ones{T,1,Tuple{OneToInfBlocks}},AbstractArray{V,N}}}) where {N,T,V}
     a,b = bc.args
@@ -78,4 +80,4 @@ BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
 ###
 
 _krontrav_axes(A::NTuple{N,OneToInf{Int}}, B::NTuple{N,OneToInf{Int}}) where N =
-     @. blockedrange(OneTo(length(A)))
+     @. blockedrange(oneto(length(A)))

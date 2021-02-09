@@ -36,6 +36,12 @@ import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMat
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 
+if VERSION < v"1.6-"
+    oneto(n) = Base.OneTo(n)
+else
+    import Base: oneto
+end
+
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
 function ArrayLayouts._power_by_squaring(_, ::NTuple{2,Infinity}, A::AbstractMatrix{T}, p::Integer) where T

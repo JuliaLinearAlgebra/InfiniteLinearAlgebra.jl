@@ -40,8 +40,8 @@ end
 
 @testset "∞-block arrays" begin
     @testset "fixed block size" begin
-        k = Base.OneTo.(Base.OneTo(∞))
-        n = Fill.(Base.OneTo(∞),Base.OneTo(∞))
+        k = Base.OneTo.(Base.oneto(∞))
+        n = Fill.(Base.oneto(∞),Base.oneto(∞))
         @test broadcast(length,k) ≡ map(length,k) ≡ OneToInf()
         @test broadcast(length,n) ≡ map(length,n) ≡ OneToInf()
         b = mortar(Fill([1,2],∞))
@@ -52,7 +52,7 @@ end
     end
 
     @testset "1:∞ blocks" begin
-        a = blockedrange(Base.OneTo(∞))
+        a = blockedrange(Base.oneto(∞))
         @test axes(a,1) == a
         o = Ones((a,))
         @test Base.BroadcastStyle(typeof(a)) isa LazyArrayStyle{1}
@@ -102,8 +102,8 @@ end
 
     @testset "triangle recurrences" begin
         @testset "n and k" begin
-            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            n = mortar(Fill.(Base.oneto(∞),Base.oneto(∞)))
+            k = mortar(Base.OneTo.(Base.oneto(∞)))
 
             @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ view(n,Block(5)) ≡ Fill(5,5)
             @test k[Block(5)] ≡ layout_getindex(k, Block(5)) ≡ view(k,Block(5)) ≡ Base.OneTo(5)
@@ -135,8 +135,8 @@ end
         end
 
         @testset "BlockHcat copyto!" begin
-            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            n = mortar(Fill.(Base.oneto(∞),Base.oneto(∞)))
+            k = mortar(Base.OneTo.(Base.oneto(∞)))
 
             a = b = c = 0.0
             dat = BlockHcat(
@@ -160,8 +160,8 @@ end
 
         @testset "BlockBanded" begin
             a = b = c = 0.0
-            n = mortar(Fill.(Base.OneTo(∞),Base.OneTo(∞)))
-            k = mortar(Base.OneTo.(Base.OneTo(∞)))
+            n = mortar(Fill.(Base.oneto(∞),Base.oneto(∞)))
+            k = mortar(Base.OneTo.(Base.oneto(∞)))
             Dy = BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))', axes(k,1), (-1,1), (-1,1))
             N = 100; 
             @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))[Block.(1:N)]', axes(k,1)[Block.(1:N)], (-1,1), (-1,1))

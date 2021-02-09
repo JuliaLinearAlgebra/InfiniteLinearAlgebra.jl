@@ -164,9 +164,9 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:Padded
     A,B = M.A,M.B
     sB = B.datasize[1]
     partialqr!(A.factors.data,sB)
-    jr = Base.OneTo(sB)
+    jr = oneto(sB)
     m = maximum(colsupport(A,jr))
-    kr = Base.OneTo(m)
+    kr = oneto(m)
     resizedata!(B, m)
     b = paddeddata(B)
     lmul!(_view_QRPackedQ(A,kr,jr), b)
@@ -292,7 +292,7 @@ end
 function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}})
     n = B.datasize[1]
     partialqr!(parent(R).data, n)
-    materialize!(Ldiv(UpperTriangular(view(parent(R).data.data.data,OneTo(n),OneTo(n))), view(B.data,OneTo(n))))
+    materialize!(Ldiv(UpperTriangular(view(parent(R).data.data.data,oneto(n),oneto(n))), view(B.data,oneto(n))))
     B
 end
 
