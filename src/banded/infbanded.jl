@@ -439,8 +439,8 @@ mulreduce(M::Mul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(M)
 
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
     A, b_in = M.A, M.B
-    dv = diagonaldata(A)
-    ev = subdiagonaldata(A)
+    dv = diag(A)
+    ev = subdiag(A)
     b = paddeddata(b_in)
     N = length(b)
     b[1] = bj1 = dv[1]\b[1]
