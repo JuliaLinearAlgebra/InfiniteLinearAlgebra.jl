@@ -93,14 +93,14 @@ function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
     
     # combine finite and infinite data
     H = Hcat(B̃.data, rightasymptotics(F∞.factors.data))
-    QLHessenberg(_BandedMatrix(H, ∞, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
+    QLHessenberg(_BandedMatrix(H, ℵ₀, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
 end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
     (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
 
-getL(Q::QL, ::NTuple{2,Infinity}) where T = LowerTriangular(Q.factors)
-getL(Q::QLHessenberg, ::NTuple{2,Infinity}) where T = LowerTriangular(Q.factors)
+getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) where T = LowerTriangular(Q.factors)
+getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) where T = LowerTriangular(Q.factors)
 
 # number of structural non-zeros in axis k
 nzzeros(A::AbstractArray, k) = size(A,k)

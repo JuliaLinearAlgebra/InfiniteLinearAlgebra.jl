@@ -47,7 +47,8 @@ end
         b = mortar(Fill([1,2],∞))
         @test blockaxes(b,1) ≡ Block.(OneToInf())
         @test b[Block(5)] == [1,2]
-        @test length(axes(b,1)) ≡ last(axes(b,1)) ≡ ∞
+        @test length(axes(b,1)) ≡ ℵ₀
+        @test last(axes(b,1)) ≡ ∞
         @test Base.BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
     end
 
@@ -204,8 +205,8 @@ end
     @test A[2:∞,2:∞] isa PertToeplitz
 
     @testset "InfBanded" begin
-        A = _BandedMatrix(Fill(2,4,∞),∞,2,1)
-        B = _BandedMatrix(Fill(3,2,∞),∞,-1,2)
+        A = _BandedMatrix(Fill(2,4,∞),ℵ₀,2,1)
+        B = _BandedMatrix(Fill(3,2,∞),ℵ₀,-1,2)
         @test mul(A,A) isa PertToeplitz
         @test A*A isa PertToeplitz
         @test (A*A)[1:20,1:20] == A[1:20,1:23]*A[1:23,1:20]
@@ -241,7 +242,7 @@ end
         @test Ac[1:10,1:10] ≈ (A')[1:10,1:10] ≈ A[1:10,1:10]'
         @test At[1:10,1:10] ≈ transpose(A)[1:10,1:10] ≈ transpose(A[1:10,1:10])
 
-        A = _BandedMatrix(Fill(1,4,∞),∞,1,2)
+        A = _BandedMatrix(Fill(1,4,∞),ℵ₀,1,2)
         @test A^2 isa BandedMatrix
         @test (A^2)[1:10,1:10] == (A*A)[1:10,1:10] == (A[1:100,1:100]^2)[1:10,1:10]
         @test A^3 isa ApplyMatrix{<:Any,typeof(*)}
@@ -249,7 +250,7 @@ end
 
         @testset "∞ x finite" begin
             A = BandedMatrix(1 => 1:∞) + BandedMatrix(-1 => Fill(2,∞))
-            B = _BandedMatrix(randn(3,5), ∞, 1,1)
+            B = _BandedMatrix(randn(3,5), ℵ₀, 1,1)
 
             @test lmul!(2.0,copy(B)')[:,1:10] ==  (2B')[:,1:10]
 
@@ -288,7 +289,7 @@ end
     end
 
     @testset "Fill" begin
-        A = _BandedMatrix(Ones(1,∞),∞,-1,1)
+        A = _BandedMatrix(Ones(1,∞),ℵ₀,-1,1)
         @test 1.0 .* A isa BandedMatrix{Float64,<:Fill}
         @test Zeros(∞) .* A ≡ Zeros(∞,∞) .* A ≡ A .* Zeros(1,∞) ≡ A .* Zeros(∞,∞) ≡ Zeros(∞,∞)
         @test Ones(∞) .* A isa BandedMatrix{Float64,<:Ones}
@@ -301,12 +302,12 @@ end
         @test A*A isa BandedMatrix
         @test (A*A)[1:10,1:10] == BandedMatrix(2 => Ones(8))
 
-        Ã = _BandedMatrix(Fill(1,1,∞), ∞, -1,1)
+        Ã = _BandedMatrix(Fill(1,1,∞), ℵ₀, -1,1)
         @test A*Ã isa BandedMatrix
         @test Ã*A isa BandedMatrix
         @test Ã*Ã isa BandedMatrix
 
-        B = _BandedMatrix(Ones(1,10),∞,-1,1)
+        B = _BandedMatrix(Ones(1,10),ℵ₀,-1,1)
         C = _BandedMatrix(Ones(1,10),10,-1,1)
         D = _BandedMatrix(Ones(1,∞),10,-1,1)
 
@@ -314,12 +315,12 @@ end
     end
 
     @testset "Banded Broadcast" begin
-        A = _BandedMatrix((1:∞)',∞,-1,1)
+        A = _BandedMatrix((1:∞)',ℵ₀,-1,1)
         @test 2.0 .* A isa BandedMatrix{Float64,<:Adjoint}
         @test A .* 2.0 isa BandedMatrix{Float64,<:Adjoint}
         @test Eye(∞)*A isa BandedMatrix{Float64,<:Adjoint}
         @test A*Eye(∞) isa BandedMatrix{Float64,<:Adjoint}
-        A = _BandedMatrix(Vcat((1:∞)',Ones(1,∞)),∞,0,1)
+        A = _BandedMatrix(Vcat((1:∞)',Ones(1,∞)),ℵ₀,0,1)
         @test 2.0 .* A isa BandedMatrix
         @test A .* 2.0 isa BandedMatrix
         @test Eye(∞) * A isa BandedMatrix
@@ -338,14 +339,14 @@ end
         @test bandwidths(A .* b') == bandwidths(A .* b')
         @test colsupport(A .* b', 3) == 2:3
 
-        A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
-        B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
+        A = _BandedMatrix(Ones{Int}(1,∞),ℵ₀,0,0)'
+        B = _BandedMatrix((-2:-2:-∞)',ℵ₀ ,-1,1)
         C = Diagonal( 2 ./ (1:2:∞))
         @test bandwidths(A*(B*C)) == (-1,1)
         @test bandwidths((A*B)*C) == (-1,1)
 
-        A = _BandedMatrix(Ones{Int}(1,∞),∞,0,0)'
-        B = _BandedMatrix((-2:-2:-∞)', ∞,-1,1)
+        A = _BandedMatrix(Ones{Int}(1,∞),ℵ₀,0,0)'
+        B = _BandedMatrix((-2:-2:-∞)', ℵ₀,-1,1)
         @test MemoryLayout(A+B) isa BroadcastBandedLayout{typeof(+)}
         @test MemoryLayout(2*(A+B)) isa BroadcastBandedLayout{typeof(*)}
         @test bandwidths(A+B) == (0,1)
@@ -359,7 +360,7 @@ end
         @test n[Block.(2:3)] isa BlockArray
         @test k[Block.(2:3)] == [1,2,1,2,3]
         @test n[Block.(2:3)] == [2,2,3,3,3]
-        @test blocksize(BroadcastVector(exp,k)) == (∞,)
+        @test blocksize(BroadcastVector(exp,k)) == (ℵ₀,)
         @test BroadcastVector(exp,k)[Block.(2:3)] == exp.([1,2,1,2,3])
         # BroadcastVector(+,k,n)
     end

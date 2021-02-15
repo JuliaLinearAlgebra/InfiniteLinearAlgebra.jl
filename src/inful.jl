@@ -74,8 +74,8 @@ end
 _inf_getL(::BlockTridiagonalToeplitzLayout, F::UL) = mortar(Bidiagonal(F.factors.blocks.d,F.factors.blocks.dl, :L))
 
 
-getU(F::UL, ::NTuple{2,Infinity}) = _inf_getU(MemoryLayout(F.factors), F)
-getL(F::UL, ::NTuple{2,Infinity}) = _inf_getL(MemoryLayout(F.factors), F)
+getU(F::UL, ::NTuple{2,InfiniteCardinal{0}}) = _inf_getU(MemoryLayout(F.factors), F)
+getL(F::UL, ::NTuple{2,InfiniteCardinal{0}}) = _inf_getL(MemoryLayout(F.factors), F)
 
-getU(F::UL{T,<:Tridiagonal}, ::NTuple{2,Infinity}) where T = _inf_getU(MemoryLayout(F.factors), F)
-getL(F::UL{T,<:Tridiagonal}, ::NTuple{2,Infinity}) where T = _inf_getL(MemoryLayout(F.factors), F)
+getU(F::UL{T,<:Tridiagonal}, ::NTuple{2,InfiniteCardinal{0}}) where T = _inf_getU(MemoryLayout(F.factors), F)
+getL(F::UL{T,<:Tridiagonal}, ::NTuple{2,InfiniteCardinal{0}}) where T = _inf_getL(MemoryLayout(F.factors), F)

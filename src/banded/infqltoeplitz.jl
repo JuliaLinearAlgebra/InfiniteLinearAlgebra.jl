@@ -47,7 +47,7 @@ function ql(Op::TriToeplitz{T}; kwds...) where T<:Real
     X = [Z A B; zero(T) d e]
     F = ql_X!(X)
     t,ω = F.τ[2],X[1,end]
-    QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ∞, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
+    QL(_BandedMatrix(Hcat([zero(T), e, X[2,2], X[2,1]], [ω, X[2,3], X[2,2], X[2,1]] * Ones{T}(1,∞)), ℵ₀, 2, 1), Vcat(F.τ[1],Fill(t,∞)))
 end
 
 ql(Op::TriToeplitz{T}) where T = ql(InfToeplitz(Op))
@@ -60,7 +60,7 @@ function ql_hessenberg(A::InfToeplitz{T}; kwds...) where T
     de = tail_de(a; kwds...)
     X = [transpose(a); zero(T) transpose(de)]::Matrix{float(T)}
     F = ql_X!(X) # calculate data for fixed point
-    factors = _BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [0; X[2,end:-1:1]] * Ones{float(T)}(1,∞)), ∞, l+u, 1)
+    factors = _BandedMatrix(Hcat([zero(T); X[1,end-1]; X[2,end-1:-1:1]], [0; X[2,end:-1:1]] * Ones{float(T)}(1,∞)), ℵ₀, l+u, 1)
     QLHessenberg(factors, Fill(F.Q,∞))
 end
 
@@ -79,7 +79,7 @@ function ql_pruneband(A; kwds...)
     for j = u+1:size(pert,2)
         pert[:,j] .= view(dat,j-u+1:j+l+1,j)
     end
-    H = _BandedMatrix(Hcat(pert, dat[end-l-u:end,end]*Ones{eltype(dat)}(1,∞)), ∞, l+1,u-1)
+    H = _BandedMatrix(Hcat(pert, dat[end-l-u:end,end]*Ones{eltype(dat)}(1,∞)), ℵ₀, l+1,u-1)
     Q,H
 end
 

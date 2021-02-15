@@ -10,7 +10,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 @testset "Adaptive QR" begin
     @testset "banded" begin
         @testset "test partialqr!" begin
-            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
+            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
             l,u = bandwidths(A)
             F = AdaptiveQRData(A);
             @test bandwidths(F.data) == (1,2)
@@ -29,7 +29,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         end
 
         @testset "AdaptiveQRFactors" begin
-            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
+            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
             F = qr(A);
             @test F.factors[1,1] ≈ -sqrt(2)
             @test F.factors[100,100] ≈ qrunblocked(A[1:101,1:100]).factors[100,100]
@@ -42,7 +42,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         end
 
         @testset "col/rowsupport" begin
-            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
+            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
             F = qr(A);
             @test MemoryLayout(typeof(F.factors)) isa AdaptiveLayout{BandedColumns{DenseColumnMajor}}
             @test bandwidths(F.factors) == (1,2)
@@ -63,7 +63,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         end
 
         @testset "Qmul" begin
-            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ∞, 1, 1)
+            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
             Q,R = qr(A);
             b = Vcat([1.,2,3],Zeros(∞))
             @test colsupport(Q,1:3) == colsupport(Q.factors,1:3) == 1:4
@@ -138,7 +138,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         end
 
         @testset "diag special case" begin
-            A = _BandedMatrix((1:∞)', ∞, 0, 0)
+            A = _BandedMatrix((1:∞)', ℵ₀, 0, 0)
             b = [[1,2,3]; zeros(∞)]
             @test A \ b == [ones(3); zeros(∞)]
         end

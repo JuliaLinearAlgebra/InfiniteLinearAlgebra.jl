@@ -10,7 +10,7 @@ import BandedMatrices: _BandedMatrix
             d,e = tail_de(a)
             X = [transpose(a); 0 d e]
             Q = LowerHessenbergQ(Fill(ql!(X).Q,∞))
-            L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ∞, 2, 0)
+            L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ℵ₀, 2, 0)
             Qn,Ln = ql(A[1:1000,1:1000])
             @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
             @test Q'A isa MulMatrix
@@ -23,7 +23,7 @@ import BandedMatrices: _BandedMatrix
             X = [transpose(a); 0 d e]
             q = ql!(X).Q
             Q = LowerHessenbergQ(Fill(q,∞))
-            L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ∞, 2, 0)
+            L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ℵ₀, 2, 0)
             Qn,Ln = ql(A[1:1000,1:1000])
             @test Q[1:10,1:10] ≈ Qn[1:10,1:10] * diagm(0 => [1; -Ones(9)] )
             @test (Q'A)[1:10,1:10] ≈ diagm(0 => [1; -Ones(9)] ) * Ln[1:10,1:10] ≈ L[1:10,1:10]
@@ -61,12 +61,12 @@ import BandedMatrices: _BandedMatrix
 
         @testset "Hessenberg Toeplitz" begin
             a = [1,2,3,0.5]
-            T = _BandedMatrix(reverse(a) * Ones(1,∞), ∞, 2, 1)
+            T = _BandedMatrix(reverse(a) * Ones(1,∞), ℵ₀, 2, 1)
             F = ql(T)
             @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
 
             a = [1,2,3+im,0.5] 
-            T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ∞, 2, 1)
+            T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ℵ₀, 2, 1)
             Q,L = ql(T)
             @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
             @test T isa InfToeplitz
@@ -82,7 +82,7 @@ import BandedMatrices: _BandedMatrix
             end
 
             a =    [ -2.531640004434771-0.0im , 0.36995310821558014+2.5612894011525276im, -0.22944284364953327+0.39386202384951985im, -0.2700241133710857 + 0.8984628598798804im, 4.930380657631324e-32 + 0.553001215633963im ] 
-            T = _BandedMatrix(a * Ones{ComplexF64}(1,∞), ∞, 3, 1)
+            T = _BandedMatrix(a * Ones{ComplexF64}(1,∞), ℵ₀, 3, 1)
             Q,L = ql(T)
             @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
         end
@@ -101,14 +101,14 @@ import BandedMatrices: _BandedMatrix
     @testset "Pert Hessenberg Toeplitz" begin
         a = [1,2,5,0.5]
         Random.seed!(0)
-        A = _BandedMatrix(Hcat(randn(4,2), reverse(a) * Ones(1,∞)), ∞, 2, 1)
+        A = _BandedMatrix(Hcat(randn(4,2), reverse(a) * Ones(1,∞)), ℵ₀, 2, 1)
         @test A isa PertToeplitz
         @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
         Q,L = ql(A)
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
 
         a = [0.1,1,2,3,0.5]
-        A = _BandedMatrix(Hcat([0.5 0.5; -1 3; 2 2; 1 1; 0.1 0.1], reverse(a) * Ones(1,∞)), ∞, 3, 1)
+        A = _BandedMatrix(Hcat([0.5 0.5; -1 3; 2 2; 1 1; 0.1 0.1], reverse(a) * Ones(1,∞)), ℵ₀, 3, 1)
         @test A isa PertToeplitz
         @test BandedMatrix(A, (3,1))[1:10,1:10] == A[1:10,1:10]
 
@@ -144,7 +144,7 @@ import BandedMatrices: _BandedMatrix
 
     @testset "Pert faux-periodic QL" begin
         a = [0.5794879759059747 + 0.0im,0.538107104952824 - 0.951620830938543im,-0.19352887774167749 - 0.3738926065520737im,0.4314153362874331,0.0]
-        T = _BandedMatrix(a*Ones{ComplexF64}(1,∞), ∞, 3,1)
+        T = _BandedMatrix(a*Ones{ComplexF64}(1,∞), ℵ₀, 3,1)
         Q,L = ql(T)
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
         Qn,Ln = ql(T[1:1001,1:1001])
@@ -153,7 +153,7 @@ import BandedMatrices: _BandedMatrix
 
         f =  [0.0+0.0im        0.522787+0.0im     ; 0.59647-1.05483im    0.538107-0.951621im; -0.193529-0.373893im  -0.193529-0.373893im;
                 0.431415+0.0im        0.431415+0.0im; 0.0+0.0im             0.0+0.0im]
-        A = _BandedMatrix(Hcat(f, a*Ones{ComplexF64}(1,∞)), ∞, 3,1)
+        A = _BandedMatrix(Hcat(f, a*Ones{ComplexF64}(1,∞)), ℵ₀, 3,1)
         Q,L = ql(A)
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
         Qn,Ln = ql(A[1:1000,1:1000])
