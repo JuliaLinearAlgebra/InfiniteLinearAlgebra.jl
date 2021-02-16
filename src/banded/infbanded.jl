@@ -471,3 +471,10 @@ function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
     b_in
 end
 
+###
+# Inf-Toeplitz layout
+# this could possibly be avoided via an InfFillLayout
+###
+
+MemoryLayout(::Type{<:LazyBandedMatrices.Tridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}},<:Any,<:Any}})  =
+    LazyBandedLayout()
