@@ -36,6 +36,44 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
     @test B*A*x isa Vcat
     @test (B*A*x)[1:10] == [0; 10; 14; 12; zeros(6)]
+
+    @test _BandedMatrix((1:∞)', ∞, -1, 1) isa BandedMatrix 
+
+    @testset "∞-Toeplitz" begin
+        A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+        @test A isa InfToeplitz
+        @test MemoryLayout(typeof(A.data)) == ConstRows()
+        @test MemoryLayout(typeof(A)) == BandedToeplitzLayout()
+        V = view(A,:,3:∞)
+        @test MemoryLayout(typeof(bandeddata(V))) == ConstRows()
+        @test MemoryLayout(typeof(V)) == BandedToeplitzLayout()
+        @test BandedMatrix(V) isa InfToeplitz
+        @test A[:,3:end] isa InfToeplitz
+
+        @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
+    end
+
+    @testset "Pert-Toeplitz" begin
+        A = BandedMatrix(-2 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([1.0+im,2,3],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
+        @test A isa PertToeplitz
+        @test MemoryLayout(typeof(A)) == PertToeplitzLayout()
+        V = view(A,2:∞,2:∞)
+        @test MemoryLayout(typeof(V)) == PertToeplitzLayout()
+        @test BandedMatrix(V) isa PertToeplitz
+        @test A[2:∞,2:∞] isa PertToeplitz
+
+        @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
+
+
+        @testset "InfBanded" begin
+            A = _BandedMatrix(Fill(2,4,∞),ℵ₀,2,1)
+            B = _BandedMatrix(Fill(3,2,∞),ℵ₀,-1,2)
+            @test mul(A,A) isa PertToeplitz
+            @test A*A isa PertToeplitz
+            @test (A*A)[1:20,1:20] == A[1:20,1:23]*A[1:23,1:20]
+            @test (A*B)[1:20,1:20] == A[1:20,1:23]*B[1:23,1:20]
+        end
+    end
 end
 
 @testset "∞-block arrays" begin
@@ -184,35 +222,7 @@ end
     end
 end
 
-@testset "∞-Toeplitz and Pert-Toeplitz" begin
-    A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
-    @test A isa InfToeplitz
-    @test MemoryLayout(typeof(A.data)) == ConstRows()
-    @test MemoryLayout(typeof(A)) == BandedToeplitzLayout()
-    V = view(A,:,3:∞)
-    @test MemoryLayout(typeof(bandeddata(V))) == ConstRows()
-    @test MemoryLayout(typeof(V)) == BandedToeplitzLayout()
 
-    @test BandedMatrix(V) isa InfToeplitz
-    @test A[:,3:end] isa InfToeplitz
-
-    A = BandedMatrix(-2 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([1.0+im,2,3],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
-    @test A isa PertToeplitz
-    @test MemoryLayout(typeof(A)) == PertToeplitzLayout()
-    V = view(A,2:∞,2:∞)
-    @test MemoryLayout(typeof(V)) == PertToeplitzLayout()
-    @test BandedMatrix(V) isa PertToeplitz
-    @test A[2:∞,2:∞] isa PertToeplitz
-
-    @testset "InfBanded" begin
-        A = _BandedMatrix(Fill(2,4,∞),ℵ₀,2,1)
-        B = _BandedMatrix(Fill(3,2,∞),ℵ₀,-1,2)
-        @test mul(A,A) isa PertToeplitz
-        @test A*A isa PertToeplitz
-        @test (A*A)[1:20,1:20] == A[1:20,1:23]*A[1:23,1:20]
-        @test (A*B)[1:20,1:20] == A[1:20,1:23]*B[1:23,1:20]
-    end
-end
 
 @testset "Algebra" begin
     @testset "BandedMatrix" begin

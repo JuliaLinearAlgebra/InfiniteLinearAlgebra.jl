@@ -207,9 +207,9 @@ for op in (:-, :+)
         function $op(λ::UniformScaling, A::PertToeplitz{V}) where V
             l,u = bandwidths(A)
             TV = promote_type(eltype(λ),V)
-            a, t = convert.(AbstractVector{TV}, A.data.args)
+            a, t = map(AbstractArray{TV}, A.data.args)
             b = $op.(t.args[1])
-            a[u+1,:] += λ.λ
+            a[u+1,:] .+= λ.λ
             b[u+1] += λ.λ
             _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ℵ₀, l, u)
         end
