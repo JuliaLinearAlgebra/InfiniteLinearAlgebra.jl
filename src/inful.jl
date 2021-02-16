@@ -35,26 +35,26 @@ function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
 end
 
 function _ul(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
-    C = getindex_value(subdiag(J))
-    A = getindex_value(diag(J))
-    B = getindex_value(supdiag(J))
+    C = getindex_value(subdiagonaldata(J))
+    A = getindex_value(diagonaldata(J))
+    B = getindex_value(supdiagonaldata(J))
     L = _ultailL1(C, A, B)
     U = B/L
     UL(Tridiagonal(Fill(convert(typeof(L),C),∞), Fill(L,∞), Fill(U,∞)), OneToInf(), 0)
 end
 
 function _ul(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{true}; check::Bool = true)
-    C = getindex_value(subdiag(J))
-    A = getindex_value(diag(J))
-    B = getindex_value(supdiag(J))
+    C = getindex_value(subdiagonaldata(J))
+    A = getindex_value(diagonaldata(J))
+    B = getindex_value(supdiagonaldata(J))
     A^2 ≥ 4B*C || error("Pivotting not implemented")
     ul(J, Val(false))
 end
 
 function _ul(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
-    C = getindex_value(subdiag(blocks(J)))
-    A = getindex_value(diag(blocks(J)))
-    B = getindex_value(supdiag(blocks(J)))
+    C = getindex_value(subdiagonaldata(blocks(J)))
+    A = getindex_value(diagonaldata(blocks(J)))
+    B = getindex_value(supdiagonaldata(blocks(J)))
     L = _ultailL1(C, A, B)
     U = B/L
     UL(mortar(Tridiagonal(Fill(convert(typeof(L),C),∞), Fill(L,∞), Fill(U,∞))), OneToInf(), 0)

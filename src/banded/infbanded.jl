@@ -1,3 +1,5 @@
+_BandedMatrix(data::AbstractMatrix{T}, ::Infinity, l, u) where T = _BandedMatrix(data, ℵ₀, l, u)
+
 ###
 # BandIndexing
 ###
@@ -439,8 +441,8 @@ mulreduce(M::Mul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(M)
 
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
     A, b_in = M.A, M.B
-    dv = diag(A)
-    ev = subdiag(A)
+    dv = diagonaldata(A)
+    ev = subdiagonaldata(A)
     b = paddeddata(b_in)
     N = length(b)
     b[1] = bj1 = dv[1]\b[1]
