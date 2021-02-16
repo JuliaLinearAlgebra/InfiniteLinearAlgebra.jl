@@ -1,13 +1,13 @@
 const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
 const OneToCumsum = InfiniteArrays.RangeCumsum{Int,OneTo{Int}}
 
-BlockArrays.sortedunion(::AbstractVector{Infinity}, ::AbstractVector{Infinity}) = [∞]
-function BlockArrays.sortedunion(::AbstractVector{Infinity}, b)
+BlockArrays.sortedunion(::AbstractVector{<:PosInfinity}, ::AbstractVector{<:PosInfinity}) = [∞]
+function BlockArrays.sortedunion(::AbstractVector{<:PosInfinity}, b)
     @assert isinf(length(b))
     b
 end
 
-function BlockArrays.sortedunion(b, ::AbstractVector{Infinity})
+function BlockArrays.sortedunion(b, ::AbstractVector{<:PosInfinity})
     @assert isinf(length(b))
     b
 end
@@ -33,8 +33,7 @@ const OneToBlocks = BlockedUnitRange{OneToCumsum}
 axes(a::OneToInfBlocks) = (a,)
 axes(a::OneToBlocks) = (a,)
 
-unitrange(b::OneToInfBlocks) = first(b):∞
-
+BlockArrays.dimlength(start, ::Infinity) = ℵ₀
 
 function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{Ones{T,1,Tuple{OneToInfBlocks}},AbstractArray{V,N}}}) where {N,T,V}
     a,b = bc.args
@@ -72,7 +71,7 @@ BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<
 BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
 
 
-BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ∞
+BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ℵ₀
 BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
 
 ###

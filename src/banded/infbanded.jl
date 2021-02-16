@@ -1,3 +1,5 @@
+_BandedMatrix(data::AbstractMatrix{T}, ::Infinity, l, u) where T = _BandedMatrix(data, ℵ₀, l, u)
+
 ###
 # BandIndexing
 ###
@@ -52,10 +54,10 @@ _prepad(p, a::Zeros{T,1}) where T = Zeros{T}(length(a)+p)
 _prepad(p, a::Ones{T,1}) where T = Ones{T}(length(a)+p)
 _prepad(p, a::AbstractFill{T,1}) where T = Fill{T}(getindex_value(a), length(a)+p)
 
-banded_similar(T, (m,n)::Tuple{Int,Infinity}, (l,u)::Tuple{Int,Int}) = BandedMatrix{T}(undef, (n,m), (u,l))'
+banded_similar(T, (m,n)::Tuple{Int,PosInfinity}, (l,u)::Tuple{Int,Int}) = BandedMatrix{T}(undef, (n,m), (u,l))'
 
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:AbstractVector}}},
-                         ::NTuple{2,Infinity},
+                         ::NTuple{2,PosInfinity},
                          (l,u)::NTuple{2,Integer}) where T
     ks = getproperty.(kv, :first)
     l,u = -minimum(ks),maximum(ks)
@@ -64,12 +66,12 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:AbstractVector}}},
     for (k,j) in zip(u .- ks .+ 1,1:length(ks))
         c[k,j] = one(T)
     end
-    _BandedMatrix(ApplyArray(*,c,rws), ∞, l, u)
+    _BandedMatrix(ApplyArray(*,c,rws), ℵ₀, l, u)
 end
 
 # Construct InfToeplitz
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Fill{<:Any,1,Tuple{OneToInf{Int}}}}}},
-                         mn::NTuple{2,Infinity},
+                         mn::NTuple{2,PosInfinity},
                          lu::NTuple{2,Integer}) where T
     m,n = mn
     @assert isinf(n)
@@ -80,11 +82,11 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Fill{<:Any,1,Tuple{On
         t[u-k+1] = v.value
     end
 
-    return _BandedMatrix(t * Ones{T}(1,∞), m, l, u)
+    return _BandedMatrix(t * Ones{T}(1,∞), Integer(m), l, u)
 end
 
 function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{<:AbstractVector,Fill{<:Any,1,Tuple{OneToInf{Int}}}}}}}},
-                         mn::NTuple{2,Infinity},
+                         mn::NTuple{2,PosInfinity},
                          lu::NTuple{2,Integer}) where T
     m,n = mn
     @assert isinf(n)
@@ -105,7 +107,7 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{
         end
     end
 
-    return _BandedMatrix(Hcat(data, t * Ones{T}(1,∞)), m, l, u)
+    return _BandedMatrix(Hcat(data, t * Ones{T}(1,∞)), Integer(m), l, u)
 end
 
 
@@ -113,14 +115,14 @@ function BandedMatrix(Ac::Adjoint{T,<:InfToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
     a = A.data.args[1]
-    _BandedMatrix(reverse(conj(a)) * Ones{T}(1,∞), ∞, u, l)
+    _BandedMatrix(reverse(conj(a)) * Ones{T}(1,∞), ℵ₀, u, l)
 end
 
 function BandedMatrix(Ac::Transpose{T,<:InfToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
     a = A.data.args[1]
-    _BandedMatrix(reverse(a) * Ones{T}(1,∞), ∞, u, l)
+    _BandedMatrix(reverse(a) * Ones{T}(1,∞), ℵ₀, u, l)
 end
 
 function BandedMatrix(Ac::Adjoint{T,<:PertToeplitz}) where T
@@ -128,7 +130,7 @@ function BandedMatrix(Ac::Adjoint{T,<:PertToeplitz}) where T
     l,u = bandwidths(A)
     a,b = A.data.args
     Ac_fd = BandedMatrix(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)')
-    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.args[1])) * Ones{T}(1,∞)), ∞, u, l)
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.args[1])) * Ones{T}(1,∞)), ℵ₀, u, l)
 end
 
 function BandedMatrix(Ac::Transpose{T,<:PertToeplitz}) where T
@@ -136,7 +138,7 @@ function BandedMatrix(Ac::Transpose{T,<:PertToeplitz}) where T
     l,u = bandwidths(A)
     a,b = A.data.args
     Ac_fd = BandedMatrix(transpose(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)))
-    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.args[1]) * Ones{T}(1,∞)), ∞, u, l)
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.args[1]) * Ones{T}(1,∞)), ℵ₀, u, l)
 end
 
 
@@ -191,7 +193,7 @@ for op in (:-, :+)
             TV = promote_type(eltype(λ),V)
             a = convert(AbstractVector{TV}, $op.(A.data.args[1]))
             a[u+1] += λ.λ
-            _BandedMatrix(a*Ones{TV}(1,∞), ∞, l, u)
+            _BandedMatrix(a*Ones{TV}(1,∞), ℵ₀, l, u)
         end
 
         function $op(A::InfToeplitz{T}, λ::UniformScaling) where T
@@ -199,17 +201,17 @@ for op in (:-, :+)
             TV = promote_type(T,eltype(λ))
             a = TV[Zeros{TV}(max(-u,0)); A.data.args[1]; Zeros{TV}(max(-l,0))]
             a[max(0,u)+1] = $op(a[max(u,0)+1], λ.λ)
-            _BandedMatrix(a*Ones{TV}(1,∞), ∞, max(l,0), max(u,0))
+            _BandedMatrix(a*Ones{TV}(1,∞), ℵ₀, max(l,0), max(u,0))
         end
 
         function $op(λ::UniformScaling, A::PertToeplitz{V}) where V
             l,u = bandwidths(A)
             TV = promote_type(eltype(λ),V)
-            a, t = convert.(AbstractVector{TV}, A.data.args)
+            a, t = map(AbstractArray{TV}, A.data.args)
             b = $op.(t.args[1])
-            a[u+1,:] += λ.λ
+            a[u+1,:] .+= λ.λ
             b[u+1] += λ.λ
-            _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ∞, l, u)
+            _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ℵ₀, l, u)
         end
 
         function $op(A::PertToeplitz{T}, λ::UniformScaling) where T
@@ -220,7 +222,7 @@ for op in (:-, :+)
             b = AbstractVector{TV}(t.args[1])
             a[u+1,:] .= $op.(a[u+1,:],λ.λ)
             b[u+1] = $op(b[u+1], λ.λ)
-            _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ∞, l, u)
+            _BandedMatrix(Hcat(a, b*Ones{TV}(1,∞)), ℵ₀, l, u)
         end
     end
 end
@@ -237,7 +239,7 @@ function BandedMatrix(A::PertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     t = b.args[1] # topelitz part
     t_pad = vcat(t,Zeros(l-A.l))
     data = Hcat([vcat(a,Zeros{T}(l-A.l,size(a,2))) repeat(t_pad,1,l)], t_pad * Ones{T}(1,∞))
-    _BandedMatrix(data, ∞, l, u)
+    _BandedMatrix(data, ℵ₀, l, u)
 end
 
 function BandedMatrix(A::SymTriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
@@ -251,7 +253,7 @@ function BandedMatrix(A::SymTriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     data[u+1,length(a)+1:end] .= a∞.value
     data[u+2,1:length(b)] .= b
     data[u+2,length(b)+1:end] .= b∞.value
-    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; b∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ∞, l, u)
+    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; b∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ℵ₀, l, u)
 end
 
 function BandedMatrix(A::SymTridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::Tuple{Int,Int}) where T
@@ -262,7 +264,7 @@ function BandedMatrix(A::SymTridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)
     data[u,2:end] .= b∞.value
     data[u+1,1:end] .= a∞.value
     data[u+2,1:end] .= b∞.value
-    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; b∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ∞, l, u)
+    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; b∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ℵ₀, l, u)
 end
 
 function BandedMatrix(A::TriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
@@ -277,7 +279,7 @@ function BandedMatrix(A::TriPertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     data[u+1,length(a)+1:end] .= a∞.value
     data[u+2,1:length(c)] .= c
     data[u+2,length(c)+1:end] .= c∞.value
-    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ∞, l, u)
+    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ℵ₀, l, u)
 end
 
 function BandedMatrix(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::Tuple{Int,Int}) where T
@@ -289,14 +291,14 @@ function BandedMatrix(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::T
     data[u,2:end] .= b∞.value
     data[u+1,1:end] .= a∞.value
     data[u+2,1:end] .= c∞.value
-    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ∞, l, u)
+    _BandedMatrix(Hcat(data, [Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞)), ℵ₀, l, u)
 end
 
 function InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}, (l,u)::Tuple{Int,Int}) where T
     a∞ = A.d
     b∞ = A.du
     c∞ = A.dl
-    _BandedMatrix([Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞), ∞, l, u)
+    _BandedMatrix([Zeros{T}(u-1); b∞.value; a∞.value; c∞.value; Zeros{T}(l-1)] * Ones{T}(1,∞), ℵ₀, l, u)
 end
 
 InfToeplitz(A::Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}) where T = InfToeplitz(A, bandwidths(A))
@@ -384,8 +386,8 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 
 
 
-ArrayLayouts._apply(_, ::NTuple{2,Infinity}, op, Λ::UniformScaling, A::AbstractMatrix) = op(Diagonal(Fill(Λ.λ,∞)), A)
-ArrayLayouts._apply(_, ::NTuple{2,Infinity}, op, A::AbstractMatrix, Λ::UniformScaling) = op(A, Diagonal(Fill(Λ.λ,∞)))
+ArrayLayouts._apply(_, ::NTuple{2,InfiniteCardinal{0}}, op, Λ::UniformScaling, A::AbstractMatrix) = op(Diagonal(Fill(Λ.λ,∞)), A)
+ArrayLayouts._apply(_, ::NTuple{2,InfiniteCardinal{0}}, op, A::AbstractMatrix, Λ::UniformScaling) = op(A, Diagonal(Fill(Λ.λ,∞)))
 
 _default_banded_broadcast(bc::Broadcasted, ::Tuple{<:OneToInf,<:Any}) = copy(Broadcasted{LazyArrayStyle{2}}(bc.f, bc.args))
 
@@ -417,7 +419,7 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     l,u = Al+Bl,Au+Bu
     m = min(Au+Al,Bl+Bu)+1
     λ = getindex_value(bandeddata(A))*getindex_value(bandeddata(B))
-    ret = _BandedMatrix(Hcat(Array{typeof(λ)}(undef, l+u+1,u), [1:m-1; Fill(m,l+u-2m+3); m-1:-1:1]*Fill(λ,1,∞)), ∞, l, u)
+    ret = _BandedMatrix(Hcat(Array{typeof(λ)}(undef, l+u+1,u), [1:m-1; Fill(m,l+u-2m+3); m-1:-1:1]*Fill(λ,1,∞)), ℵ₀, l, u)
     mul!(view(ret, 1:l+u,1:u), view(A,1:l+u,1:u+Bl), view(B,1:u+Bl,1:u))
     ret
 end

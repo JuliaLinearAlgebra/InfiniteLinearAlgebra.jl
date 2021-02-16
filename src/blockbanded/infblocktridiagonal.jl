@@ -35,8 +35,8 @@ sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.diag, 1), si
 sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
 sizes_from_blocks(A::Bidiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.dv, 1), size.(A.dv,2)
 
-axes_print_matrix_row(_, io, X, A, i, ::AbstractVector{<:Infinity}, sep) = nothing
-axes_print_matrix_row(::NTuple{2,BlockedUnitRange}, io, X, A, i, ::AbstractVector{<:Infinity}, sep) = nothing
+axes_print_matrix_row(_, io, X, A, i, ::AbstractVector{<:PosInfinity}, sep) = nothing
+axes_print_matrix_row(::NTuple{2,BlockedUnitRange}, io, X, A, i, ::AbstractVector{<:PosInfinity}, sep) = nothing
 
 
 function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
@@ -67,7 +67,7 @@ function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
     end
 
     BlockSkylineSizes(axes(A),
-                        _BandedMatrix(Hcat(block_starts.data, Vcat(adjoint.(bs∞)...)), ∞, l, u),
+                        _BandedMatrix(Hcat(block_starts.data, Vcat(adjoint.(bs∞)...)), ℵ₀, l, u),
                         Vcat(block_strides, Fill(block_stride∞,∞)),
                         Fill(l,∞),Fill(u,∞))
 end

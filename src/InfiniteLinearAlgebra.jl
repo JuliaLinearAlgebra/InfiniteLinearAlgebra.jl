@@ -13,7 +13,7 @@ import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, trian
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast, banded_similar
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
-import InfiniteArrays: OneToInf, InfUnitRange, Infinity, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
+import InfiniteArrays: OneToInf, InfUnitRange, Infinity, PosInfinity, InfiniteCardinal, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
 import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     resizedata!, MemoryLayout,
@@ -44,7 +44,7 @@ end
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
-function ArrayLayouts._power_by_squaring(_, ::NTuple{2,Infinity}, A::AbstractMatrix{T}, p::Integer) where T
+function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::AbstractMatrix{T}, p::Integer) where T
     if p < 0
         inv(A)^(-p)
     elseif p == 0
