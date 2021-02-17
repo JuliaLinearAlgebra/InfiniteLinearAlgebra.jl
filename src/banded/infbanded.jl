@@ -367,7 +367,7 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 
 @inline sub_materialize(::ApplyBandedLayout{typeof(*)}, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BroadcastBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
-@inline sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
+@inline sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
 
 
@@ -478,3 +478,5 @@ end
 
 MemoryLayout(::Type{<:LazyBandedMatrices.Tridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}},<:Any,<:Any}})  =
     LazyBandedLayout()
+MemoryLayout(::Type{<:LazyBandedMatrices.SymTridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}},<:Any,}})  =
+    LazyBandedLayout()    
