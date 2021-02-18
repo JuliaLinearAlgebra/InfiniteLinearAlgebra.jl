@@ -1,7 +1,7 @@
 const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{T},1,Tuple{Vector{Matrix{T}},Fill{Matrix{T},1,Tuple{OneToInf{Int}}}}}},
                                         NTuple{2,BlockedUnitRange{Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
 
-const BlockTridiagonalToeplitzLayout = BlockLayout{TridiagonalLayout{FillLayout},DenseColumnMajor}
+const BlockTridiagonalToeplitzLayout = BlockLayout{TridiagonalToeplitzLayout,DenseColumnMajor}
 
 function BlockTridiagonal(adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T
     A = parent(adjA)
@@ -33,7 +33,9 @@ end
 
 sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.diag, 1), size.(A.diag,2)
 sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
+sizes_from_blocks(A::LazyBandedMatrices.Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
 sizes_from_blocks(A::Bidiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.dv, 1), size.(A.dv,2)
+sizes_from_blocks(A::LazyBandedMatrices.Bidiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.dv, 1), size.(A.dv,2)
 
 axes_print_matrix_row(_, io, X, A, i, ::AbstractVector{<:PosInfinity}, sep) = nothing
 axes_print_matrix_row(::NTuple{2,BlockedUnitRange}, io, X, A, i, ::AbstractVector{<:PosInfinity}, sep) = nothing

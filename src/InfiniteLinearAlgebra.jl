@@ -4,7 +4,7 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMa
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
-            show, getproperty, copy, map, require_one_based_indexing, similar, inv
+            show, getproperty, copy, copyto!, map, require_one_based_indexing, similar, inv
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
@@ -27,7 +27,7 @@ import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUn
 
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
 
-import LazyBandedMatrices: ApplyBandedLayout, BroadcastBandedLayout, _krontrav_axes, _block_interlace_axes
+import LazyBandedMatrices: ApplyBandedLayout, BroadcastBandedLayout, _krontrav_axes, _block_interlace_axes, LazyBandedLayout,AbstractLazyBandedLayout
 
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal,
