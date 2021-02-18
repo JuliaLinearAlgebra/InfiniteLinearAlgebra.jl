@@ -80,7 +80,7 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
     end
 
     @testset "Pert-Toeplitz" begin
-        @test "Inf Pert" begin
+        @testset "Inf Pert" begin
             A = BandedMatrix(-2 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([1.0+im,2,3],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
             @test A isa PertToeplitz
             @test MemoryLayout(typeof(A)) == PertToeplitzLayout()
