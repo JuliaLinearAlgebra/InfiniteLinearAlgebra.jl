@@ -342,7 +342,7 @@ for Typ in (:ConstRows, :PertConstRows)
     end
 end
 
-const TridiagonalToeplitzLayout = Union{SymTridiagonalLayout{FillLayout},TridiagonalLayout{FillLayout}}
+struct TridiagonalToeplitzLayout <: AbstractLazyBandedLayout end
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}
 const PertTriangularToeplitzLayout{UPLO,UNIT} = TriangularLayout{UPLO,UNIT,BandedColumns{PertConstRows}}
@@ -476,15 +476,24 @@ end
 # this could possibly be avoided via an InfFillLayout
 ###
 
-for Typ in (:(LinearAlgebra.Tridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}}}),
-            :(LinearAlgebra.SymTridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}}}),
-            :(LinearAlgebra.Bidiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}}}),
-            :(LazyBandedMatrices.Tridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}},<:Any,<:Any}),
-            :(LazyBandedMatrices.SymTridiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}},<:Any}),
-            :(LazyBandedMatrices.Bidiagonal{<:Any,<:AbstractFill{<:Any,1,<:Tuple{OneToInf}},<:Any}))
+const InfFill = AbstractFill{<:Any,1,<:Tuple{OneToInf}}
+
+for Typ in (:(LinearAlgebra.Tridiagonal{<:Any,<:InfFill}),
+            :(LinearAlgebra.SymTridiagonal{<:Any,<:InfFill}),
+            :(LazyBandedMatrices.Tridiagonal{<:Any,<:InfFill,<:InfFill,<:InfFill}),
+            :(LazyBandedMatrices.SymTridiagonal{<:Any,<:InfFill,<:InfFill}))
     @eval begin
-        MemoryLayout(::Type{<:$Typ}) = LazyBandedLayout()
+        MemoryLayout(::Type{<:$Typ}) = TridiagonalToeplitzLayout()
         Base.BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
     end
 end
 
+struct BidiagonalToeplitzLayout <: AbstractLazyBandedLayout end
+
+for Typ in (:(LinearAlgebra.Bidiagonal{<:Any,<:InfFill}),
+            :(LazyBandedMatrices.Bidiagonal{<:Any,<:InfFill,<:InfFill}))
+    @eval begin
+        MemoryLayout(::Type{<:$Typ}) = BidiagonalToeplitzLayout()
+        Base.BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
+    end
+end

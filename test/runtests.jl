@@ -2,7 +2,8 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
         MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
-                    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, BandedToeplitzLayout, PertToeplitzLayout
+                    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, 
+                    BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout
 import Base: BroadcastStyle
 import BlockArrays: _BlockArray
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
@@ -14,30 +15,32 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
 
 @testset "∞-banded" begin
-    D = Diagonal(Fill(2,∞))
+    @testset "Diagonal and BandedMatrix" begin
+        D = Diagonal(Fill(2,∞))
 
-    B = D[1:∞,2:∞]
-    @test B isa BandedMatrix
-    @test B[1:10,1:10] == diagm(-1 => Fill(2,9))
-    @test B[1:∞,2:∞] isa BandedMatrix
+        B = D[1:∞,2:∞]
+        @test B isa BandedMatrix
+        @test B[1:10,1:10] == diagm(-1 => Fill(2,9))
+        @test B[1:∞,2:∞] isa BandedMatrix
 
-    A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
-    x = [1; 2; zeros(∞)]
-    @test A*x isa Vcat
-    @test (A*x)[1:10] == A[1:10,1:10]*x[1:10]
+        A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0,∞), -1 => Fill(3.0,∞))
+        x = [1; 2; zeros(∞)]
+        @test A*x isa Vcat
+        @test (A*x)[1:10] == A[1:10,1:10]*x[1:10]
 
-    @test InfBandCartesianIndices(0)[1:5] == CartesianIndex.(1:5,1:5)
-    @test InfBandCartesianIndices(1)[1:5] == CartesianIndex.(1:5,2:6)
-    @test InfBandCartesianIndices(-1)[1:5] == CartesianIndex.(2:6,1:5)
+        @test InfBandCartesianIndices(0)[1:5] == CartesianIndex.(1:5,1:5)
+        @test InfBandCartesianIndices(1)[1:5] == CartesianIndex.(1:5,2:6)
+        @test InfBandCartesianIndices(-1)[1:5] == CartesianIndex.(2:6,1:5)
 
-    @test D[band(0)] ≡ Fill(2,∞)
-    @test D[band(1)] ≡ Fill(0,∞)
-    @test A[band(0)][2:10] == 2:10
+        @test A[band(0)][2:10] == 2:10
+        @test D[band(0)] ≡ Fill(2,∞)
+        @test D[band(1)] ≡ Fill(0,∞)
 
-    @test B*A*x isa Vcat
-    @test (B*A*x)[1:10] == [0; 10; 14; 12; zeros(6)]
+        @test B*A*x isa Vcat
+        @test (B*A*x)[1:10] == [0; 10; 14; 12; zeros(6)]
 
-    @test _BandedMatrix((1:∞)', ∞, -1, 1) isa BandedMatrix 
+        @test _BandedMatrix((1:∞)', ∞, -1, 1) isa BandedMatrix 
+    end
 
     @testset "∞-Toeplitz" begin
         A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
@@ -52,12 +55,12 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
         @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
 
-        @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa LazyBandedLayout
-        @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa LazyBandedLayout
-        @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa LazyBandedLayout
-        @test MemoryLayout(LazyBandedMatrices.Tridiagonal(Fill(1,∞), Zeros(∞), Fill(3,∞))) isa LazyBandedLayout
-        @test MemoryLayout(LazyBandedMatrices.Bidiagonal(Fill(1,∞), Zeros(∞), :U)) isa LazyBandedLayout
-        @test MemoryLayout(LazyBandedMatrices.SymTridiagonal(Fill(1,∞), Zeros(∞))) isa LazyBandedLayout
+        @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
+        @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa BidiagonalToeplitzLayout
+        @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa TridiagonalToeplitzLayout
+        @test MemoryLayout(LazyBandedMatrices.Tridiagonal(Fill(1,∞), Zeros(∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
+        @test MemoryLayout(LazyBandedMatrices.Bidiagonal(Fill(1,∞), Zeros(∞), :U)) isa BidiagonalToeplitzLayout
+        @test MemoryLayout(LazyBandedMatrices.SymTridiagonal(Fill(1,∞), Zeros(∞))) isa TridiagonalToeplitzLayout
 
         T = LazyBandedMatrices.Tridiagonal(Fill(1,∞), Zeros(∞), Fill(3,∞))
         @test T[2:∞,3:∞] isa SubArray
