@@ -24,8 +24,8 @@ FillArrays = "0.11"
 InfiniteArrays = "0.10"
 LazyArrays = "0.20.2"
 LazyBandedMatrices = "0.5"
-MatrixFactorizations = "0.7.1, 0.8"
-SemiseparableMatrices = "0.2.2"
+MatrixFactorizations = "0.8"
+SemiseparableMatrices = "0.2.3"
 julia = "1.5"
 
 [extras]
