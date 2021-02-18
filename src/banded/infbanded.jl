@@ -497,3 +497,7 @@ for Typ in (:(LinearAlgebra.Bidiagonal{<:Any,<:InfFill}),
         Base.BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
     end
 end
+
+# fall back for Ldiv
+triangularlayout(::Type{<:TriangularLayout{UPLO,'N'}}, ::TridiagonalToeplitzLayout) where UPLO = BidiagonalToeplitzLayout()
+materialize!(L::MatLdivVec{BidiagonalToeplitzLayout,Lay}) where Lay = materialize!(Ldiv{BidiagonalLayout{FillLayout,FillLayout},Lay}(L.A, L.B))
