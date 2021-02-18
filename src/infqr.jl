@@ -151,6 +151,7 @@ _qr(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 _qr(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 __qr(_, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
 _qr(::AbstractBlockBandedLayout, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
+_factorize(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
 
 partialqr!(F::QR, n) = partialqr!(F.factors, n)
 partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)

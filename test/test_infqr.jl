@@ -100,6 +100,12 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞))
             @time J = A \ Vcat([besselj(1,z)], Zeros(∞))
             @test J[1:20_000] ≈ [besselj(k,z) for k=0:20_000-1]
+
+            # Tridiagonal works too
+            A =  LazyBandedMatrices.Tridiagonal(Ones(∞), -2*(0:∞)/z, Ones(∞))
+            @test factorize(A) isa MatrixFactorizations.QR
+            @time J = A \ [besselj(1,z); Zeros(∞)]
+            @test J[1:20_000] ≈ [besselj(k,z) for k=0:20_000-1]
         end
 
         @testset "5-band" begin
