@@ -10,7 +10,7 @@ import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
 import InfiniteArrays: OneToInf, oneto
-import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout
+import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout
 
 
 @testset "∞-banded" begin
@@ -51,6 +51,18 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
         @test A[:,3:end] isa InfToeplitz
 
         @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
+
+        @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa LazyBandedLayout
+        @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa LazyBandedLayout
+        @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa LazyBandedLayout
+        @test MemoryLayout(LazyBandedMatrices.Tridiagonal(Fill(1,∞), Zeros(∞), Fill(3,∞))) isa LazyBandedLayout
+        @test MemoryLayout(LazyBandedMatrices.Bidiagonal(Fill(1,∞), Zeros(∞), :U)) isa LazyBandedLayout
+        @test MemoryLayout(LazyBandedMatrices.SymTridiagonal(Fill(1,∞), Zeros(∞))) isa LazyBandedLayout
+
+        T = LazyBandedMatrices.Tridiagonal(Fill(1,∞), Zeros(∞), Fill(3,∞))
+        @test T[2:∞,3:∞] isa SubArray
+        @test exp.(T) isa BroadcastMatrix
+        @test exp.(T)[2:∞,3:∞] isa SubArray
     end
 
     @testset "Pert-Toeplitz" begin
@@ -296,6 +308,18 @@ end
         @test (A + im*I)[1:100,1:100] == A[1:100,1:100]+im*I
         @test (im*I + A)[1:100,1:100] == im*I+A[1:100,1:100]
         @test (im*I - A)[1:100,1:100] == im*I-A[1:100,1:100]
+
+        T = mortar(LazyBandedMatrices.Tridiagonal(Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞)))
+        #TODO: copy BlockBidiagonal code from BlockBandedMatrices to LazyBandedMatrices
+        @test T[Block(2,2)] == [1 2; 3 4]
+        @test_broken T[Block(1,3)] == Zeros(2,2)
+    end
+
+    @testset "BlockBidiagonal" begin
+        B = mortar(LazyBandedMatrices.Bidiagonal(Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞), :U))
+        #TODO: copy BlockBidiagonal code from BlockBandedMatrices to LazyBandedMatrices
+        @test B[Block(2,3)] == [1 2; 3 4]
+        @test_broken B[Block(1,3)] == Zeros(2,2)
     end
 
     @testset "Fill" begin
