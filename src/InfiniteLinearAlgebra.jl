@@ -4,7 +4,7 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMa
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, size, axes,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
-            show, getproperty, copy, map, require_one_based_indexing, similar, inv
+            show, getproperty, copy, copyto!, map, require_one_based_indexing, similar, inv
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 

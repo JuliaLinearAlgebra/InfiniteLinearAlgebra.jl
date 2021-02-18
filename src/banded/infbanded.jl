@@ -501,3 +501,4 @@ end
 # fall back for Ldiv
 triangularlayout(::Type{<:TriangularLayout{UPLO,'N'}}, ::TridiagonalToeplitzLayout) where UPLO = BidiagonalToeplitzLayout()
 materialize!(L::MatLdivVec{BidiagonalToeplitzLayout,Lay}) where Lay = materialize!(Ldiv{BidiagonalLayout{FillLayout,FillLayout},Lay}(L.A, L.B))
+copyto!(dest::AbstractArray, L::Ldiv{BidiagonalToeplitzLayout,Lay}) where Lay = copyto!(dest, Ldiv{BidiagonalLayout{FillLayout,FillLayout},Lay}(L.A, L.B))

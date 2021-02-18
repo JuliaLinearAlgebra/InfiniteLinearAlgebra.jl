@@ -1,7 +1,7 @@
 using InfiniteLinearAlgebra, BlockArrays, ArrayLayouts, Test
 import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
 
-@testset "Block Toeplitz UL" begin
+@testset "∞-UL" begin
     @testset "Toeplitz" begin
         Δ = SymTridiagonal(Fill(-2,∞), Fill(1,∞))
         h = 0.01
