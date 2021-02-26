@@ -114,6 +114,12 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
             @test (A*B)[1:20,1:20] == A[1:20,1:23]*B[1:23,1:20]
         end
     end
+
+    @testset "adjortrans" begin
+        A = BandedMatrix(0 => 1:∞, 1=> Fill(2.0+im,∞), -1 => Fill(3.0,∞))
+        @test copy(A')[1:10,1:10] == (A')[1:10,1:10]
+        @test copy(transpose(A))[1:10,1:10] == transpose(A)[1:10,1:10]
+    end
 end
 
 @testset "∞-block arrays" begin
