@@ -502,3 +502,8 @@ end
 triangularlayout(::Type{<:TriangularLayout{UPLO,'N'}}, ::TridiagonalToeplitzLayout) where UPLO = BidiagonalToeplitzLayout()
 materialize!(L::MatLdivVec{BidiagonalToeplitzLayout,Lay}) where Lay = materialize!(Ldiv{BidiagonalLayout{FillLayout,FillLayout},Lay}(L.A, L.B))
 copyto!(dest::AbstractArray, L::Ldiv{BidiagonalToeplitzLayout,Lay}) where Lay = copyto!(dest, Ldiv{BidiagonalLayout{FillLayout,FillLayout},Lay}(L.A, L.B))
+
+
+# copy for AdjOrTrans
+copy(A::Adjoint{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = copy(parent(A))'
+copy(A::Transpose{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = transpose(copy(parent(A))) 
