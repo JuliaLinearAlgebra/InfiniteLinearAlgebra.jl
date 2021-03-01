@@ -367,8 +367,6 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 # end
 
 sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
-sub_materialize(::AbstractBandedLayout, V, ::Tuple{Any,InfAxes}) = V
-sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,Any}) = V
 sub_materialize(::AbstractBandedLayout, V, ::Tuple{OneTo{Int},InfAxes}) = V
 sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,OneTo{Int}}) = V
 
