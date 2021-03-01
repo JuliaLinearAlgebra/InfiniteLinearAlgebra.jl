@@ -122,9 +122,9 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
     end
 
     @testset "Eye subindex" begin
-        @test Eye(∞)[:,1:3][1:5,:] == Eye(5,3)
-        @test Eye(∞)[1:3,:][:,1:5] == Eye(3,5)
-        @test Eye(∞)[:,:][1:5,1:3] == Eye(5,3)
+        @test Eye(∞)[:,1:3][1:5,:] == Eye(∞)[Base.Slice(oneto(∞)),1:3][1:5,:] == Eye(5,3)
+        @test Eye(∞)[1:3,:][:,1:5] == Eye(∞)[1:3,Base.Slice(oneto(∞))][:,1:5] == Eye(3,5)
+        @test Eye(∞)[:,:][1:5,1:3] == Eye(∞)[Base.Slice(oneto(∞)),Base.Slice(oneto(∞))][1:5,1:3] == Eye(5,3)
     end
 end
 
