@@ -374,6 +374,7 @@ sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,OneTo{Int}}) = V
 @inline sub_materialize(::BroadcastBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
 
+sub_materialize(_, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
 
 ##
 # UniformScaling
