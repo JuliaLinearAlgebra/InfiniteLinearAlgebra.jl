@@ -26,12 +26,15 @@ function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},Inf
 end
 
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (map(length,A),)
+length(::BlockedUnitRange{<:InfRanges}) = ℵ₀
 
 const OneToInfBlocks = BlockedUnitRange{OneToInfCumsum}
 const OneToBlocks = BlockedUnitRange{OneToCumsum}
 
 axes(a::OneToInfBlocks) = (a,)
 axes(a::OneToBlocks) = (a,)
+
+LazyBandedMatrices.unitblocks(a::OneToInf) = blockedrange(Ones{Int}(length(a)))
 
 BlockArrays.dimlength(start, ::Infinity) = ℵ₀
 
@@ -70,9 +73,6 @@ BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,Blo
 BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
 BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
 
-
-BlockArrays._length(::BlockedUnitRange, ::OneToInf) = ℵ₀
-BlockArrays._last(::BlockedUnitRange, ::OneToInf) = ∞
 
 ###
 # KronTrav

@@ -2,7 +2,7 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
         MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
-                    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, 
+                    rightasymptotics, QLHessenberg, ConstRows, PertConstRows,
                     BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout
 import Base: BroadcastStyle
 import BlockArrays: _BlockArray
@@ -10,7 +10,7 @@ import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, ApplyStyle, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
-import InfiniteArrays: OneToInf, oneto
+import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout
 
 
@@ -39,7 +39,7 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
         @test B*A*x isa Vcat
         @test (B*A*x)[1:10] == [0; 10; 14; 12; zeros(6)]
 
-        @test _BandedMatrix((1:∞)', ∞, -1, 1) isa BandedMatrix 
+        @test _BandedMatrix((1:∞)', ∞, -1, 1) isa BandedMatrix
     end
 
     @testset "∞-Toeplitz" begin
@@ -103,7 +103,7 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
             @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
             @test (Adjoint(A) + 2I)[1:10,1:10] == (2I + Adjoint(A))[1:10,1:10] == Adjoint(A)[1:10,1:10] + 2I
         end
-        
+
 
         @testset "InfBanded" begin
             A = _BandedMatrix(Fill(2,4,∞),ℵ₀,2,1)
@@ -134,12 +134,24 @@ end
         n = Fill.(oneto(∞),oneto(∞))
         @test broadcast(length,k) ≡ map(length,k) ≡ OneToInf()
         @test broadcast(length,n) ≡ map(length,n) ≡ OneToInf()
+
         b = mortar(Fill([1,2],∞))
         @test blockaxes(b,1) ≡ Block.(OneToInf())
         @test b[Block(5)] == [1,2]
+        @test b[Block.(2:∞)][Block.(2:10)] == b[Block.(3:11)]
+        @test exp.(b)[Block.(2:∞)][Block.(2:10)] == exp.(b[Block.(3:11)])
+
+        c = PseudoBlockArray(1:∞,Vcat(2,Fill(3,∞)))
+        @test c[Block.(2:∞)][Block.(2:10)] == c[Block.(3:11)]
+
         @test length(axes(b,1)) ≡ ℵ₀
-        @test last(axes(b,1)) ≡ ∞
+        @test last(axes(b,1)) ≡ RealInfinity()
         @test Base.BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
+
+        @test unitblocks(oneto(∞)) ≡ blockedrange(Ones{Int}(∞))
+        @test unitblocks(2:∞) == 2:∞
+
+        @test unitblocks(oneto(∞))[Block.(2:∞)] == 2:∞
     end
 
     @testset "1:∞ blocks" begin
@@ -193,8 +205,8 @@ end
 
     @testset "triangle recurrences" begin
         @testset "n and k" begin
-            n = mortar(Fill.(oneto(∞),oneto(∞)))
-            k = mortar(Base.OneTo.(oneto(∞)))
+            n = mortar(Fill.(oneto(∞),oneto(∞)));
+            k = mortar(Base.OneTo.(oneto(∞)));
 
             @test n[Block(5)] ≡ layout_getindex(n, Block(5)) ≡ view(n,Block(5)) ≡ Fill(5,5)
             @test k[Block(5)] ≡ layout_getindex(k, Block(5)) ≡ view(k,Block(5)) ≡ Base.OneTo(5)
@@ -216,6 +228,11 @@ end
             @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
             @test @allocated(axes(v)) ≤ 40
             @test copyto!(dest, v) == v
+
+            @testset "stack overflow" begin
+                i = Base.to_indices(k, (Block.(2:∞),))[1].indices;
+                last(i)
+            end
 
             v = view(k,Block.(2:∞))
             @test Base.BroadcastStyle(typeof(v)) isa LazyArrayStyle{1}
@@ -254,7 +271,7 @@ end
             n = mortar(Fill.(oneto(∞),oneto(∞)))
             k = mortar(Base.OneTo.(oneto(∞)))
             Dy = BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))', axes(k,1), (-1,1), (-1,1))
-            N = 100; 
+            N = 100;
             @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b+c))[Block.(1:N)]', axes(k,1)[Block.(1:N)], (-1,1), (-1,1))
         end
     end
