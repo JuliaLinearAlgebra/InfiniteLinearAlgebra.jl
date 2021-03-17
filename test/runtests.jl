@@ -134,12 +134,24 @@ end
         n = Fill.(oneto(∞),oneto(∞))
         @test broadcast(length,k) ≡ map(length,k) ≡ OneToInf()
         @test broadcast(length,n) ≡ map(length,n) ≡ OneToInf()
+
         b = mortar(Fill([1,2],∞))
         @test blockaxes(b,1) ≡ Block.(OneToInf())
         @test b[Block(5)] == [1,2]
+        @test b[Block.(2:∞)][Block.(2:10)] == b[Block.(3:11)]
+        @test exp.(b)[Block.(2:∞)][Block.(2:10)] == exp.(b[Block.(3:11)])
+
+        c = PseudoBlockArray(1:∞,Vcat(2,Fill(3,∞)))
+        @test c[Block.(2:∞)][Block.(2:10)] == c[Block.(3:11)]
+
         @test length(axes(b,1)) ≡ ℵ₀
         @test last(axes(b,1)) ≡ RealInfinity()
         @test Base.BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
+
+        @test unitblocks(oneto(∞)) ≡ blockedrange(Ones{Int}(∞))
+        @test unitblocks(2:∞) == 2:∞
+
+        @test unitblocks(oneto(∞))[Block.(2:∞)] == 2:∞
     end
 
     @testset "1:∞ blocks" begin
