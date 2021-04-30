@@ -1,35 +1,13 @@
 
-
-
-using BandedMatrices, ArrayLayouts, InfiniteLinearAlgebra, LazyArrays
-import BandedMatrices: banded_chol!
-import LazyArrays: resizedata!, CachedMatrix
-
-A = Symmetric(brand(10,10,1,1) + 10I)
-U = cholesky(A).U
-banded_chol!(view(parent(A),1:3,1:3),UpperTriangular)
-
-P = parent(A)
-B = view(P,1:3,4:10)
-ldiv!(UpperTriangular(view(P,1:3,1:3))', B)
-
-
-B = BandedMatrix(view(P,1:3,4:10))
-C = view(P,4:10,4:10)
-muladd!(-1.0,B',B,1.0,C)
-B'B
-
-
-T = eltype(C)
-_,u = bandwidths(C)
-ncols = 0
-n = 100
-
-
 mutable struct AdaptiveCholeskyFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: LayoutMatrix{T}
     data::CachedMatrix{T,DM,M}
     ncols::Int
 end
+
+size(U::AdaptiveCholeskyFactors) = size(U.data.array)
+bandwidths(A::AdaptiveCholeskyFactors) = (0,bandwidth(A.data,2))
+colsupport(A::AdaptiveCholeskyFactors,j) = colsupport(A.data,j)
+AdaptiveCholeskyFactors(A::Symmetric) = AdaptiveCholeskyFactors(cache(parent(A)),0)
 
 
 function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) where T
@@ -50,43 +28,13 @@ function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) 
     F
 end
 
-A = Symmetric(BandedMatrix(0 => 1:∞, 1=> Ones(∞)))
-F = AdaptiveCholeskyFactors(cache(parent(A)), 0);
-partialcholesky!(F,5);
-partialcholesky!(F,10);
-
-@test F.data.data[1:10,1:10] ≈ cholesky(Symmetric(A[1:10,1:10])).U
-
-kr = ncols+1:n
+function getindex(F::AdaptiveCholeskyFactors, k::Int, j::Int)
+    partialcholesky!(F, max(k,j))
+    F.data.data[k,j]
+end
 
 
+adaptivecholesky(A) = Cholesky(AdaptiveCholeskyFactors(A), :U, 0)
 
 
-
-
-
-
-A[1:100,1:100]  |> Symmetric |> eigvals
-
-
-cholesky(Symmetric(view(P,4:10,4:10) - B'B)).U - U[4:end,4:end]
-
-
-
-A
-U
-U
-
-A
-
-A = Symmetric(brand(10,10,1,1) + 10I, :L)
-L = cholesky(A).L
-
-L = cholesky(A).L
-L*L' - A
-U'U - A
-U*U'
-
-BandedMatrices.banded_chol!(view(parent(A),1:5,1:5), UpperTriangular)
-
-cholesky(A)
+ArrayLayouts._cholesky(::SymmetricLayout{<:AbstractBandedLayout}, ::NTuple{2,OneToInf{Int}}, A) = adaptivecholesky(A)

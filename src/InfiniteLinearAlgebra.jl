@@ -25,7 +25,7 @@ import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, 
 
 import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange, blockcolsupport, BlockLayout, AbstractBlockLayout, BlockSlice
 
-import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
+import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix, banded_chol!
 
 import LazyBandedMatrices: ApplyBandedLayout, BroadcastBandedLayout, _krontrav_axes, _block_interlace_axes, LazyBandedLayout,AbstractLazyBandedLayout
 
@@ -66,6 +66,7 @@ include("banded/infqltoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
 include("inful.jl")
+include("infcholesky.jl")
 
 
 end # module
