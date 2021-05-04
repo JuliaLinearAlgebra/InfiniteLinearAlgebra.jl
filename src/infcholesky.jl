@@ -92,3 +92,10 @@ function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveLayout}
     end
     B
 end
+
+function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveCholeskyFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}})
+    n = B.datasize[1]
+    partialcholesky!(parent(R), n)
+    ldiv!(UpperTriangular(view(parent(R).data.data,oneto(n),oneto(n))), view(B.data,oneto(n)))
+    B
+end
