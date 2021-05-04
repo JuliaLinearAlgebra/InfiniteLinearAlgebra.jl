@@ -16,7 +16,7 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
-ArrayLayouts = "0.6"
+ArrayLayouts = "0.7"
 BandedMatrices = "0.16"
 BlockArrays = "0.14.5, 0.15"
 BlockBandedMatrices = "0.10"
