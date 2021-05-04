@@ -6,8 +6,8 @@ end
 
 size(U::AdaptiveCholeskyFactors) = size(U.data.array)
 bandwidths(A::AdaptiveCholeskyFactors) = (0,bandwidth(A.data,2))
-colsupport(A::AdaptiveCholeskyFactors,j) = colsupport(A.data,j)
 AdaptiveCholeskyFactors(A::Symmetric) = AdaptiveCholeskyFactors(cache(parent(A)),0)
+MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
 
 
 function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) where T
@@ -38,3 +38,57 @@ adaptivecholesky(A) = Cholesky(AdaptiveCholeskyFactors(A), :U, 0)
 
 
 ArrayLayouts._cholesky(::SymmetricLayout{<:AbstractBandedLayout}, ::NTuple{2,OneToInf{Int}}, A) = adaptivecholesky(A)
+
+function colsupport(F::AdaptiveCholeskyFactors, j)
+    partialcholesky!(F, maximum(j)+bandwidth(F,2))
+    colsupport(F.data.data, j)
+end
+
+function rowsupport(F::AdaptiveCholeskyFactors, j)
+    partialcholesky!(F, maximum(j)+bandwidth(F,2))
+    rowsupport(F.data.data, j)
+end
+
+colsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = rowsupport(parent(F), j)
+rowsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = colsupport(parent(F), j)
+
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveLayout},<:PaddedLayout})
+    A,B = M.A,M.B
+    T = eltype(M)
+    COLGROWTH = 1000 # rate to grow columns
+    tol = floatmin(real(T))
+
+    require_one_based_indexing(B)
+    mA, nA = size(A)
+    mB = length(B)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    sB = B.datasize[1]
+    l,_ = bandwidths(A)
+
+    jr = 1:min(COLGROWTH,nA)
+
+    P = parent(parent(A))
+
+    @inbounds begin
+        while first(jr) < nA
+            j = first(jr)
+            cs = colsupport(A, last(jr))
+            cs_max = maximum(cs)
+            kr = j:cs_max
+            resizedata!(B, min(cs_max,mB))
+            if (j > sB && maximum(abs,view(B.data,j:last(colsupport(P,j)))) ≤ tol)
+                break
+            end
+            partialcholesky!(P, min(cs_max,nA))
+            U_N = UpperTriangular(view(P.data.data, jr, jr))
+            ldiv!(U_N', view(B.data, jr))
+            jr1 = last(jr)-l+1:last(jr)
+            jr2 = last(jr)+1:last(jr)+l
+            muladd!(-one(T), view(P.data.data, jr1,jr2)', view(B.data,jr1), one(T), view(B.data,jr2))
+            jr = last(jr)+1:min(last(jr)+COLGROWTH,nA)
+        end
+    end
+    B
+end
