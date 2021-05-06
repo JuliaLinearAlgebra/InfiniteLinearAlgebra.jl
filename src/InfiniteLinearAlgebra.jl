@@ -9,12 +9,12 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
                         sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata,
-                        _bidiag_forwardsub!, mulreduce, RangeCumsum, _factorize
+                        _bidiag_forwardsub!, mulreduce, RangeCumsum, _factorize, transposelayout, ldiv!, lmul!, mul
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
                         _default_banded_broadcast, banded_similar
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, PosInfinity, InfiniteCardinal, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
-import LinearAlgebra: lmul!,  ldiv!, matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose
+import LinearAlgebra: matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose, AdjOrTrans
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
                     resizedata!, MemoryLayout,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
@@ -25,7 +25,7 @@ import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, 
 
 import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange, blockcolsupport, BlockLayout, AbstractBlockLayout, BlockSlice
 
-import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix
+import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix, banded_chol!
 
 import LazyBandedMatrices: ApplyBandedLayout, BroadcastBandedLayout, _krontrav_axes, _block_interlace_axes, LazyBandedLayout,AbstractLazyBandedLayout
 
@@ -66,6 +66,7 @@ include("banded/infqltoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
 include("inful.jl")
+include("infcholesky.jl")
 
 
 end # module

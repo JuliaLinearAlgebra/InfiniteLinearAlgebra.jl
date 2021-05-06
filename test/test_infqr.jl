@@ -148,6 +148,12 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             b = [[1,2,3]; zeros(∞)]
             @test A \ b == [ones(3); zeros(∞)]
         end
+
+        @testset "Symmetric" begin
+            A = Symmetric(BandedMatrix(0 => 1:∞, 1=> Ones(∞)))
+            Ã = BandedMatrix(0 => 1:∞, 1=> Ones(∞), -1=> Ones(∞))
+            @test qr(A).R[1:10,1:10] ≈ qr(Ã).R[1:10,1:10]
+        end
     end
 
     @testset "almost-banded" begin

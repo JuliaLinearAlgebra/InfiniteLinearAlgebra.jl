@@ -88,6 +88,9 @@ struct ProductQ{T,QQ<:Tuple} <: AbstractQ{T}
     Qs::QQ
 end
 
+ArrayLayouts.@layoutmatrix ProductQ
+ArrayLayouts.@_layoutlmul ProductQ
+
 ProductQ(Qs::AbstractMatrix...) = ProductQ{mapreduce(eltype,promote_type,Qs),typeof(Qs)}(Qs)
 
 adjoint(Q::ProductQ) = ProductQ(reverse(map(adjoint,Q.Qs))...)
@@ -109,8 +112,7 @@ function _productq_mul(A::ProductQ{T}, x::AbstractVector{S}) where {T,S}
     lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
 end
 
-(*)(A::ProductQ, x::AbstractVector) = _productq_mul(A, x)
-(*)(A::ProductQ, x::LazyVector) = _productq_mul(A, x)
+mul(A::ProductQ, x::AbstractVector) = _productq_mul(A, x)
 
 
 # LQ where Q is a product of orthogonal operations

@@ -5,7 +5,7 @@ mutable struct AdaptiveQRData{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}}
     ncols::Int
 end
 
-function AdaptiveQRData(::AbstractBandedLayout, A::AbstractMatrix{T}) where T
+function AdaptiveQRData(::Union{SymmetricLayout{<:AbstractBandedLayout},AbstractBandedLayout}, A::AbstractMatrix{T}) where T
     l,u = bandwidths(A)
     data = BandedMatrix{T}(undef,(2l+u+1,0),(l,l+u)) # pad super
     AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
@@ -94,6 +94,7 @@ end
 struct AdaptiveLayout{M} <: MemoryLayout end
 MemoryLayout(::Type{AdaptiveQRFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
 triangularlayout(::Type{Tri}, ::ML) where {Tri, ML<:AdaptiveLayout} = Tri{ML}()
+transposelayout(A::AdaptiveLayout{ML}) where ML = AdaptiveLayout{typeof(transposelayout(ML()))}()
 
 size(F::AdaptiveQRFactors) = size(F.data.data)
 axes(F::AdaptiveQRFactors) = axes(F.data.data)
