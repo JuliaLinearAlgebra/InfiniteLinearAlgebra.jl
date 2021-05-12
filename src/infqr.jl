@@ -287,6 +287,8 @@ end
 
 (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector) where {T} = _lmul_copymutable(A, x)
 (*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector) where {T} = _lmul_copymutable(A, x)
+(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LayoutVector) where {T} = _lmul_copymutable(A, x)
+(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector) where {T} = _lmul_copymutable(A, x)
 (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LazyVector) where {T} = _lmul_copymutable(A, x)
 (*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LazyVector) where {T} = _lmul_copymutable(A, x)
 
