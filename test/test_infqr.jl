@@ -85,6 +85,9 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             @test factorize(A) isa typeof(qr(A))
             @test qr(A)\b == A\b
             @test (A*(A\b))[1:100] ≈ [1:3; Zeros(97)]
+
+            @test Q * view(b,:) == Q*b
+            @test Q' * view(b,:) == Q'*b
         end
 
         @testset "Bessel J" begin
