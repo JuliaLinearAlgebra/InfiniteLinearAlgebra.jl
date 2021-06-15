@@ -175,6 +175,8 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:Padded
     B
 end
 
+_norm(x::Number) = abs(x)
+
 function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout})
     adjA,B = M.A,M.B
     T = eltype(M)
@@ -203,7 +205,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
             cs_max = maximum(cs)
             kr = j:cs_max
             resizedata!(B, min(cs_max,mB))
-            if (j > sB && maximum(abs,view(B.data,j:last(colsupport(A.factors,j)))) ≤ tol)
+            if (j > sB && maximum(_norm,view(B.data,j:last(colsupport(A.factors,j)))) ≤ tol)
                 break
             end
             partialqr!(A.factors.data, min(cs_max,nA))
