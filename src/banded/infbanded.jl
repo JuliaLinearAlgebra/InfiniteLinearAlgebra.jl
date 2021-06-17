@@ -32,13 +32,6 @@ end
 
 sub_materialize(_, V::SubArray{<:Any,1,<:AbstractMatrix,Tuple{InfBandCartesianIndices}}, ::Tuple{InfAxes}) =
     _inf_banded_sub_materialize(MemoryLayout(parent(V)), V)
-###
-# Diagonal
-###
-
-Base._unsafe_getindex(::IndexCartesian, D::Diagonal, k::InfAxes, j::InfAxes) = layout_getindex(D, k, j)
-Base._unsafe_getindex(::IndexCartesian, D::Diagonal, k::InfAxes, j::Union{Real,AbstractArray}) = layout_getindex(D, k, j)
-Base._unsafe_getindex(::IndexCartesian, D::Diagonal, k::Union{Real,AbstractArray}, j::InfAxes) = layout_getindex(D, k, j)
 
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
 const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}
@@ -366,9 +359,6 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 #     end
 # end
 
-sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
-sub_materialize(::AbstractBandedLayout, V, ::Tuple{OneTo{Int},InfAxes}) = V
-sub_materialize(::AbstractBandedLayout, V, ::Tuple{InfAxes,OneTo{Int}}) = V
 
 @inline sub_materialize(::ApplyBandedLayout{typeof(*)}, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BroadcastBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
