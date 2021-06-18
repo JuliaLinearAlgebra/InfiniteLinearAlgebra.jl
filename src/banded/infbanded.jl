@@ -363,6 +363,7 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 @inline sub_materialize(::ApplyBandedLayout{typeof(*)}, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BroadcastBandedLayout, V, ::Tuple{InfAxes,InfAxes}) = V
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
+@inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,OneTo{Int}}) = BandedMatrix(V)
 
 sub_materialize(_, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
 sub_materialize(::AbstractBlockLayout, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
@@ -503,3 +504,11 @@ copyto!(dest::AbstractArray, L::Ldiv{BidiagonalToeplitzLayout,Lay}) where Lay = 
 # copy for AdjOrTrans
 copy(A::Adjoint{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = copy(parent(A))'
 copy(A::Transpose{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = transpose(copy(parent(A))) 
+
+
+##
+# hcat
+##
+
+Base.typed_hcat(::Type{T}, A::BandedMatrix{<:Any,<:Any,OneToInf{Int}}, B::AbstractVecOrMat...) where T = Hcat{T}(A, B...)
+

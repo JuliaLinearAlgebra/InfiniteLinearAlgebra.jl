@@ -1,4 +1,5 @@
 module InfiniteLinearAlgebra
+using InfiniteArrays: InfRanges
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, SemiseparableMatrices,
         FillArrays, InfiniteArrays, MatrixFactorizations, ArrayLayouts, LinearAlgebra
 
@@ -33,6 +34,8 @@ import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMat
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal,
         AbstractBlockBandedLayout, _blockbanded_qr!, BlockBandedLayout
 
+import DSP: conv
+
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 
@@ -57,6 +60,8 @@ function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::
 end
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
+
+include("infconv.jl")
 
 include("banded/hessenbergq.jl")
 

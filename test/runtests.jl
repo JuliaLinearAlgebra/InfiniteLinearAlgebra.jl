@@ -13,6 +13,8 @@ import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, argume
 import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout
 
+include("test_infconv.jl")
+
 
 @testset "∞-banded" begin
     @testset "Diagonal and BandedMatrix" begin
