@@ -1,4 +1,5 @@
 module InfiniteLinearAlgebra
+using InfiniteArrays: InfRanges
 using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMatrices, SemiseparableMatrices,
         FillArrays, InfiniteArrays, MatrixFactorizations, ArrayLayouts, LinearAlgebra
 
@@ -15,7 +16,7 @@ import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, banded
 import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, PosInfinity, InfiniteCardinal, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
 import LinearAlgebra: matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose, AdjOrTrans
-import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, ApplyStyle, LazyArrayApplyStyle, LazyArrayStyle,
+import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, LazyArrayStyle,
                     resizedata!, MemoryLayout,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     applylayout, ApplyLayout, PaddedLayout, zero!, MulAddStyle,
@@ -32,6 +33,8 @@ import LazyBandedMatrices: ApplyBandedLayout, BroadcastBandedLayout, _krontrav_a
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal,
         AbstractBlockBandedLayout, _blockbanded_qr!, BlockBandedLayout
+
+import DSP: conv
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
@@ -57,6 +60,8 @@ function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::
 end
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
+
+include("infconv.jl")
 
 include("banded/hessenbergq.jl")
 
