@@ -77,7 +77,7 @@ function partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, N::Block{1})
             zero!(τ)
         else
             factors = view(F.data.data,Ñ+1:N+l,Ñ+1:N+u);
-            _blockbanded_qr!(factors, PseudoBlockVector(τ, (axes(factors,2),)), N-Ñ)
+            _blockbanded_qr!(factors, PseudoBlockVector(τ, (axes(factors,2)[Block(1):(N-Ñ)],)), N-Ñ)
         end
         F.ncols = n
     end
