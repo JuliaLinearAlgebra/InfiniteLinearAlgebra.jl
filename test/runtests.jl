@@ -128,6 +128,11 @@ include("test_infconv.jl")
         @test Eye(∞)[1:3,:][:,1:5] == Eye(∞)[1:3,Base.Slice(oneto(∞))][:,1:5] == Eye(3,5)
         @test Eye(∞)[:,:][1:5,1:3] == Eye(∞)[Base.Slice(oneto(∞)),Base.Slice(oneto(∞))][1:5,1:3] == Eye(5,3)
     end
+
+    @testset "band(0) indexing" begin
+        D = ApplyArray(*, Diagonal(1:∞), Diagonal(1:∞))
+        @test D[band(0)][1:10] == (1:10).^2
+    end
 end
 
 @testset "∞-block arrays" begin
