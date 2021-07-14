@@ -26,7 +26,7 @@ function AdaptiveQRData(::AbstractBlockLayout, A::AbstractMatrix{T}) where T
     AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
 end
 
-AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(typeof(A)), A)
+AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(A), A)
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
     if n > F.ncols

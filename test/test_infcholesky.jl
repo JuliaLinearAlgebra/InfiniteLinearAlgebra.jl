@@ -21,4 +21,9 @@ using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, ArrayLayouts, Test
         b = [1; zeros(∞)]
         @test cholesky(S) \ b ≈ qr(S) \ b ≈ S \ b
     end
+
+    @testset "powers" begin
+        b = [1; zeros(∞)]
+        @test cholesky(S^2) \ b ≈ qr(S^2) \ b ≈ S^2 \ b
+    end
 end
