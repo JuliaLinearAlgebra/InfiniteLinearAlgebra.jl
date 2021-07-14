@@ -6,7 +6,14 @@ end
 
 size(U::AdaptiveCholeskyFactors) = size(U.data.array)
 bandwidths(A::AdaptiveCholeskyFactors) = (0,bandwidth(A.data,2))
-AdaptiveCholeskyFactors(A::Symmetric) = AdaptiveCholeskyFactors(cache(parent(A)),0)
+
+function AdaptiveCholeskyFactors(::SymmetricLayout{<:AbstractBandedLayout}, S::AbstractMatrix{T}) where T
+    A = parent(S)
+    l,u = bandwidths(A)
+    data = BandedMatrix{T}(undef,(0,0),(l,u)) # pad super
+    AdaptiveCholeskyFactors(CachedArray(data,A), 0)
+end
+AdaptiveCholeskyFactors(A::AbstractMatrix{T}) where T = AdaptiveCholeskyFactors(MemoryLayout(A), A)
 MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
 
 
@@ -19,8 +26,9 @@ function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) 
         factors = view(F.data.data,kr,kr)
         banded_chol!(factors, UpperTriangular)
         # multiply remaining columns
-        U1 = UpperTriangular(view(F.data.data,n-u+1:n,n-u+1:n))
-        B = view(F.data.data,n-u+1:n,n+1:n+u)
+        kr2 = max(n-u+1,1):n
+        U1 = UpperTriangular(view(F.data.data,kr2,kr2))
+        B = view(F.data.data,kr2,n+1:n+u)
         ldiv!(U1',B)
         muladd!(-one(T),B',B,one(T),view(F.data.data,n+1:n+u,n+1:n+u))
         F.ncols = n
