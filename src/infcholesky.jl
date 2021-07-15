@@ -26,7 +26,7 @@ function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) 
         factors = view(F.data.data,kr,kr)
         banded_chol!(factors, UpperTriangular)
         # multiply remaining columns
-        kr2 = max(n-u+1,1):n
+        kr2 = max(n-u+1,kr[1]):n
         U1 = UpperTriangular(view(F.data.data,kr2,kr2))
         B = view(F.data.data,kr2,n+1:n+u)
         ldiv!(U1',B)
