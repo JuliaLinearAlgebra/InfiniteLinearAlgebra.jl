@@ -25,5 +25,7 @@ using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, ArrayLayouts, Test
     @testset "powers" begin
         b = [1; zeros(∞)]
         @test cholesky(S^2) \ b ≈ qr(S^2) \ b ≈ S^2 \ b
+
+        @test cholesky(S^2).U[1:100,1:100] ≈ cholesky(Symmetric((S^2)[1:100,1:100])).U
     end
 end
