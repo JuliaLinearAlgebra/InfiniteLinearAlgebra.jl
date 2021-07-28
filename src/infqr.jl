@@ -14,7 +14,7 @@ end
 function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) where T
     l,u = almostbandwidths(A)
     r = almostbandedrank(A)
-    data = AlmostBandedMatrix{T}(undef,(2l+u+1,0),(l,l+u),r) # pad super
+    data = AlmostBandedMatrix(Zeros{T}(2l+u+1,0),(l,l+u),r) # pad super
 
     AdaptiveQRData(CachedArray(data,A,(0,0)), Vector{T}(), 0)
 end
