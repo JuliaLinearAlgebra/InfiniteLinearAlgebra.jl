@@ -416,7 +416,7 @@ function _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,In
     l,u = Al+Bl,Au+Bu
     m = min(Au+Al,Bl+Bu)+1
     λ = getindex_value(bandeddata(A))*getindex_value(bandeddata(B))
-    ret = _BandedMatrix(Hcat(Array{typeof(λ)}(undef, l+u+1,u), [1:m-1; Fill(m,l+u-2m+3); m-1:-1:1]*Fill(λ,1,∞)), ℵ₀, l, u)
+    ret = _BandedMatrix(Hcat(Array{typeof(λ)}(undef, l+u+1,max(0,u)), [1:m-1; Fill(m,l+u-2m+3); m-1:-1:1]*Fill(λ,1,∞)), ℵ₀, l, u)
     mul!(view(ret, 1:l+u,1:u), view(A,1:l+u,1:u+Bl), view(B,1:u+Bl,1:u))
     ret
 end
