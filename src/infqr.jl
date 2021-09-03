@@ -232,10 +232,10 @@ end
 
 function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})
     A,B_in = M.A,M.B
-    sB = B_in.datasize[1]
+    sB = length(paddeddata(B_in))
     ax1,ax2 = axes(A.factors.data.data)
     B = PseudoBlockVector(B_in, (ax2,))
-    SB = findblock(ax2, length(B_in.data))
+    SB = findblock(ax2, sB)
     partialqr!(A.factors.data,SB)
     JR = Block(1):SB
     M = maximum(blockcolsupport(A.factors,JR))
@@ -255,7 +255,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
     ax1 = axes(A.factors.data.data,1)
     B = PseudoBlockVector(B_in, (ax1,))
 
-    SB = findblock(ax1, length(B_in.data))
+    SB = findblock(ax1, length(paddeddata(B_in)))
     MA, NA = blocksize(A.factors.data.data.array)
     JR = Block(1):findblock(ax1,COLGROWTH)
 
