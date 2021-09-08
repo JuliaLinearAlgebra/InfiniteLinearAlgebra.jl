@@ -367,6 +367,10 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 
 sub_materialize(_, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
 sub_materialize(::AbstractBlockLayout, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
+function sub_materialize(::PaddedLayout, v::AbstractVector{T}, ax::Tuple{<:BlockedUnitRange{<:InfRanges}}) where T
+    dat = paddeddata(v)
+    PseudoBlockVector(Vcat(sub_materialize(dat), Zeros{T}(∞)), ax)
+end
 
 ##
 # UniformScaling

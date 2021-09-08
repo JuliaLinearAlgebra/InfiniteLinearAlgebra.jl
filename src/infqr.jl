@@ -246,6 +246,17 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:Abstrac
     B
 end
 
+function resizedata_chop!(v::CachedVector, tol)
+    chop!(v.data, tol)
+    v.datasize = (length(v.data),)
+    v
+end
+
+function resizedata_chop!(v::PseudoBlockVector, tol)
+    resizedata_chop!(v.blocks, tol)
+    v
+end
+
 function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})
     adjA,B_in = M.A,M.B
     A = adjA.parent
@@ -280,7 +291,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
             JR = last(JR)+1:findblock(ax1,last(jr)+COLGROWTH)
         end
     end
-    B
+    resizedata_chop!(B, tol)
 end
 
 
