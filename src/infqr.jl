@@ -250,7 +250,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
     adjA,B_in = M.A,M.B
     A = adjA.parent
     T = eltype(M)
-    COLGROWTH = 1000 # rate to grow columns
+    COLGROWTH = 300 # rate to grow columns
     tol = 1E-30
     ax1 = axes(A.factors.data.data,1)
     B = PseudoBlockVector(B_in, (ax1,))
