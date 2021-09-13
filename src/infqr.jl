@@ -253,7 +253,21 @@ function resizedata_chop!(v::CachedVector, tol)
 end
 
 function resizedata_chop!(v::PseudoBlockVector, tol)
-    resizedata_chop!(v.blocks, tol)
+    c = paddeddata(v.blocks)
+    n = length(c)
+    k_tol = n
+    for k = n:-1:1
+        if abs(c[k]) > tol
+            k_tol = k
+            break
+        end
+    end
+    ax = axes(v,1)
+    K = findblock(ax,k_tol)
+    n2 = last(ax[K])
+    resize!(v.blocks.data, n2)
+    zero!(view(v.blocks.data, n+1:n2))
+    v.blocks.datasize = (n2,)
     v
 end
 
