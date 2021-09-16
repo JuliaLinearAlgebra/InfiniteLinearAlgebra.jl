@@ -16,7 +16,7 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 @testset "chop" begin
     a = randn(5)
     b = [a; zeros(5)]
-    chop!(b, eps())
+    InfiniteLinearAlgebra.chop!(b, eps())
     @test b == a
 
     A = randn(5,5)
