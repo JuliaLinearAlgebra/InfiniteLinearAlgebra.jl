@@ -175,6 +175,31 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:Padded
     B
 end
 
+function resizedata_chop!(v::CachedVector, tol)
+    chop!(v.data, tol)
+    v.datasize = (length(v.data),)
+    v
+end
+
+function resizedata_chop!(v::PseudoBlockVector, tol)
+    c = paddeddata(v.blocks)
+    n = length(c)
+    k_tol = n
+    for k = n:-1:1
+        if abs(c[k]) > tol
+            k_tol = k
+            break
+        end
+    end
+    ax = axes(v,1)
+    K = findblock(ax,k_tol)
+    n2 = last(ax[K])
+    resize!(v.blocks.data, n2)
+    zero!(view(v.blocks.data, n+1:n2))
+    v.blocks.datasize = (n2,)
+    v
+end
+
 _norm(x::Number) = abs(x)
 
 function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout})
@@ -216,7 +241,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
             jr = last(jr)+1:min(last(jr)+COLGROWTH,nA)
         end
     end
-    B
+    resizedata_chop!(B, tol)
 end
 
 function resizedata!(B::PseudoBlockVector, M::Block{1})
@@ -244,31 +269,6 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:Abstrac
     b = paddeddata(B)
     lmul!(_view_QRPackedQ(A,KR,JR), b)
     B
-end
-
-function resizedata_chop!(v::CachedVector, tol)
-    chop!(v.data, tol)
-    v.datasize = (length(v.data),)
-    v
-end
-
-function resizedata_chop!(v::PseudoBlockVector, tol)
-    c = paddeddata(v.blocks)
-    n = length(c)
-    k_tol = n
-    for k = n:-1:1
-        if abs(c[k]) > tol
-            k_tol = k
-            break
-        end
-    end
-    ax = axes(v,1)
-    K = findblock(ax,k_tol)
-    n2 = last(ax[K])
-    resize!(v.blocks.data, n2)
-    zero!(view(v.blocks.data, n+1:n2))
-    v.blocks.datasize = (n2,)
-    v
 end
 
 function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})

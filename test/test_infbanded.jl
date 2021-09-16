@@ -41,6 +41,9 @@ import BandedMatrices: _BandedMatrix
         @test A[:,3:end] isa InfToeplitz
 
         @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
+        @test (A*A)[1:10,1:10] ≈ A[1:10,1:16]A[1:16,1:10]
+        @test (A * Fill(2,∞))[1:10] ≈ 2A[1:10,1:16]*ones(16)
+        @test (Fill(2,∞,∞)*A)[1:10,1:10] ≈ fill(2,10,13)A[1:13,1:10]
 
         @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
         @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa BidiagonalToeplitzLayout
@@ -63,6 +66,14 @@ import BandedMatrices: _BandedMatrix
             T = Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))
             @test T isa InfiniteLinearAlgebra.TriToeplitz
             @test (T + 2I)[1:10,1:10] == (2I + T)[1:10,1:10] == T[1:10,1:10] + 2I
+        end
+
+        @testset "constant data" begin
+            A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+            B = _BandedMatrix(Fill(2,4,∞), ∞, 1,2)
+            @test (B*B)[1:10,1:10] ≈ B[1:10,1:14]B[1:14,1:10]
+            @test (A*B)[1:10,1:10] ≈ A[1:10,1:14]B[1:14,1:10]
+            @test (B*A)[1:10,1:10] ≈ B[1:10,1:14]A[1:14,1:10]
         end
     end
 
