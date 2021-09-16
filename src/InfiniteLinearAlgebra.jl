@@ -59,6 +59,36 @@ function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::
     end
 end
 
+
+function chop!(c::AbstractVector, tol::Real)
+    @assert tol >= 0
+
+    @inbounds for k=length(c):-1:1
+        if abs(c[k]) > tol
+            resize!(c,k)
+            return c
+        end
+    end
+    resize!(c,0)
+    c
+end
+
+function chop(A::AbstractMatrix, tol)
+    for k = size(A,1):-1:1
+        if norm(view(A,k,:))>tol
+            A=A[1:k,:]
+            break
+        end
+    end
+    for j = size(A,2):-1:1
+        if norm(view(A,:,j))>tol
+            A=A[:,1:j]
+            break
+        end
+    end
+    return A
+end
+
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
 include("infconv.jl")

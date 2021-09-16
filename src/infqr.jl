@@ -164,7 +164,7 @@ partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
 _view_QRPackedQ(A, kr, jr) = QRPackedQ(view(A.factors.data.data.data,kr,jr), view(A.τ.data.τ,jr))
 function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout})
     A,B = M.A,M.B
-    sB = B.datasize[1]
+    sB = size(paddeddata(B),1)
     partialqr!(A.factors.data,sB)
     jr = oneto(sB)
     m = maximum(colsupport(A,jr))
@@ -173,6 +173,39 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:Padded
     b = paddeddata(B)
     lmul!(_view_QRPackedQ(A,kr,jr), b)
     B
+end
+
+function resizedata_chop!(v::CachedVector, tol)
+    c = paddeddata(v)
+    n = length(c)
+    k_tol = n
+    for k = n:-1:1
+        if abs(c[k]) > tol
+            v.datasize = (k_tol,)
+            return v
+        end
+    end
+    v.datasize = (0,)
+    v
+end
+
+function resizedata_chop!(v::PseudoBlockVector, tol)
+    c = paddeddata(v.blocks)
+    n = length(c)
+    k_tol = n
+    for k = n:-1:1
+        if abs(c[k]) > tol
+            k_tol = k
+            break
+        end
+    end
+    ax = axes(v,1)
+    K = findblock(ax,k_tol)
+    n2 = last(ax[K])
+    resize!(v.blocks.data, n2)
+    zero!(view(v.blocks.data, n+1:n2))
+    v.blocks.datasize = (n2,)
+    v
 end
 
 _norm(x::Number) = abs(x)
@@ -190,7 +223,8 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    sB = B.datasize[1]
+    Bdata = paddeddata(B)
+    sB = size(Bdata,1)
     l,u = bandwidths(A.factors)
     if l == 0 # diagonal special case
         return B
@@ -205,16 +239,17 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
             cs_max = maximum(cs)
             kr = j:cs_max
             resizedata!(B, min(cs_max,mB))
-            if (j > sB && maximum(_norm,view(B.data,j:last(colsupport(A.factors,j)))) ≤ tol)
+            Bdata = paddeddata(B)
+            if (j > sB && maximum(_norm,view(Bdata,j:last(colsupport(A.factors,j)))) ≤ tol)
                 break
             end
             partialqr!(A.factors.data, min(cs_max,nA))
             Q_N = _view_QRPackedQ(A, kr, jr)
-            lmul!(Q_N', view(B.data, kr))
+            lmul!(Q_N', view(Bdata, kr))
             jr = last(jr)+1:min(last(jr)+COLGROWTH,nA)
         end
     end
-    B
+    resizedata_chop!(B, tol)
 end
 
 function resizedata!(B::PseudoBlockVector, M::Block{1})
@@ -230,10 +265,10 @@ end
 
 function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})
     A,B_in = M.A,M.B
-    sB = B_in.datasize[1]
+    sB = length(paddeddata(B_in))
     ax1,ax2 = axes(A.factors.data.data)
     B = PseudoBlockVector(B_in, (ax2,))
-    SB = findblock(ax2, length(B_in.data))
+    SB = findblock(ax2, sB)
     partialqr!(A.factors.data,SB)
     JR = Block(1):SB
     M = maximum(blockcolsupport(A.factors,JR))
@@ -248,12 +283,12 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
     adjA,B_in = M.A,M.B
     A = adjA.parent
     T = eltype(M)
-    COLGROWTH = 1000 # rate to grow columns
+    COLGROWTH = 300 # rate to grow columns
     tol = 1E-30
     ax1 = axes(A.factors.data.data,1)
     B = PseudoBlockVector(B_in, (ax1,))
 
-    SB = findblock(ax1, length(B_in.data))
+    SB = findblock(ax1, length(paddeddata(B_in)))
     MA, NA = blocksize(A.factors.data.data.array)
     JR = Block(1):findblock(ax1,COLGROWTH)
 
@@ -278,7 +313,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
             JR = last(JR)+1:findblock(ax1,last(jr)+COLGROWTH)
         end
     end
-    B
+    resizedata_chop!(B, tol)
 end
 
 
