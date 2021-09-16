@@ -14,6 +14,11 @@ import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout
 
 @testset "chop" begin
+    a = randn(5)
+    b = [a; zeros(5)]
+    chop!(b, eps())
+    @test b == a
+
     A = randn(5,5)
     @test InfiniteLinearAlgebra.chop([A zeros(5,2); zeros(2,5) zeros(2,2)],eps()) == A
 end

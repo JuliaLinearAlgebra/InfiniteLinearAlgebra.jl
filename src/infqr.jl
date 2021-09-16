@@ -176,8 +176,16 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:Padded
 end
 
 function resizedata_chop!(v::CachedVector, tol)
-    chop!(v.data, tol)
-    v.datasize = (length(v.data),)
+    c = paddeddata(v)
+    n = length(c)
+    k_tol = n
+    for k = n:-1:1
+        if abs(c[k]) > tol
+            v.datasize = (k_tol,)
+            return v
+        end
+    end
+    v.datasize = (0,)
     v
 end
 

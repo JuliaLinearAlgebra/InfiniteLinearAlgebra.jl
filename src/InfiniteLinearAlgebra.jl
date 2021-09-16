@@ -63,7 +63,7 @@ end
 function chop!(c::AbstractVector, tol::Real)
     @assert tol >= 0
 
-    for k=length(c):-1:1
+    @inbounds for k=length(c):-1:1
         if abs(c[k]) > tol
             resize!(c,k)
             return c
