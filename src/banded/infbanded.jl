@@ -367,6 +367,10 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 
 sub_materialize(_, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
 sub_materialize(::AbstractBlockLayout, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
+function sub_materialize(::PaddedLayout, v::AbstractVector{T}, ax::Tuple{<:BlockedUnitRange{<:InfRanges}}) where T
+    dat = paddeddata(v)
+    PseudoBlockVector(Vcat(sub_materialize(dat), Zeros{T}(∞)), ax)
+end
 
 ##
 # UniformScaling
@@ -428,12 +432,15 @@ _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,InfAxes}) = App
 _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyArray(*, M.A, M.B)
 _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyArray(*, M.A, M.B)
 
-mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{BandedToeplitzLayout, BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:Any, BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, PertToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
-mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, <:BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
-mulreduce(M::Mul{<:AbstractQLayout, <:BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:AbstractQLayout, <:PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, PertToeplitzLayout}) = ApplyArray(M)
 
 
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
