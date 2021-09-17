@@ -45,6 +45,11 @@ else
     import Base: oneto, unitrange
 end
 
+if VERSION ≥ v"1.7-"
+    LinearAlgebra._cut_B(x::AbstractVector, r::InfUnitRange) = x
+    LinearAlgebra._cut_B(X::AbstractMatrix, r::InfUnitRange) = X
+end
+
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
 function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::AbstractMatrix{T}, p::Integer) where T
