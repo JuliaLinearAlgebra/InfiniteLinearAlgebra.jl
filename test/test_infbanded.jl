@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, Test
+using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, Test
 import BandedMatrices: _BandedMatrix
 
 @testset "∞-banded" begin
@@ -134,5 +134,10 @@ import BandedMatrices: _BandedMatrix
         A = _BandedMatrix(Ones(1,∞), ∞, 1,-1)
         B = _BandedMatrix(Fill(1.0π,1,∞), ∞, 0,0)
         @test (A*B)[1:10,1:10] ≈ BandedMatrix(-1 => Fill(1.0π,9))
+    end
+
+    @testset "Diagonal{Fill} * Bidiagonal" begin
+        A, B = Diagonal(Fill(2,∞)) , LazyBandedMatrices.Bidiagonal(exp.(1:∞), exp.(1:∞), :L)
+        @test (A*B)[1:10,1:10] ≈ (B*A)[1:10,1:10] ≈ 2B[1:10,1:10]
     end
 end
