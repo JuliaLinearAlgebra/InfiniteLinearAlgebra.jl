@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, Test
+using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, LazyArrays, Test
 import BandedMatrices: _BandedMatrix
 
 @testset "∞-banded" begin
@@ -139,5 +139,14 @@ import BandedMatrices: _BandedMatrix
     @testset "Diagonal{Fill} * Bidiagonal" begin
         A, B = Diagonal(Fill(2,∞)) , LazyBandedMatrices.Bidiagonal(exp.(1:∞), exp.(1:∞), :L)
         @test (A*B)[1:10,1:10] ≈ (B*A)[1:10,1:10] ≈ 2B[1:10,1:10]
+    end
+
+    @testset "concat" begin
+        H = ApplyArray(hvcat, 2, 1, [1 Zeros(1,∞)], [1; Zeros(∞)], Diagonal(1:∞))
+        @test bandwidths(H) == (1,1)
+        H = ApplyArray(hvcat, 2, 1, [0 Zeros(1,∞)], [0; Zeros(∞)], Diagonal(1:∞))
+        @test bandwidths(H) == (0,0)
+        H = ApplyArray(hvcat, (2,2), 1, [1 Zeros(1,∞)], [1; Zeros(∞)], Diagonal(1:∞))
+        @test_broken bandwidths(H) == (1,1)
     end
 end
