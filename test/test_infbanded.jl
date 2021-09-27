@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, Test
+using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, LazyArrays, Test
 import BandedMatrices: _BandedMatrix
 
 @testset "∞-banded" begin
@@ -45,6 +45,12 @@ import BandedMatrices: _BandedMatrix
         @test (A * Fill(2,∞))[1:10] ≈ 2A[1:10,1:16]*ones(16)
         @test (Fill(2,∞,∞)*A)[1:10,1:10] ≈ fill(2,10,13)A[1:13,1:10]
 
+        @test Eye(∞) * A isa BandedMatrix
+        @test A * Eye(∞) isa BandedMatrix
+
+        @test A * [1; 2; Zeros(∞)] isa Vcat
+        @test A * [1; 2; Zeros(∞)] == [A[1:5,1:2] * [1,2]; Zeros(∞)]
+
         @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
         @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa BidiagonalToeplitzLayout
         @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa TridiagonalToeplitzLayout
@@ -88,6 +94,9 @@ import BandedMatrices: _BandedMatrix
             @test A[2:∞,2:∞] isa PertToeplitz
 
             @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
+
+            @test Eye(∞) * A isa BandedMatrix
+            @test A * Eye(∞) isa BandedMatrix
         end
 
         @testset "TriPert" begin
@@ -139,5 +148,14 @@ import BandedMatrices: _BandedMatrix
     @testset "Diagonal{Fill} * Bidiagonal" begin
         A, B = Diagonal(Fill(2,∞)) , LazyBandedMatrices.Bidiagonal(exp.(1:∞), exp.(1:∞), :L)
         @test (A*B)[1:10,1:10] ≈ (B*A)[1:10,1:10] ≈ 2B[1:10,1:10]
+    end
+
+    @testset "concat" begin
+        H = ApplyArray(hvcat, 2, 1, [1 Zeros(1,∞)], [1; Zeros(∞)], Diagonal(1:∞))
+        @test bandwidths(H) == (1,1)
+        H = ApplyArray(hvcat, 2, 1, [0 Zeros(1,∞)], [0; Zeros(∞)], Diagonal(1:∞))
+        @test bandwidths(H) == (0,0)
+        H = ApplyArray(hvcat, (2,2), 1, [1 Zeros(1,∞)], [1; Zeros(∞)], Diagonal(1:∞))
+        @test_broken bandwidths(H) == (1,1)
     end
 end

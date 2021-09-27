@@ -434,6 +434,7 @@ _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyAr
 
 mulreduce(M::Mul{BandedToeplitzLayout, BandedToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{BandedToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{BandedToeplitzLayout,<:PaddedLayout}) = MulAdd(M)
 mulreduce(M::Mul{<:Any, BandedToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, PertToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
@@ -441,6 +442,8 @@ mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, BandedToeplitzLayout}) =
 mulreduce(M::Mul{BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, BandedToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:DiagonalLayout, BandedToeplitzLayout}) = Lmul(M)
+mulreduce(M::Mul{BandedToeplitzLayout, <:DiagonalLayout}) = Rmul(M)
 
 
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
