@@ -45,6 +45,9 @@ import BandedMatrices: _BandedMatrix
         @test (A * Fill(2,∞))[1:10] ≈ 2A[1:10,1:16]*ones(16)
         @test (Fill(2,∞,∞)*A)[1:10,1:10] ≈ fill(2,10,13)A[1:13,1:10]
 
+        @test Eye(∞) * A isa BandedMatrix
+        @test A * Eye(∞) isa BandedMatrix
+
         @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
         @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa BidiagonalToeplitzLayout
         @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa TridiagonalToeplitzLayout
@@ -88,6 +91,9 @@ import BandedMatrices: _BandedMatrix
             @test A[2:∞,2:∞] isa PertToeplitz
 
             @test (A + 2I)[1:10,1:10] == (2I + A)[1:10,1:10] == A[1:10,1:10] + 2I
+
+            @test Eye(∞) * A isa BandedMatrix
+            @test A * Eye(∞) isa BandedMatrix
         end
 
         @testset "TriPert" begin
