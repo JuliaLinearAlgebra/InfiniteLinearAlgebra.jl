@@ -48,6 +48,9 @@ import BandedMatrices: _BandedMatrix
         @test Eye(∞) * A isa BandedMatrix
         @test A * Eye(∞) isa BandedMatrix
 
+        @test A * [1; 2; Zeros(∞)] isa Vcat
+        @test A * [1; 2; Zeros(∞)] == [A[1:5,1:2] * [1,2]; Zeros(∞)]
+
         @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
         @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa BidiagonalToeplitzLayout
         @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa TridiagonalToeplitzLayout
