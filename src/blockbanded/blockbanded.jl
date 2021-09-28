@@ -19,9 +19,9 @@ function BlockArrays.sortedunion(a::RangeCumsum{<:Any,<:InfStepRange}, b::RangeC
 end
 
 
-function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}},
-                                 b::Vcat{Int,1,<:Tuple{<:AbstractVector{Int},InfStepRange{Int,Int}}})
-    @assert a == b
+function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},InfStepRange{Int,Int}}},
+                                 b::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},InfStepRange{Int,Int}}})
+    @assert a == b # TODO: generailse? Not sure how to do so in a type stable fashion
     a
 end
 
