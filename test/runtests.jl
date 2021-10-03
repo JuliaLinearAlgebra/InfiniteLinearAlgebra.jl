@@ -186,6 +186,9 @@ include("test_infbanded.jl")
         @test BlockArrays.sortedunion(a,a) ≡ a
         @test BlockArrays.sortedunion([∞],a) ≡ BlockArrays.sortedunion(a,[∞]) ≡ a
         @test BlockArrays.sortedunion([∞],[∞]) == [∞]
+
+        b = Vcat([1,2],3:∞)
+        @test BlockArrays.sortedunion(b,b) ≡ b
     end
 end
 
