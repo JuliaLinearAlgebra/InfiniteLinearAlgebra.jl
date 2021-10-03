@@ -13,14 +13,14 @@ function BlockArrays.sortedunion(b, ::AbstractVector{<:PosInfinity})
 end
 BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
 BlockArrays.sortedunion(a::OneToCumsum, ::OneToCumsum) = a
-function BlockArrays.sortedunion(a::RangeCumsum{<:Any,<:InfStepRange}, b::RangeCumsum{<:Any,<:InfStepRange})
+function BlockArrays.sortedunion(a::RangeCumsum{<:Any,<:AbstractRange}, b::RangeCumsum{<:Any,<:AbstractRange})
     @assert a == b
     a
 end
 
 
-function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},InfStepRange{Int,Int}}},
-                                 b::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},InfStepRange{Int,Int}}})
+function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}},
+                                 b::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}})
     @assert a == b # TODO: generailse? Not sure how to do so in a type stable fashion
     a
 end
