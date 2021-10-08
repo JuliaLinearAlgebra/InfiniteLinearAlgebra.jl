@@ -64,19 +64,20 @@ function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::
     end
 end
 
-
-function chop!(c::AbstractVector, tol::Real)
-    @assert tol >= 0
-
-    @inbounds for k=length(c):-1:1
+function choplength(c::AbstractVector, tol)
+    @inbounds for k = length(c):-1:1
         if abs(c[k]) > tol
-            resize!(c,k)
-            return c
+            return k
+            break
         end
     end
-    resize!(c,0)
-    c
+    return 0
 end
+
+_chop!(_, c::AbstractVector, tol::Real) = resize!(c, choplength(c, tol))
+_chop!(ax::BlockedUnitRange, c::AbstractVector, tol::Real) = resize!(c, findblock(ax, choplength(c, tol)))
+
+chop!(c::AbstractVector, tol::Real) = _chop!(axes(c,1), c, tol)
 
 function chop(A::AbstractMatrix, tol)
     for k = size(A,1):-1:1
