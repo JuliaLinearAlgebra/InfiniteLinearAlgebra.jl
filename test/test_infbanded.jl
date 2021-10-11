@@ -158,4 +158,10 @@ import BandedMatrices: _BandedMatrix
         H = ApplyArray(hvcat, (2,2), 1, [1 Zeros(1,∞)], [1; Zeros(∞)], Diagonal(1:∞))
         @test_broken bandwidths(H) == (1,1)
     end
+
+    @testset "Banded * PaddedMatrix" begin
+        A = Eye(∞)[2:∞,:]
+        B = PaddedArray(randn(3,3),ℵ₀,ℵ₀)
+        @test (A*B)[1:10,1:10] ≈ A[1:10,1:10] * B[1:10,1:10]
+    end
 end

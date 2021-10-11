@@ -192,13 +192,7 @@ end
 function resizedata_chop!(v::PseudoBlockVector, tol)
     c = paddeddata(v.blocks)
     n = length(c)
-    k_tol = n
-    for k = n:-1:1
-        if abs(c[k]) > tol
-            k_tol = k
-            break
-        end
-    end
+    k_tol = choplength(c, tol)
     ax = axes(v,1)
     K = findblock(ax,k_tol)
     n2 = last(ax[K])
