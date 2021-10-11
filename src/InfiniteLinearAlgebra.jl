@@ -77,9 +77,9 @@ end
 _chop!(_, c::AbstractVector, tol::Real) = resize!(c, choplength(c, tol))
 _chop!(ax::BlockedUnitRange, c::AbstractVector, tol::Real) = resize!(c, findblock(ax, choplength(c, tol)))
 
-chop!(c::AbstractVector, tol::Real) = _chop!(axes(c,1), c, tol)
+chop!(c::AbstractVector{T}, tol::Real=zero(real(T))) where T = _chop!(axes(c,1), c, tol)
 
-function chop(A::AbstractMatrix, tol)
+function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
     for k = size(A,1):-1:1
         if norm(view(A,k,:))>tol
             A=A[1:k,:]

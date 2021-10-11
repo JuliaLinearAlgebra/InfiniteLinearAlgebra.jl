@@ -2,7 +2,7 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
         MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate , tailiterate!, tail_de, ql_X!,
                     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
-                    rightasymptotics, QLHessenberg, ConstRows, PertConstRows,
+                    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!,
                     BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout
 import Base: BroadcastStyle
 import BlockArrays: _BlockArray
@@ -16,11 +16,17 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 @testset "chop" begin
     a = randn(5)
     b = [a; zeros(5)]
-    InfiniteLinearAlgebra.chop!(b, eps())
+    chop!(b, eps())
     @test b == a
 
+    @test isempty(chop!([0]))
+
     A = randn(5,5)
-    @test InfiniteLinearAlgebra.chop([A zeros(5,2); zeros(2,5) zeros(2,2)],eps()) == A
+    @test chop([A zeros(5,2); zeros(2,5) zeros(2,2)],eps()) == A
+
+    c = PseudoBlockArray([randn(5); zeros(10)], (blockedrange(1:5),))
+    d = chop!(c, 0);
+    @test length(d) == 6
 end
 
 include("test_infconv.jl")
