@@ -1,34 +1,9 @@
-using InfiniteLinearAlgebra, BandedMatrices, LazyArrays, FillArrays, LinearAlgebra, Test
+using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, LazyArrays, FillArrays, LinearAlgebra, Test
 import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz
 import BandedMatrices: _BandedMatrix
 
 @testset "Inf QL" begin
     @testset "Toeplitz QLHessenberg" begin
-        @testset "Derivation" begin
-            A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5,∞), 1 => Fill(0.5,∞))
-            a = reverse(A.data.args[1])
-            d,e = tail_de(a)
-            X = [transpose(a); 0 d e]
-            Q = LowerHessenbergQ(Fill(ql!(X).Q,∞))
-            L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ℵ₀, 2, 0)
-            Qn,Ln = ql(A[1:1000,1:1000])
-            @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
-            @test Q'A isa MulMatrix
-            @test Array((Q'A)[1:10,1:10]) ≈ [(Q'A)[k,j] for k=1:10,j=1:10]
-            @test (Q'A)[1:10,1:10] ≈ Ln[1:10,1:10] ≈ L[1:10,1:10]
-
-            A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5+im,∞), 1 => Fill(0.5,∞))
-            a = reverse(A.data.args[1])
-            d,e = tail_de(a)
-            X = [transpose(a); 0 d e]
-            q = ql!(X).Q
-            Q = LowerHessenbergQ(Fill(q,∞))
-            L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ℵ₀, 2, 0)
-            Qn,Ln = ql(A[1:1000,1:1000])
-            @test Q[1:10,1:10] ≈ Qn[1:10,1:10] * diagm(0 => [1; -Ones(9)] )
-            @test (Q'A)[1:10,1:10] ≈ diagm(0 => [1; -Ones(9)] ) * Ln[1:10,1:10] ≈ L[1:10,1:10]
-        end
-
         @testset "Tridiagonal Toeplitz" begin
             for (Z,A,B) in ((2.0,5.1,0.5), (2.0,2.2,0.5), (2.0,-2.2,0.5), (2.0,-5.1,0.5),
                         (0.5,5.1,2.0),  (0.5,-5.1,2.0))
@@ -178,5 +153,30 @@ import BandedMatrices: _BandedMatrix
         @test (L*(L \ b))[1:10] ≈ [1; zeros(9)]
         u = F \ b
         @test (A*u)[1:10] ≈ [1; zeros(9)]
+    end
+
+    @testset "Derivation" begin
+        A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5,∞), 1 => Fill(0.5,∞))
+        a = reverse(A.data.args[1])
+        d,e = tail_de(a)
+        X = [transpose(a); 0 d e]
+        Q = LowerHessenbergQ(Fill(ql!(X).Q,∞))
+        L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ℵ₀, 2, 0)
+        Qn,Ln = ql(A[1:1000,1:1000])
+        @test Q[1:10,1:10] ≈ Qn[1:10,1:10]
+        @test Q'A isa MulMatrix
+        @test Array((Q'A)[1:10,1:10]) ≈ [(Q'A)[k,j] for k=1:10,j=1:10]
+        @test (Q'A)[1:10,1:10] ≈ Ln[1:10,1:10] ≈ L[1:10,1:10]
+
+        A = BandedMatrix(-1 => Fill(2,∞), 0 => Fill(5+im,∞), 1 => Fill(0.5,∞))
+        a = reverse(A.data.args[1])
+        d,e = tail_de(a)
+        X = [transpose(a); 0 d e]
+        q = ql!(X).Q
+        Q = LowerHessenbergQ(Fill(q,∞))
+        L = _BandedMatrix(Hcat([e; X[2,2]; X[2,1]], X[2,end:-1:1] * Ones{Float64}(1,∞)), ℵ₀, 2, 0)
+        Qn,Ln = ql(A[1:1000,1:1000])
+        @test Q[1:10,1:10] ≈ Qn[1:10,1:10] * diagm(0 => [1; -Ones(9)] )
+        @test (Q'A)[1:10,1:10] ≈ diagm(0 => [1; -Ones(9)] ) * Ln[1:10,1:10] ≈ L[1:10,1:10]
     end
 end
