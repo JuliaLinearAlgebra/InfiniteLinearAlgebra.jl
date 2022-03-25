@@ -18,7 +18,7 @@ SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
 ArrayLayouts = "0.7.7, 0.8"
-BandedMatrices = "0.16.9"
+BandedMatrices = "0.16.9, 0.17"
 BlockArrays = "0.16"
 BlockBandedMatrices = "0.11"
 DSP = "0.7"
