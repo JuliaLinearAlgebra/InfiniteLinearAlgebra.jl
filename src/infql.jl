@@ -96,7 +96,7 @@ function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
     QLHessenberg(_BandedMatrix(H, ℵ₀, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
 end
 
-getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Integer, j::Integer) where T =
+getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Int, j::Int) where T =
     (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
 
 getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) where T = LowerTriangular(Q.factors)

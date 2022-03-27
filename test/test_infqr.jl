@@ -188,7 +188,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             @test qr(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
             @test factorize(A) isa MatrixFactorizations.QR{Float64,<:InfiniteLinearAlgebra.AdaptiveQRFactors}
 
-            @test (adaptiveqr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (qr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (A \ [ℯ; zeros(∞)])[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test (adaptiveqr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (qr(A) \ [ℯ; zeros(∞)])[1:1000] ≈ (A \ [ℯ; zeros(∞)])[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
         end
 
         @testset "two-bands" begin
@@ -202,22 +202,22 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             x = 0.1
             @test (exp(1 - x)*(-1 + exp(2 + 2x)))/(-1 + exp(4)) ≈ dot(u[1:1000], x.^(0:999))
             u = qr(A) \ Vcat([ℯ,1/ℯ], zeros(∞))
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test u[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
             u = qr(A) \ Vcat(ℯ,1/ℯ, zeros(∞))
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test u[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
             u = qr(A) \ [ℯ; 1/ℯ; zeros(∞)]
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test u[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
 
             A = Vcat(Ones(1,∞), ((-1.0).^(0:∞))', B)
             @test MemoryLayout(typeof(A)) isa VcatAlmostBandedLayout
             u = A \ Vcat(ℯ,1/ℯ, zeros(∞))
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test u[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
             u = qr(A) \ [ℯ; 1/ℯ; zeros(∞)]
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test u[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
 
             A = Vcat(Ones(1,∞), ((-1).^(0:∞))', B)
             u = A \ [ℯ; 1/ℯ; zeros(∞)]
-            @test u[1:1000] ≈ [1/factorial(1.0k) for k=0:999]
+            @test u[1:1000] ≈ [1/gamma(k+1.0) for k=0:999]
         end
 
         @testset "more bands" begin

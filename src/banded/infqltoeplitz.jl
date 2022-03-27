@@ -96,6 +96,7 @@ ProductQ(Qs::AbstractMatrix...) = ProductQ{mapreduce(eltype, promote_type, Qs),t
 adjoint(Q::ProductQ) = ProductQ(reverse(map(adjoint, Q.Qs))...)
 
 size(Q::ProductQ, dim::Integer) = size(dim == 1 ? Q.Qs[1] : last(Q.Qs), dim == 2 ? 1 : dim)
+axes(Q::ProductQ, dim::Integer) = axes(dim == 1 ? Q.Qs[1] : last(Q.Qs), dim == 2 ? 1 : dim)
 
 function lmul!(Q::ProductQ, v::AbstractVecOrMat)
     for j = length(Q.Qs):-1:1
