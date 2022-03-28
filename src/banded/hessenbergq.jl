@@ -141,13 +141,13 @@ end
 # getindex
 ####
 
-function getindex(Q::UpperHessenbergQ, i::Integer, j::Integer)
+function getindex(Q::UpperHessenbergQ, i::Int, j::Int)
     y = zeros(eltype(Q), size(Q, 2))
     y[j] = 1
     lmul!(Q, y)[i]
 end
 
-getindex(Q::LowerHessenbergQ, i::Integer, j::Integer) = (Q')[j,i]'
+getindex(Q::LowerHessenbergQ, i::Int, j::Int) = (Q')[j,i]'
 
 
 ###
