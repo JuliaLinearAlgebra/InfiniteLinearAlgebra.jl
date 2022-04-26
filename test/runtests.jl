@@ -195,6 +195,8 @@ include("test_infbanded.jl")
 
             b = [ones(10); zeros(∞)]
             @test (Ms * b)[Block.(1:6)] == Ms[Block.(1:6), Block.(1:4)]*ones(10)
+            @test ((Ms * Ms) * b)[Block.(1:6)] == (Ms * (Ms * b))[Block.(1:6)] 
+            @test ((Ms + Ms) * b)[Block.(1:6)] == (2*(Ms * b))[Block.(1:6)] 
         end
     end
 
