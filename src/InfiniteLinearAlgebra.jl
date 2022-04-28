@@ -74,10 +74,11 @@ function choplength(c::AbstractVector, tol)
     return 0
 end
 
-_chop!(_, c::AbstractVector, tol::Real) = resize!(c, choplength(c, tol))
-_chop!(ax::BlockedUnitRange, c::AbstractVector, tol::Real) = resize!(c, findblock(ax, choplength(c, tol)))
-
-chop!(c::AbstractVector{T}, tol::Real=zero(real(T))) where T = _chop!(axes(c,1), c, tol)
+# resize! to nearest block
+compatible_resize!(_, c::AbstractVector, n) = resize!(c, n)
+compatible_resize!(ax::BlockedUnitRange, c::AbstractVector, n) = resize!(c, iszero(n) ? Block(0) : findblock(ax, n))
+compatible_resize!(c, n) = compatible_resize!(axes(c,1), c, n)
+chop!(c::AbstractVector{T}, tol::Real=zero(real(T))) where T = compatible_resize!(c, choplength(c, tol))
 
 function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
     for k = size(A,1):-1:1
