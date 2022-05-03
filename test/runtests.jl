@@ -195,8 +195,15 @@ include("test_infbanded.jl")
 
             b = [ones(10); zeros(∞)]
             @test (Ms * b)[Block.(1:6)] == Ms[Block.(1:6), Block.(1:4)]*ones(10)
-            @test ((Ms * Ms) * b)[Block.(1:6)] == (Ms * (Ms * b))[Block.(1:6)] 
-            @test ((Ms + Ms) * b)[Block.(1:6)] == (2*(Ms * b))[Block.(1:6)] 
+            @test ((Ms * Ms) * b)[Block.(1:6)] == (Ms * (Ms * b))[Block.(1:6)]
+            @test ((Ms + Ms) * b)[Block.(1:6)] == (2*(Ms * b))[Block.(1:6)]
+
+            dat = BlockBroadcastArray(hcat, float.(k), Zeros((axes(n, 1),)), float.(n))
+            M = BlockBandedMatrices._BandedBlockBandedMatrix(dat', axes(k, 1), (-1, 1), (1, 1))
+            M+M
+
+            # doesn't work
+            Ms+Ms |> typeof
         end
     end
 
