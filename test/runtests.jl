@@ -182,6 +182,7 @@ include("test_infbanded.jl")
         @testset "Symmetric" begin
             k = mortar(Base.OneTo.(oneto(∞)))
             n = mortar(Fill.(oneto(∞), oneto(∞)))
+
             dat = BlockHcat(
                 BlockBroadcastArray(hcat, float.(k), Zeros((axes(n, 1),)), float.(n)),
                 Zeros((axes(n, 1), Base.OneTo(3))),
@@ -200,10 +201,8 @@ include("test_infbanded.jl")
 
             dat = BlockBroadcastArray(hcat, float.(k), Zeros((axes(n, 1),)), float.(n))
             M = BlockBandedMatrices._BandedBlockBandedMatrix(dat', axes(k, 1), (-1, 1), (1, 1))
-            M+M
-
-            # doesn't work
-            Ms+Ms |> typeof
+            Ms = Symmetric(M)
+            @test Symmetric((M+M)[Block.(1:10), Block.(1:10)]) == (Ms+Ms)[Block.(1:10), Block.(1:10)]
         end
     end
 
