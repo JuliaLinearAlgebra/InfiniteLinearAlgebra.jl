@@ -352,10 +352,6 @@ end
         @test Eye(∞) * A isa BandedMatrix
         @test A * Eye(∞) isa BandedMatrix
         b = 1:∞
-        @test BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
-        @test BroadcastStyle(typeof(A)) isa BandedStyle
-        @test BroadcastStyle(LazyArrayStyle{1}(), BandedStyle()) isa LazyArrayStyle{2}
-        @test BroadcastStyle(LazyArrayStyle{2}(), BandedStyle()) isa LazyArrayStyle{2}
         @test bandwidths(b .* A) == (0, 1)
 
         @test colsupport(b .* A, 1) == 1:1
