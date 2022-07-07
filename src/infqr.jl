@@ -273,12 +273,11 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:Abstrac
     B
 end
 
-function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout}; tolerance=1E-30)
     adjA,B_in = M.A,M.B
     A = adjA.parent
     T = eltype(M)
     COLGROWTH = 300 # rate to grow columns
-    tol = 1E-30
     ax1 = axes(A.factors.data.data,1)
     B = PseudoBlockVector(B_in, (ax1,))
 
@@ -296,7 +295,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
             resizedata!(B, CS_max)
             mx = maximum(abs,view(B,J:last(blockcolsupport(A.factors.data.data.array,J))))
             isnan(mx) && error("Not-a-number encounted")
-            if J > SB && mx ≤ tol
+            if J > SB && mx ≤ tolerance
                 break
             end
             partialqr!(A.factors.data, CS_max)
@@ -307,19 +306,19 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
             JR = last(JR)+1:findblock(ax1,last(jr)+COLGROWTH)
         end
     end
-    resizedata_chop!(B, tol)
+    resizedata_chop!(B, tolerance)
 end
 
 
-function _lmul_copymutable(A::AbstractMatrix{T}, x::AbstractVector{S}) where {T,S}
+function _lmul_copymutable(A::AbstractMatrix{T}, x::AbstractVector{S}; kwds...) where {T,S}
     TS = promote_op(matprod, T, S)
-    lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)))
+    lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)); kwds...)
 end
 
-(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector) where {T} = _lmul_copymutable(A, x)
-(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector) where {T} = _lmul_copymutable(A, x)
-(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LayoutVector) where {T} = _lmul_copymutable(A, x)
-(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector) where {T} = _lmul_copymutable(A, x)
+(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
 
 function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}})
     n = B.datasize[1]
@@ -343,10 +342,10 @@ end
 
 ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) =
     ldiv!(F, copyto!(dest, b))
-ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) = ldiv!(F.R, lmul!(F.Q',b))
-ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector) = ldiv!(F.R, lmul!(F.Q',b))
-\(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector) = ldiv!(F.R, F.Q'B)
-\(F::QR{<:Any,<:AdaptiveQRFactors}, B::LayoutVector) = ldiv!(F.R, F.Q'B)
+ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector; kwds...) = ldiv!(F.R, lmul!(F.Q',b; kwds...))
+ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector; kwds...) = ldiv!(F.R, lmul!(F.Q',b; kwds...))
+\(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector; kwds...) = ldiv!(F.R, *(F.Q', B; kwds...))
+\(F::QR{<:Any,<:AdaptiveQRFactors}, B::LayoutVector; kwds...) = ldiv!(F.R, *(F.Q', B; kwds...))
 
 
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
