@@ -157,6 +157,14 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             Ã = BandedMatrix(0 => 1:∞, 1=> Ones(∞), -1=> Ones(∞))
             @test qr(A).R[1:10,1:10] ≈ qr(Ã).R[1:10,1:10]
         end
+
+        @testset "AbstractVector b" begin
+            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
+            F = qr(A);
+            b = [1.; 2; 3; zeros(∞)]
+            @test F\b ≈ F\view(b,:)
+            @test_broken F\b ≈ ldiv!(F, view(copy(b),:))
+        end
     end
 
     @testset "almost-banded" begin

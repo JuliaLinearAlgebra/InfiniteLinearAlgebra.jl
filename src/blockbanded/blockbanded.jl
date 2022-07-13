@@ -1,5 +1,4 @@
 const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
-const OneToCumsum = InfiniteArrays.RangeCumsum{Int,OneTo{Int}}
 
 BlockArrays.sortedunion(::AbstractVector{<:PosInfinity}, ::AbstractVector{<:PosInfinity}) = [∞]
 function BlockArrays.sortedunion(::AbstractVector{<:PosInfinity}, b)
@@ -12,11 +11,7 @@ function BlockArrays.sortedunion(b, ::AbstractVector{<:PosInfinity})
     b
 end
 BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
-BlockArrays.sortedunion(a::OneToCumsum, ::OneToCumsum) = a
-function BlockArrays.sortedunion(a::RangeCumsum{<:Any,<:AbstractRange}, b::RangeCumsum{<:Any,<:AbstractRange})
-    @assert a == b
-    a
-end
+
 
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}},
@@ -78,5 +73,4 @@ BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,Blo
 # KronTrav
 ###
 
-_krontrav_axes(A::NTuple{N,OneToInf{Int}}, B::NTuple{N,OneToInf{Int}}) where N =
-     @. blockedrange(oneto(length(A)))
+_krontrav_axes(A::OneToInf{Int}, B::OneToInf{Int}) where N = blockedrange(oneto(length(A)))
