@@ -100,11 +100,18 @@ include("test_infbanded.jl")
         A = KronTrav(Δ - 2I, Eye(∞))
         @test axes(A, 1) isa InfiniteLinearAlgebra.OneToInfBlocks
         V = view(A, Block.(Base.OneTo(3)), Block.(Base.OneTo(3)))
+        
+        @test MemoryLayout(A) isa InfiniteLinearAlgebra.InfKronTravBandedBlockBandedLayout
         @test MemoryLayout(V) isa LazyBandedMatrices.KronTravBandedBlockBandedLayout
+
+        @test A[Block.(Base.OneTo(3)), Block.(Base.OneTo(3))] isa KronTrav
 
         u = A * [1; zeros(∞)]
         @test u[1:3] == A[1:3, 1]
         @test bandwidths(view(A, Block(1, 1))) == (1, 1)
+
+        @test A*A isa KronTrav
+        @test (A*A)[Block.(Base.OneTo(3)), Block.(Base.OneTo(3))] ≈ A[Block.(1:3), Block.(1:4)]A[Block.(1:4), Block.(1:3)]
     end
 
     @testset "triangle recurrences" begin

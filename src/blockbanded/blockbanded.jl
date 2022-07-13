@@ -74,3 +74,14 @@ BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,Blo
 ###
 
 _krontrav_axes(A::OneToInf{Int}, B::OneToInf{Int}) where N = blockedrange(oneto(length(A)))
+
+
+struct InfKronTravBandedBlockBandedLayout <: AbstractLazyBandedBlockBandedLayout end
+MemoryLayout(::Type{<:KronTrav{<:Any,2,<:Any,NTuple{2,BlockedUnitRange{OneToInfCumsum}}}}) = InfKronTravBandedBlockBandedLayout()
+
+sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice1}}) = BroadcastBandedLayout{typeof(*)}()
+sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice{BlockRange{1,Tuple{OneTo{Int}}}}}}) = KronTravBandedBlockBandedLayout()
+
+copy(M::Mul{InfKronTravBandedBlockBandedLayout, InfKronTravBandedBlockBandedLayout}) = KronTrav((krontravargs(M.A) .* krontravargs(M.B))...)
+
+_broadcast_sub_arguments(::InfKronTravBandedBlockBandedLayout, M, V) = _broadcast_sub_arguments(KronTravBandedBlockBandedLayout(), M, V)
