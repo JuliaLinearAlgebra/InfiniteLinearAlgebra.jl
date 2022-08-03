@@ -11,7 +11,7 @@ using InfiniteLinearAlgebra, BandedMatrices, PyPlot
 # Basic routines for plotting
 ###
 
-function ℓ11(A,λ; kwds...) 
+function ℓ11(A,λ; kwds...)
     try 
         abs(ql(A-λ*I; kwds...).L[1,1]) 
     catch DomainError 

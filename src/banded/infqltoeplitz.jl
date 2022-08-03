@@ -123,6 +123,12 @@ end
 mul(A::ProductQ, x::AbstractVector) = _productq_mul(A, x)
 
 
+
+mul(Q::ProductQ, X::AbstractMatrix) = ApplyArray(*, Q.Qs...) * X
+mul(X::AbstractMatrix, Q::ProductQ) = X * ApplyArray(*, Q.Qs...)
+
+
+
 # LQ where Q is a product of orthogonal operations
 struct QLProduct{T,QQ<:Tuple,LL} <: Factorization{T}
     Qs::QQ
