@@ -278,7 +278,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
     A = adjA.parent
     T = eltype(M)
     COLGROWTH = 300 # rate to grow columns
-    ax1 = axes(A.factors.data.data,1)
+    ax1,ax2 = axes(A.factors.data.data)
     B = PseudoBlockVector(B_in, (ax1,))
 
     SB = findblock(ax1, length(paddeddata(B_in)))
@@ -300,7 +300,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
             end
             partialqr!(A.factors.data, CS_max)
             kr = first(ax1[KR[1]]):last(ax1[KR[end]])
-            jr = first(ax1[JR[1]]):last(ax1[JR[end]])
+            jr = first(ax2[JR[1]]):last(ax2[JR[end]])
             Q_N = QRPackedQ(view(A.factors.data.data.data,KR,JR), view(A.τ.data.τ,jr));
             lmul!(Q_N', view(B.blocks.data, kr))
             JR = last(JR)+1:findblock(ax1,last(jr)+COLGROWTH)
