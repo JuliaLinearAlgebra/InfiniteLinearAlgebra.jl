@@ -7,8 +7,9 @@ end
 
 function AdaptiveQRData(::Union{SymmetricLayout{<:AbstractBandedLayout},AbstractBandedLayout}, A::AbstractMatrix{T}) where T
     l,u = bandwidths(A)
-    data = BandedMatrix{T}(undef,(2l+u+1,0),(l,l+u)) # pad super
-    AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
+    FT = float(T)
+    data = BandedMatrix{FT}(undef,(2l+u+1,0),(l,l+u)) # pad super
+    AdaptiveQRData(CachedArray(data,A), Vector{FT}(), 0)
 end
 
 function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) where T

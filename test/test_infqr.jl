@@ -296,4 +296,11 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         b = [1; 2; 3; zeros(∞)]
         @test (qr(A) \ b) ≈ (ul(A) \ b)
     end
+
+    @tstset "SymTridiagonal QR" begin
+        A = LazyBandedMatrices.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        Q,R = qr(A)
+        @test (Q*R)[1:10,1:10] ≈ A[1:10,1:10]
+        @test (R*Q)[1:10,1:10] ≈ LazyBandedMatrices.SymTridiagonal((R*Q)[1:10,1:10])
+    end
 end
