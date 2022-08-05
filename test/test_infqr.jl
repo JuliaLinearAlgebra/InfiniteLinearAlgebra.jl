@@ -43,23 +43,23 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
         @testset "col/rowsupport" begin
             A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
-            F = qr(A);
+            F = qr(A)
             @test MemoryLayout(typeof(F.factors)) isa AdaptiveLayout{BandedColumns{DenseColumnMajor}}
             @test bandwidths(F.factors) == (1,2)
             @test colsupport(F.factors,1) ==  1:2
             @test colsupport(F.factors,5) ==  3:6
             @test rowsupport(F.factors,1) ==  1:3
             @test rowsupport(F.factors,5) ==  4:7
-            Q,R = F;
+            Q,R = F
             @test MemoryLayout(typeof(R)) isa TriangularLayout
             @test colsupport(R,1) == 1:1
             @test colsupport(R,5) == 3:5
             @test rowsupport(R,1) == 1:3
             @test rowsupport(R,5) == 5:7
             @test colsupport(Q,1) == 1:2
-            @test colsupport(Q,5) == 3:6
-            @test rowsupport(Q,1) == 1:3
-            @test rowsupport(Q,5) == 4:7
+            @test colsupport(Q,5) == 1:6
+            @test rowsupport(Q,1) == 1:∞
+            @test rowsupport(Q,5) == 4:∞
         end
 
         @testset "Qmul" begin
