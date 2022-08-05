@@ -184,7 +184,8 @@ import BandedMatrices: _BandedMatrix
         for A in (LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)]),
                 LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)]),
                 LazyBandedMatrices.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Zeros(∞)]),
-                LazyBandedMatrices.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; zeros(∞)]))
+                LazyBandedMatrices.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; zeros(∞)]),
+                LazyBandedMatrices.SymTridiagonal([[1,2]; fill(3,∞)], [[1, 2]; zeros(∞)]))
             @test abs.(ql(A).L[1:10,1:10]) ≈ abs.(ql(A[1:1000,1:1000]).L[1:10,1:10])
         end
 
@@ -194,4 +195,6 @@ import BandedMatrices: _BandedMatrix
 
         @test (L*Q)[1:10,1:10] ≈ LazyBandedMatrices.SymTridiagonal(L*Q)[1:10,1:10]
     end
+
+    @test_throws ErrorException ql(zeros(∞,∞))
 end
