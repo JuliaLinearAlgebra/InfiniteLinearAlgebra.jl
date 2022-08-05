@@ -57,9 +57,6 @@ function qltail(Z::Number, A::Number, B::Number)
 end
 
 
-ql(A::SymTriPertToeplitz{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::SymTridiagonal{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::TriPertToeplitz{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 ql_hessenberg(A::InfBandedMatrix{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
 toeptail(B::BandedMatrix{T}) where T = 
@@ -308,9 +305,34 @@ _ql(layout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = error("Not impleme
 _data_tail(::PaddedLayout, a) = paddeddata(a), zero(eltype(a))
 _data_tail(::AbstractFillLayout, a) = Vector{eltype(a)}(), getindex_value(a)
 _data_tail(::CachedLayout, a) = cacheddata(a), getindex_value(a.array)
+function _data_tail(::ApplyLayout{typeof(vcat)}, a)
+    args = arguments(vcat, a)
+    dat,tl = _data_tail(last(args))
+    vcat(most(args)..., dat), tl
+end
 _data_tail(a) = _data_tail(MemoryLayout(a), a)
 
-_ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = ql(LazyBandedMatrices.Tridiagonal(A), args...; kwds...)
+function _ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
+    T = eltype(A)
+    d,d∞ = _data_tail(A.dv)
+    ev,ev∞ = _data_tail(A.ev)
+    
+    m = max(length(d), length(ev)+1)
+    dat = zeros(T, 3, m)
+    dat[1,2:1+length(ev)] .= ev
+    dat[1,2+length(ev):end] .= ev∞
+    dat[2,1:length(d)] .= d
+    dat[2,1+length(d):end] .= d∞
+    dat[3,1:length(ev)] .= ev
+    dat[3,1+length(ev):end] .= ev∞
+
+    ql(_BandedMatrix(Hcat(dat, [ev∞,d∞,ev∞] * Ones{T}(1,∞)), ℵ₀, 1, 1), args...; kwds...)
+end
+
+
+
+# TODO: This should be redesigned as ql(BandedMatrix(A))
+# But we need to support dispatch on axes
 function _ql(::TridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
     T = eltype(A)
     d,d∞ = _data_tail(A.d)
