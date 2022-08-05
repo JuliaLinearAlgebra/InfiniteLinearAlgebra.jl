@@ -7,8 +7,9 @@ end
 
 function AdaptiveQRData(::Union{SymmetricLayout{<:AbstractBandedLayout},AbstractBandedLayout}, A::AbstractMatrix{T}) where T
     l,u = bandwidths(A)
-    data = BandedMatrix{T}(undef,(2l+u+1,0),(l,l+u)) # pad super
-    AdaptiveQRData(CachedArray(data,A), Vector{T}(), 0)
+    FT = float(T)
+    data = BandedMatrix{FT}(undef,(2l+u+1,0),(l,l+u)) # pad super
+    AdaptiveQRData(CachedArray(data,A), Vector{FT}(), 0)
 end
 
 function AdaptiveQRData(::AbstractAlmostBandedLayout, A::AbstractMatrix{T}) where T
@@ -123,8 +124,8 @@ function getindex(F::AdaptiveQRFactors, k::Int, j::Int)
     F.data.data[k,j]
 end
 
-colsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = colsupport(F.factors, j)
-rowsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = rowsupport(F.factors, j)
+colsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = 1:last(colsupport(F.factors, j))
+rowsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = first(rowsupport(F.factors, j)):size(F,2)
 
 blockcolsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = blockcolsupport(F.factors, j)
 
@@ -350,3 +351,6 @@ ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector; kwds...) = ldiv!(F.R, l
 
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
 qr(A::SymTridiagonal{T,<:AbstractFill{T,1,Tuple{OneToInf{Int}}}}) where T = adaptiveqr(A)
+
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
+copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)

@@ -52,15 +52,11 @@ function qltail(Z::Number, A::Number, B::Number)
 
     e = sqrt(n^2 - abs2(B))
     d = σ*e*Z/n
-
-    Q = 
+ 
     ql!([Z A B; 0 d e])
 end
 
 
-ql(A::SymTriPertToeplitz{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::SymTridiagonal{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
-ql(A::TriPertToeplitz{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 ql_hessenberg(A::InfBandedMatrix{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
 toeptail(B::BandedMatrix{T}) where T = 
@@ -302,4 +298,79 @@ function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{Per
         allzero && break
     end
     b
+end
+
+_ql(layout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = error("Not implemented")
+
+_data_tail(::PaddedLayout, a) = paddeddata(a), zero(eltype(a))
+_data_tail(::AbstractFillLayout, a) = Vector{eltype(a)}(), getindex_value(a)
+_data_tail(::CachedLayout, a) = cacheddata(a), getindex_value(a.array)
+function _data_tail(::ApplyLayout{typeof(vcat)}, a)
+    args = arguments(vcat, a)
+    dat,tl = _data_tail(last(args))
+    vcat(most(args)..., dat), tl
+end
+_data_tail(a) = _data_tail(MemoryLayout(a), a)
+
+function _ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
+    T = eltype(A)
+    d,d∞ = _data_tail(A.dv)
+    ev,ev∞ = _data_tail(A.ev)
+    
+    m = max(length(d), length(ev)+1)
+    dat = zeros(T, 3, m)
+    dat[1,2:1+length(ev)] .= ev
+    dat[1,2+length(ev):end] .= ev∞
+    dat[2,1:length(d)] .= d
+    dat[2,1+length(d):end] .= d∞
+    dat[3,1:length(ev)] .= ev
+    dat[3,1+length(ev):end] .= ev∞
+
+    ql(_BandedMatrix(Hcat(dat, [ev∞,d∞,ev∞] * Ones{T}(1,∞)), ℵ₀, 1, 1), args...; kwds...)
+end
+
+
+
+# TODO: This should be redesigned as ql(BandedMatrix(A))
+# But we need to support dispatch on axes
+function _ql(::TridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
+    T = eltype(A)
+    d,d∞ = _data_tail(A.d)
+    dl,dl∞ = _data_tail(A.dl)
+    du,du∞ = _data_tail(A.du)
+    
+    m = max(length(d), length(du)+1, length(dl))
+    dat = zeros(T, 3, m)
+    dat[1,2:1+length(du)] .= du
+    dat[1,2+length(du):end] .= du∞
+    dat[2,1:length(d)] .= d
+    dat[2,1+length(d):end] .= d∞
+    dat[3,1:length(dl)] .= dl
+    dat[3,1+length(dl):end] .= dl∞
+
+    ql(_BandedMatrix(Hcat(dat, [du∞,d∞,dl∞] * Ones{T}(1,∞)), ℵ₀, 1, 1), args...; kwds...)
+end
+
+
+###
+# L*Q special case
+###
+
+copy(M::Mul{TriangularLayout{'L', 'N', PertToeplitzLayout}, HessenbergQLayout{'L'}}) =
+    ApplyArray(*, M.A, M.B)
+
+copy(M::Mul{HessenbergQLayout{'L'}, TriangularLayout{'L', 'N', PertToeplitzLayout}}) =
+    ApplyArray(*, M.A, M.B)
+
+
+function LazyBandedMatrices._SymTridiagonal(::Tuple{TriangularLayout{'L', 'N', PertToeplitzLayout}, HessenbergQLayout{'L'}}, A)
+    T = eltype(A)
+    L,Q = arguments(*, A)
+    Ldat,L∞ = arguments(hcat, L.data.data)
+    Qdat, Q∞ = arguments(vcat, Q.q)
+
+    m = max(size(Ldat,2)+2, length(Qdat)+1)
+    dv = [A[k,k] for k=1:m]
+    ev = [A[k,k+1] for k=1:m-1]
+    SymTridiagonal([dv; Fill(dv[end],∞)], [ev; Fill(ev[end],∞)])
 end

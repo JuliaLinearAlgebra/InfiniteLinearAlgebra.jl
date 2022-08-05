@@ -17,10 +17,10 @@ import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, PosInfinity, InfiniteCardinal, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
 import LinearAlgebra: matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose, AdjOrTrans
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, LazyArrayStyle,
-                    resizedata!, MemoryLayout,
+                    resizedata!, MemoryLayout, most,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
-                    applylayout, ApplyLayout, PaddedLayout, zero!, MulAddStyle,
-                    LazyArray, LazyMatrix, LazyVector, paddeddata
+                    applylayout, ApplyLayout, PaddedLayout, CachedLayout, cacheddata, zero!, MulAddStyle,
+                    LazyArray, LazyMatrix, LazyVector, paddeddata, arguments
 import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, getU, reflector!, reflectorApply!, QL, QR, QRPackedQ,
                             QRPackedQLayout, AdjQRPackedQLayout, QLPackedQLayout, AdjQLPackedQLayout, LayoutQ
 
