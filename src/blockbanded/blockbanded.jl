@@ -73,7 +73,7 @@ BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,Blo
 # KronTrav
 ###
 
-_krontrav_axes(A::OneToInf{Int}, B::OneToInf{Int}) where N = blockedrange(oneto(length(A)))
+_krontrav_axes(A::OneToInf{Int}, B::OneToInf{Int}) = blockedrange(oneto(length(A)))
 
 
 struct InfKronTravBandedBlockBandedLayout <: AbstractLazyBandedBlockBandedLayout end
