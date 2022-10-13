@@ -13,6 +13,11 @@ import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, argume
 import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout
 
+using Aqua
+@testset "Project quality" begin
+    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false)
+end
+
 @testset "chop" begin
     a = randn(5)
     b = [a; zeros(5)]
