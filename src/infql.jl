@@ -26,8 +26,8 @@ function tailiterate!(X::AbstractMatrix{T}) where T
     c,a,b = X[1,:]
     h = zero(T)
     for _=1:10_000_000
-        QL = ql!(X)     
-        if h == X[1,3] 
+        QL = ql!(X)
+        if h == X[1,3]
             return QL
         end
         h = X[1,3]
@@ -52,17 +52,17 @@ function qltail(Z::Number, A::Number, B::Number)
 
     e = sqrt(n^2 - abs2(B))
     d = σ*e*Z/n
- 
+
     ql!([Z A B; 0 d e])
 end
 
 
 ql_hessenberg(A::InfBandedMatrix{T}; kwds...) where T = ql_hessenberg!(BandedMatrix(A, (bandwidth(A,1)+bandwidth(A,2),bandwidth(A,2))); kwds...)
 
-toeptail(B::BandedMatrix{T}) where T = 
+toeptail(B::BandedMatrix{T}) where T =
     _BandedMatrix(B.data.args[end].args[1][1:end-B.u]*Ones{T}(1,∞), size(B,1), B.l-B.u, B.u)
 
-# asymptotics of A[:,j:end] as j -> ∞  
+# asymptotics of A[:,j:end] as j -> ∞
 rightasymptotics(d::Hcat) = last(d.args)
 rightasymptotics(d::Vcat) = Vcat(rightasymptotics.(d.args)...)
 rightasymptotics(d) = d
@@ -81,12 +81,12 @@ function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
     B̃[end,end] = L∞[1,1]
     B̃[end:end,end-l+1:end-1] = adjoint(Q∞)[1:1,1:l-1]*T[l:2(l-1),1:l-1]
     F = ql!(B̃)
-    
-    # fill in data with L∞
+
+    # fill in data with L∞
     B̃ = _BandedMatrix(B̃.data, size(data,2)+l, l,u)
     B̃[size(data,2)+1:end,end-l+1:end] = adjoint(Q∞)[2:l+1,1:l+1] * T[l:2l,1:l]
 
-    
+
     # combine finite and infinite data
     H = Hcat(B̃.data, rightasymptotics(F∞.factors.data))
     QLHessenberg(_BandedMatrix(H, ℵ₀, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
@@ -103,7 +103,7 @@ nzzeros(A::AbstractArray, k) = size(A,k)
 nzzeros(::Zeros, k) = 0
 nzzeros(B::Vcat, k) = sum(size.(B.args[1:end-1],k))
 nzzeros(B::CachedArray, k) = max(B.datasize[k], nzzeros(B.array,k))
-function nzzeros(B::AbstractMatrix, k) 
+function nzzeros(B::AbstractMatrix, k)
     l,u = bandwidths(B)
     k == 1 ? size(B,2) + l : size(B,1) + u
 end
@@ -176,7 +176,7 @@ end
 function _lmul_cache(A::AbstractMatrix{T}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
-end    
+end
 
 (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector) where {T} = _lmul_cache(A, x)
 (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
@@ -190,7 +190,7 @@ function blocktailiterate(c,a,b, d=c, e=a)
         X = [c a b; z d e]
         F = ql!(X)
         d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
-        
+
         d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ  # undo last rotation
         if ≈(d̃, d; atol=1E-10) && ≈(ẽ, e; atol=1E-10)
             X[1:2,1:2] = d̃; X[1:2,3:4] = ẽ
@@ -211,7 +211,7 @@ function _blocktripert_ql(A, d, e)
     c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
     P,τ = blocktailiterate(c,a,b,d,e)
     B = BlockBandedMatrix(A,(2,1))
-    
+
 
     BB = _BlockBandedMatrix(B.data.args[1], (fill(2,N+2), fill(2,N)), (2,1))
     BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
@@ -290,7 +290,7 @@ function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{Per
     @inbounds for j in 1:n
         iszero(data[j,j]) && throw(SingularException(j))
         bj = b[j] = data[j,j] \ b[j]
-        allzero = j > nz && iszero(bj)
+        allzero = j > nz && iszero(bj)
         for i in (j+1:n) ∩ colsupport(data,j)
             b[i] -= data[i,j] * bj
             allzero = allzero && iszero(b[i])
@@ -316,7 +316,7 @@ function _ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds
     T = eltype(A)
     d,d∞ = _data_tail(A.dv)
     ev,ev∞ = _data_tail(A.ev)
-    
+
     m = max(length(d), length(ev)+1)
     dat = zeros(T, 3, m)
     dat[1,2:1+length(ev)] .= ev
@@ -338,7 +338,7 @@ function _ql(::TridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...
     d,d∞ = _data_tail(A.d)
     dl,dl∞ = _data_tail(A.dl)
     du,du∞ = _data_tail(A.du)
-    
+
     m = max(length(d), length(du)+1, length(dl))
     dat = zeros(T, 3, m)
     dat[1,2:1+length(du)] .= du

@@ -105,7 +105,7 @@ include("test_infbanded.jl")
         A = KronTrav(Δ - 2I, Eye(∞))
         @test axes(A, 1) isa InfiniteLinearAlgebra.OneToInfBlocks
         V = view(A, Block.(Base.OneTo(3)), Block.(Base.OneTo(3)))
-        
+
         @test MemoryLayout(A) isa InfiniteLinearAlgebra.InfKronTravBandedBlockBandedLayout
         @test MemoryLayout(V) isa LazyBandedMatrices.KronTravBandedBlockBandedLayout
 

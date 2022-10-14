@@ -30,7 +30,7 @@ end
 AdaptiveQRData(A::AbstractMatrix{T}) where T = AdaptiveQRData(MemoryLayout(A), A)
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
-    if n > F.ncols
+    if n > F.ncols
         l,u = bandwidths(F.data.data)
         resizedata!(F.data,n+l,n+u);
         resize!(F.τ,n);
@@ -48,7 +48,7 @@ function partialqr!(F::AdaptiveQRData{<:Any,<:BandedMatrix}, n::Int)
 end
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:AlmostBandedMatrix}, n::Int)
-    if n > F.ncols
+    if n > F.ncols
         l,u = almostbandwidths(F.data.data)
         resizedata!(F.data,n+l,n+l+u);
         resize!(F.τ,n);
@@ -67,7 +67,7 @@ end
 
 function partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, N::Block{1})
     n = last(axes(F.data,2)[N])
-    if n > F.ncols
+    if n > F.ncols
         l,u = blockbandwidths(F.data.data)
         resizedata!(F.data,N+l,N+u);
         resize!(F.τ,n);

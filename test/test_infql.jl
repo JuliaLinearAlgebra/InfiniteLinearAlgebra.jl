@@ -30,7 +30,7 @@ import BandedMatrices: _BandedMatrix
             end
 
             for (Z,A,B) in ((0.5,2.1,2.0),(0.5,-1.1,2.0))
-                @test_throws DomainError ql(Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞))) 
+                @test_throws DomainError ql(Tridiagonal(Fill(Z,∞), Fill(A,∞), Fill(B,∞)))
             end
         end
 
@@ -40,7 +40,7 @@ import BandedMatrices: _BandedMatrix
             F = ql(T)
             @test F.Q[1:10,1:11]*F.L[1:11,1:10] ≈ T[1:10,1:10]
 
-            a = [1,2,3+im,0.5] 
+            a = [1,2,3+im,0.5]
             T = _BandedMatrix(reverse(a) * Ones{eltype(a)}(1,∞), ℵ₀, 2, 1)
             Q,L = ql(T)
             @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
@@ -56,7 +56,7 @@ import BandedMatrices: _BandedMatrix
                 @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
             end
 
-            a =    [ -2.531640004434771-0.0im , 0.36995310821558014+2.5612894011525276im, -0.22944284364953327+0.39386202384951985im, -0.2700241133710857 + 0.8984628598798804im, 4.930380657631324e-32 + 0.553001215633963im ] 
+            a =    [ -2.531640004434771-0.0im , 0.36995310821558014+2.5612894011525276im, -0.22944284364953327+0.39386202384951985im, -0.2700241133710857 + 0.8984628598798804im, 4.930380657631324e-32 + 0.553001215633963im ]
             T = _BandedMatrix(a * Ones{ComplexF64}(1,∞), ℵ₀, 3, 1)
             Q,L = ql(T)
             @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
@@ -64,8 +64,8 @@ import BandedMatrices: _BandedMatrix
     end
 
     @testset "PertTriToeplitz QL" begin
-        A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)), 
-                        Vcat(Float64[2.0], Fill(0.0,∞)), 
+        A = Tridiagonal(Vcat(Float64[], Fill(2.0,∞)),
+                        Vcat(Float64[2.0], Fill(0.0,∞)),
                         Vcat(Float64[], Fill(0.5,∞)))
         for λ in (-2.1-0.01im,-2.1+0.01im,-2.1+eps()im,-2.1-eps()im,-2.1+0.0im,-2.1-0.0im,-1.0+im,-3.0+im,-3.0-im)
             Q, L = ql(A - λ*I)
@@ -92,17 +92,17 @@ import BandedMatrices: _BandedMatrix
         Q,L = ql(A)
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
 
-        A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)), 
+        A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)),
                         0 => Vcat([0.0], Fill(1/2,∞)),
                         1 => Vcat([1/4], Fill(1/4,∞)))
-        Q,L = ql(A)                      
+        Q,L = ql(A)
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ A[1:10,1:10]
         a = [-0.1,0.2,0.3]
         A = BandedMatrix(-2 => Vcat([1], Fill(1,∞)),  0 => Vcat(a, Fill(0,∞)), 1 => Vcat([1/4], Fill(1/4,∞)))
         λ = 0.5+0.1im
 
         B = BandedMatrix(A-λ*I, (3,1))
-        T = toeptail(B) 
+        T = toeptail(B)
         Q,L = ql(T)
         @test Q[1:10,1:11]*L[1:11,1:10] ≈ T[1:10,1:10]
 
@@ -148,7 +148,7 @@ import BandedMatrices: _BandedMatrix
         b = [1; zeros(∞)]
         @test (Q'b)[1] ≈ 0.9892996329463546
         @test L[1] == L[1,1]
-        
+
         @test L[1:5,1:5] isa BandedMatrix
         @test (L*(L \ b))[1:10] ≈ [1; zeros(9)]
         u = F \ b

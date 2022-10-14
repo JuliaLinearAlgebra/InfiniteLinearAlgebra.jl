@@ -8,7 +8,7 @@ import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, si
             show, getproperty, copy, copyto!, map, require_one_based_indexing, similar, inv
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
-import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout, 
+import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout,
                         sublayout, _qr, __qr, MatLmulVec, MatLmulMat, AbstractQLayout, materialize!, diagonaldata, subdiagonaldata, supdiagonaldata,
                         _bidiag_forwardsub!, mulreduce, RangeCumsum, _factorize, transposelayout, ldiv!, lmul!, mul, CNoPivot
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns,
@@ -46,7 +46,7 @@ else
     import Base: oneto, unitrange
 end
 
-if VERSION ≥ v"1.7-"
+if VERSION ≥ v"1.7-"
     LinearAlgebra._cut_B(x::AbstractVector, r::InfUnitRange) = x
     LinearAlgebra._cut_B(X::AbstractMatrix, r::InfUnitRange) = X
 end

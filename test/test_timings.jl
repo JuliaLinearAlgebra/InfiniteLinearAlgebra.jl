@@ -7,7 +7,7 @@ import LazyArrays: MemoryLayout, arguments, resizedata!, partialqr!
     V = view(A.data.args[2],:,1:n)
     b = similar(V)
     @test @belapsed(copyto!(b,V)) ≤ 0.01
-    @test @belapsed(A.data[:,1:n]) ≤ 0.02
+    @test @belapsed(A.data[:,1:n]) ≤ 0.02
     @test @belapsed(A[1:n,1:n]) ≤ 0.02
 
     C = cache(A); @time resizedata!(C, n+1,n);

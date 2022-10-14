@@ -38,11 +38,11 @@ end
 
 
 function conv(r::InfRanges, x::AbstractVector)
-    length(x) ≠ 1 && throw(ArgumentError("conv(::$(typeof(r)), ::$(typeof(x))) not implemented"))
+    length(x) ≠ 1 && throw(ArgumentError("conv(::$(typeof(r)), ::$(typeof(x))) not implemented"))
     first(x)*r
 end
 function conv(x::AbstractVector, r::InfRanges)
-    length(x) ≠ 1 && throw(ArgumentError("conv(::$(typeof(r)), ::$(typeof(x))) not implemented"))
+    length(x) ≠ 1 && throw(ArgumentError("conv(::$(typeof(r)), ::$(typeof(x))) not implemented"))
     first(x)*r
 end
 

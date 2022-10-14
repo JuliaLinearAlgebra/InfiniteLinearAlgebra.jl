@@ -5,12 +5,12 @@ gives L[Block(1,1)] of a block-tridiagonal Toeplitz operator. Based on Delvaux a
 """
 
 # need to solve [1 -B*inv(L); 0 1] * [C A B; 0 C L] == [C L 0; 0 C L]
-# that is 
+# that is
 # A - B*inv(L)*C == L
 # In the scalar case this is quadratic
 # L^2 - A*L + B*C == 0
-# so that 
-# = L = (A ± sqrt(A^2 - 4B*C))/2
+# so that
+# = L = (A ± sqrt(A^2 - 4B*C))/2
 # we choose sign(A) to maximise the magnitude as we know inv(T)[1,1] -> 0, hence
 # inv(L) -> 0
 _ultailL1(c::Number, a::Number, b::Number) = (a + sign(a)*sqrt(a^2-4b*c))/2
@@ -22,7 +22,7 @@ _ultailL1(c::Number, a::Number, b::Number) = (a + sign(a)*sqrt(a^2-4b*c))/2
 
 function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
     d = size(A,1)
-    λs = filter!(λ -> abs(λ) ≤ 1, eigvals([zeros(d,d) -B; -C -A], [B zeros(d,d); zeros(d,d) -B]))
+    λs = filter!(λ -> abs(λ) ≤ 1, eigvals([zeros(d,d) -B; -C -A], [B zeros(d,d); zeros(d,d) -B]))
     @assert length(λs) == d
     V = Matrix{eltype(λs)}(undef, d, d)
     j = 1

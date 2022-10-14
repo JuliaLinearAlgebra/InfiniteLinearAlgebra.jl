@@ -17,7 +17,7 @@ ql(Δ - λ*I).L[1,1]
 end
 
 λ2 = Interval(m,λ.hi)
-ql(Δ - λ1.hi*I).L[1,1] 
+ql(Δ - λ1.hi*I).L[1,1]
 
 
 ql(Δ - Interval(4.2)I).L[1,1]
@@ -41,7 +41,7 @@ Z,A,B = 0.5,-4.0,0.5
 
 A = 4
 rig_qltail(-2,10,B)
-    
+
 d,e = d2,e2
 
 rig_qltail(Z,A,B,d,e)
@@ -106,4 +106,4 @@ X[2,:] .= (zero(T), X[1,1], X[1,2]);
 X[1,:] .= (Z,A,B);
 QL = _qlfactUnblocked!(X)
 
-X, QL.τ[end]      
+X, QL.τ[end]

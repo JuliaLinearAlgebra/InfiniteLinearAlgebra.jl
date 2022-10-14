@@ -12,9 +12,9 @@ using InfiniteLinearAlgebra, BandedMatrices, PyPlot
 ###
 
 function ℓ11(A,λ; kwds...)
-    try 
-        abs(ql(A-λ*I; kwds...).L[1,1]) 
-    catch DomainError 
+    try
+        abs(ql(A-λ*I; kwds...).L[1,1])
+    catch DomainError
         -1.0
     end
 end
@@ -64,7 +64,7 @@ clf(); qlplot(A; branch=findsecond, x=range(-2,3; length=100), y=range(-2.5,2.5;
 clf(); qlplot(transpose(A); x=range(-2,3; length=100), y=range(-2.5,2.5;length=100)); symbolplot(A; color=:black); title("Limacon, transpose")
 
 
-### 
+###
 # bull-head
 ###
 
@@ -95,7 +95,7 @@ clf(); qlplot(transpose(A); branch=branch(2), x=range(-2,2; length=100), y=range
 # Whale
 ###
 
-A = BandedMatrix(-4 => Fill(im,∞), -3 => Fill(4,∞), -2 => Fill(3+im,∞), -1 => Fill(10,∞), 
+A = BandedMatrix(-4 => Fill(im,∞), -3 => Fill(4,∞), -2 => Fill(3+im,∞), -1 => Fill(10,∞),
                     1 => Fill(1,∞), 2 => Fill(im,∞), 3 => Fill(-(3+2im),∞), 4=>Fill(-1,∞))
 
 clf(); qlplot(A; x=range(-15,20; length=100), y=range(-20,20;length=100)); symbolplot(A; color=:black); title("Whale")

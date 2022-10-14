@@ -133,7 +133,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             @test C[202,204] == AB[202,204]
             F = qr(AB);
             partialqr!(F.factors.data, 100); partialqr!(F.factors.data, 200);
-            @test norm(F.factors.data.data.data[Base.OneTo.(F.factors.data.data.datasize)...]) ≤ 4000
+            @test norm(F.factors.data.data.data[Base.OneTo.(F.factors.data.data.datasize)...]) ≤ 4000
             b = Vcat([3,4,5],Zeros(∞))
             @time x = qr(AB) \ b;
             @test x[1:300] ≈ AB[1:300,1:300] \ b[1:300]
