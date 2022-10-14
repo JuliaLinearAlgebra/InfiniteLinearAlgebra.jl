@@ -23,7 +23,7 @@ function _inf_banded_sub_materialize(::BandedColumns, V)
     b = parentindices(V)[1].b
     data = bandeddata(A)
     l,u = bandwidths(A)
-    if -l ≤ b ≤ u
+    if -l ≤ b ≤ u
         data[u+1-b, max(1,b+1):end]
     else
         Zeros{eltype(V)}(∞) # Not type stable
@@ -86,7 +86,7 @@ function BandedMatrix{T}(kv::Tuple{Vararg{Pair{<:Integer,<:Vcat{<:Any,1,<:Tuple{
     m,n = mn
     @assert isinf(n)
     l,u = lu
-    M = mapreduce(x -> length(x.second.args[1]) + max(0,x.first), max, kv) # number of data rows
+    M = mapreduce(x -> length(x.second.args[1]) + max(0,x.first), max, kv) # number of data rows
     data = zeros(T, u+l+1, M)
     t = zeros(T, u+l+1)
     for (k,v) in kv
@@ -110,14 +110,14 @@ function BandedMatrix(Ac::Adjoint{T,<:InfToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
     a = A.data.args[1]
-    _BandedMatrix(reverse(conj(a)) * Ones{T}(1,∞), ℵ₀, u, l)
+    _BandedMatrix(reverse(conj(a)) * Ones{T}(1,∞), ℵ₀, u, l)
 end
 
 function BandedMatrix(Ac::Transpose{T,<:InfToeplitz}) where T
     A = parent(Ac)
     l,u = bandwidths(A)
     a = A.data.args[1]
-    _BandedMatrix(reverse(a) * Ones{T}(1,∞), ℵ₀, u, l)
+    _BandedMatrix(reverse(a) * Ones{T}(1,∞), ℵ₀, u, l)
 end
 
 function BandedMatrix(Ac::Adjoint{T,<:PertToeplitz}) where T
@@ -125,7 +125,7 @@ function BandedMatrix(Ac::Adjoint{T,<:PertToeplitz}) where T
     l,u = bandwidths(A)
     a,b = A.data.args
     Ac_fd = BandedMatrix(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)')
-    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.args[1])) * Ones{T}(1,∞)), ℵ₀, u, l)
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(conj(b.args[1])) * Ones{T}(1,∞)), ℵ₀, u, l)
 end
 
 function BandedMatrix(Ac::Transpose{T,<:PertToeplitz}) where T
@@ -133,7 +133,7 @@ function BandedMatrix(Ac::Transpose{T,<:PertToeplitz}) where T
     l,u = bandwidths(A)
     a,b = A.data.args
     Ac_fd = BandedMatrix(transpose(_BandedMatrix(Hcat(a, b[:,1:l+1]), size(a,2)+l, l, u)))
-    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.args[1]) * Ones{T}(1,∞)), ℵ₀, u, l)
+    _BandedMatrix(Hcat(Ac_fd.data, reverse(b.args[1]) * Ones{T}(1,∞)), ℵ₀, u, l)
 end
 
 
@@ -231,7 +231,7 @@ end
 function BandedMatrix(A::PertToeplitz{T}, (l,u)::Tuple{Int,Int}) where T
     @assert A.u == u # Not implemented
     a, b = A.data.args
-    t = b.args[1] # topelitz part
+    t = b.args[1] # topelitz part
     t_pad = vcat(t,Zeros(l-A.l))
     data = Hcat([vcat(a,Zeros{T}(l-A.l,size(a,2))) repeat(t_pad,1,l)], t_pad * Ones{T}(1,∞))
     _BandedMatrix(data, ℵ₀, l, u)
@@ -509,7 +509,7 @@ copyto!(dest::AbstractArray, L::Ldiv{BidiagonalToeplitzLayout,Lay}) where Lay = 
 
 # copy for AdjOrTrans
 copy(A::Adjoint{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = copy(parent(A))'
-copy(A::Transpose{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = transpose(copy(parent(A))) 
+copy(A::Transpose{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = transpose(copy(parent(A)))
 
 
 ##

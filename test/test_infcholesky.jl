@@ -5,7 +5,7 @@ using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, ArrayLayouts, Test
     b = [1; zeros(∞)]
     @test cholesky(S) \ b ≈ qr(S) \ b ≈ S \ b
 
-    # go past adaptive 
+    # go past adaptive
     b = [randn(10_000); zeros(∞)]
     @test cholesky(S) \ b ≈ qr(S) \ b ≈ S \ b
 

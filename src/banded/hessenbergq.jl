@@ -43,7 +43,7 @@ function show(io::IO, mime::MIME{Symbol("text/plain")}, F::QLHessenberg)
     show(io, mime, F.L)
 end
 
-@inline function getL(F::QLHessenberg, _) 
+@inline function getL(F::QLHessenberg, _)
     m, n = size(F)
     tril!(getfield(F, :factors)[end-min(m,n)+1:end, 1:n], max(n-m,0))
 end
@@ -78,7 +78,7 @@ for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
             end
         end
 
-        $Typ(q::AbstractVector{<:AbstractMatrix{T}}) where T = 
+        $Typ(q::AbstractVector{<:AbstractMatrix{T}}) where T =
             $Typ{T,typeof(q)}(q)
     end
 end
@@ -111,7 +111,7 @@ function materialize!(L::MatLmulVec{<:HessenbergQLayout{'L'}})
         v = view(x, n:n+1)
         mul!(t, Q.q[n], v)
         v .= t
-        n > nz && norm(t) ≤ 10floatmin(real(T)) && return x
+        n > nz && norm(t) ≤ 10floatmin(real(T)) && return x
     end
     x
 end

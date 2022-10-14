@@ -18,7 +18,7 @@ MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM,M}}) where {T,DM,M} = AdaptiveL
 
 
 function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) where T
-    if n > F.ncols 
+    if n > F.ncols
         _,u = bandwidths(F.data.array)
         resizedata!(F.data,n+u,n+u);
         ncols = F.ncols

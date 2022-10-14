@@ -37,7 +37,7 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
         C = Matrix(B')
         J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞))) - 10I
         U,L = ul(J, Val(false))
-        N = 10; 
+        N = 10;
         @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
     end
 end
