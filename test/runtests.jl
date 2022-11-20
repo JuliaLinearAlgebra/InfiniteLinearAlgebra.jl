@@ -5,7 +5,7 @@ import InfiniteLinearAlgebra: qltail, toeptail, tailiterate, tailiterate!, tail_
     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!,
     BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout
 import Base: BroadcastStyle
-import BlockArrays: _BlockArray
+import BlockArrays: _BlockArray, blockcolsupport
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
@@ -98,6 +98,24 @@ include("test_infbanded.jl")
         @test blockbandwidths(C) == (1, 1)
         @test subblockbandwidths(C) == (1, 1)
         @test B[Block.(1:10), Block.(1:10)] isa BlockSkylineMatrix
+    end
+
+    @testset "DiagTrav" begin
+        C = zeros(∞,∞);
+        C[1:3,1:4] .= [1 2 3 4; 5 6 7 8; 9 10 11 12]
+        A = DiagTrav(C)
+        @test blockcolsupport(A) == Block.(1:6)
+        @test A[Block.(1:7)] == [1; 5; 2; 9; 6; 3; 0; 10; 7; 4; 0; 0; 11; 8; 0; 0; 0; 0; 12; zeros(9)]
+
+        C = zeros(∞,4);
+        C[1:3,1:4] .= [1 2 3 4; 5 6 7 8; 9 10 11 12]
+        A = DiagTrav(C)
+        @test A[Block.(1:7)] == [1; 5; 2; 9; 6; 3; 0; 10; 7; 4; 0; 0; 11; 8; 0; 0; 0; 12; zeros(4)]
+
+        C = zeros(3,∞);
+        C[1:3,1:4] .= [1 2 3 4; 5 6 7 8; 9 10 11 12]
+        A = DiagTrav(C)
+        @test A[Block.(1:7)] == [1; 5; 2; 9; 6; 3; 10; 7; 4; 11; 8; 0; 12; zeros(5)]
     end
 
     @testset "KronTrav" begin
