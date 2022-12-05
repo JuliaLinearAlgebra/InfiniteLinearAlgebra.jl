@@ -205,11 +205,9 @@ end
 
 _norm(x::Number) = abs(x)
 
-function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout})
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout}; tolerance=floatmin(real(eltype(M))))
     adjA,B = M.A,M.B
-    T = eltype(M)
     COLGROWTH = 1000 # rate to grow columns
-    tol = floatmin(real(T))
 
     require_one_based_indexing(B)
     A = adjA.parent
@@ -235,7 +233,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
             kr = j:cs_max
             resizedata!(B, min(cs_max,mB))
             Bdata = paddeddata(B)
-            if (j > sB && maximum(_norm,view(Bdata,j:last(colsupport(A.factors,j)))) ≤ tol)
+            if (j > sB && maximum(_norm,view(Bdata,j:last(colsupport(A.factors,j)))) ≤ tolerance)
                 break
             end
             partialqr!(A.factors.data, min(cs_max,nA))
@@ -244,7 +242,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
             jr = last(jr)+1:min(last(jr)+COLGROWTH,nA)
         end
     end
-    resizedata_chop!(B, tol)
+    resizedata_chop!(B, tolerance)
 end
 
 function resizedata!(B::PseudoBlockVector, M::Block{1})
@@ -341,8 +339,7 @@ end
 
 
 
-ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector) =
-    ldiv!(F, copyto!(dest, b))
+ldiv!(dest::AbstractVector, F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector; kwds...) = ldiv!(F, copyto!(dest, b); kwds...)
 ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::AbstractVector; kwds...) = ldiv!(F.R, lmul!(F.Q',b; kwds...))
 ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector; kwds...) = ldiv!(F.R, lmul!(F.Q',b; kwds...))
 \(F::QR{<:Any,<:AdaptiveQRFactors}, B::AbstractVector; kwds...) = ldiv!(F.R, *(F.Q', B; kwds...))

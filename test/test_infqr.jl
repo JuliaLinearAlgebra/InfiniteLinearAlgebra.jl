@@ -303,4 +303,10 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @test (Q*R)[1:10,1:10] ≈ A[1:10,1:10]
         @test (R*Q)[1:10,1:10] ≈ LazyBandedMatrices.SymTridiagonal((R*Q)[1:10,1:10])
     end
+
+    @testset "tolerance" begin
+        A = BandedMatrix(1 => Ones(∞), 0 => Fill(-2,∞), -1 => Ones(∞))
+        u = \(A, [1; zeros(∞)]; tolerance=1E-8)
+        @test A*u ≈ [1; zeros(∞)]
+    end
 end
