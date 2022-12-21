@@ -88,7 +88,7 @@ struct ProductQ{T,QQ<:Tuple} <: LayoutQ{T}
     Qs::QQ
 end
 
-if VERSION < v"1.10-"
+if VERSION < v"1.8-"
     ArrayLayouts.@layoutmatrix ProductQ
     ArrayLayouts.@_layoutlmul ProductQ
 else # ArrayLayouts.@layoutmatrix ProductQ without ArrayLayouts.@layoutgetindex
