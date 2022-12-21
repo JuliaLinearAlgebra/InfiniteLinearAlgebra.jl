@@ -1,6 +1,11 @@
 isorthogonal(::AbstractQ) = true
 isorthogonal(q) = q'q ≈ I
 
+convert_eltype(Q::AbstractMatrix, ::Type{T}) where {T} = convert(AbstractMatrix{T}, Q)
+if !(AbstractQ <: AbstractMatrix)
+    convert_eltype(Q::AbstractQ, ::Type{T}) where {T} = convert(AbstractQ{T}, Q)
+end
+
 """
     QLHessenberg(factors, q)
 
@@ -8,26 +13,27 @@ represents a Hessenberg QL factorization where factors contains L in its
 lower triangular components and q is a vector of 2x2 orthogonal transformations
 whose product gives Q.
 """
-struct QLHessenberg{T,S<:AbstractMatrix{T},QT<:AbstractVector{<:AbstractMatrix{T}}} <: Factorization{T}
+struct QLHessenberg{T,S<:AbstractMatrix{T},QT<:AbstractVector{<:Union{AbstractMatrix{T},AbstractQ{T}}}} <: Factorization{T}
     factors::S
     q::QT
 
-    function QLHessenberg{T,S,QT}(factors, q) where {T,S<:AbstractMatrix{T},QT<:AbstractVector{<:AbstractMatrix{T}}}
+    function QLHessenberg{T,S,QT}(factors, q) where {T,S<:AbstractMatrix{T},QT<:AbstractVector{<:Union{AbstractMatrix{T},AbstractQ{T}}}}
         require_one_based_indexing(factors)
         new{T,S,QT}(factors, q)
     end
 end
 
-QLHessenberg(factors::AbstractMatrix{T}, q::AbstractVector{<:AbstractMatrix{T}}) where {T} = QLHessenberg{T,typeof(factors),typeof(q)}(factors, q)
+QLHessenberg(factors::AbstractMatrix{T}, q::AbstractVector{<:Union{AbstractMatrix{T},AbstractQ{T}}}) where {T} =
+    QLHessenberg{T,typeof(factors),typeof(q)}(factors, q)
 QLHessenberg{T}(factors::AbstractMatrix, q::AbstractVector) where {T} =
-    QLHessenberg(convert(AbstractMatrix{T}, factors), convert.(AbstractMatrix{T}, q))
+    QLHessenberg(convert(AbstractMatrix{T}, factors), convert_eltype.(q, T))
 
 # iteration for destructuring into components
 Base.iterate(S::QLHessenberg) = (S.Q, Val(:L))
 Base.iterate(S::QLHessenberg, ::Val{:L}) = (S.L, Val(:done))
 Base.iterate(S::QLHessenberg, ::Val{:done}) = nothing
 
-QLHessenberg{T}(A::QLHessenberg) where {T} = QLHessenberg(convert(AbstractMatrix{T}, A.factors), convert.(AbstractMatrix{T}, A.q))
+QLHessenberg{T}(A::QLHessenberg) where {T} = QLHessenberg(convert(AbstractMatrix{T}, A.factors), convert_eltype.(A.q, T))
 Factorization{T}(A::QLHessenberg{T}) where {T} = A
 Factorization{T}(A::QLHessenberg) where {T} = QLHessenberg{T}(A)
 AbstractMatrix(F::QLHessenberg) = F.Q * F.L
@@ -69,16 +75,16 @@ abstract type AbstractHessenbergQ{T} <: LayoutQ{T} end
 
 for Typ in (:UpperHessenbergQ, :LowerHessenbergQ)
     @eval begin
-        struct $Typ{T, QT<:AbstractVector{<:AbstractMatrix{T}}} <: AbstractHessenbergQ{T}
+        struct $Typ{T, QT<:AbstractVector{<:Union{AbstractMatrix{T},AbstractQ{T}}}} <: AbstractHessenbergQ{T}
             q::QT
-            function $Typ{T,QT}(q::QT) where {T,QT<:AbstractVector{<:AbstractMatrix{T}}}
+            function $Typ{T,QT}(q::QT) where {T,QT<:AbstractVector{<:Union{AbstractMatrix{T},AbstractQ{T}}}}
                 all(isorthogonal.(q)) || throw(ArgumentError("input must be orthogonal"))
                 all(size.(q) .== Ref((2,2))) ||  throw(ArgumentError("input must be 2x2"))
                 new{T,QT}(q)
             end
         end
 
-        $Typ(q::AbstractVector{<:AbstractMatrix{T}}) where T =
+        $Typ(q::AbstractVector{<:Union{AbstractMatrix{T},AbstractQ{T}}}) where {T} =
             $Typ{T,typeof(q)}(q)
     end
 end
@@ -141,13 +147,12 @@ end
 # getindex
 ####
 
-function getindex(Q::UpperHessenbergQ, i::Int, j::Int)
-    y = zeros(eltype(Q), size(Q, 2))
-    y[j] = 1
-    lmul!(Q, y)[i]
-end
+getindex(Q::UpperHessenbergQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+    hcat((Q[:,j][I] for j in J)...)
 
 getindex(Q::LowerHessenbergQ, i::Int, j::Int) = (Q')[j,i]'
+getindex(Q::LowerHessenbergQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+    [Q[i,j] for i in I, j in J]
 
 
 ###
