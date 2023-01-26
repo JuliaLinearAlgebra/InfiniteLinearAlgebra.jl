@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, LazyArrays, FillArrays, LinearAlgebra, Test
-import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz
+import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz, AdaptiveQLFiniteSection
 import BandedMatrices: _BandedMatrix
 
 @testset "Inf QL" begin
@@ -197,4 +197,8 @@ import BandedMatrices: _BandedMatrix
     end
 
     @test_throws ErrorException ql(zeros(∞,∞))
+end
+
+@testset "Finite Section QL"
+    # todo
 end

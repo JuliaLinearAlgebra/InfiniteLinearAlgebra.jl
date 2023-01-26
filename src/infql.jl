@@ -374,3 +374,168 @@ function LazyBandedMatrices._SymTridiagonal(::Tuple{TriangularLayout{'L', 'N', P
     ev = [A[k,k+1] for k=1:m-1]
     SymTridiagonal([dv; Fill(dv[end],∞)], [ev; Fill(ev[end],∞)])
 end
+
+
+###
+# Experimental adaptive finite section QL
+###
+mutable struct QLFiniteSectionQFactor{T} <: AbstractCachedMatrix{T}
+    data::AbstractMatrix{T}
+    M::AbstractMatrix{T}
+    datasize::Int
+    tol::Real
+    QLFiniteSectionQFactor{T}(array::AbstractMatrix{T},M::AbstractMatrix{T},N::Int,tol) where T = new{T}(array, M, N, tol)
+end
+
+mutable struct QLFiniteSectionLFactor{T} <: AbstractCachedMatrix{T}
+    data::AbstractMatrix{T}
+    M::AbstractMatrix{T}
+    datasize::Int
+    tol::Real
+    QLFiniteSectionLFactor{T}(array::AbstractMatrix{T},M::AbstractMatrix{T},N::Int,tol) where T = new{T}(array, M, N, tol)
+end
+
+size(::QLFiniteSectionQFactor) = (ℵ₀, ℵ₀)
+size(::QLFiniteSectionLFactor) = (ℵ₀, ℵ₀)
+
+mutable struct AdaptiveQLFiniteSection{T}
+    Q::QLFiniteSectionQFactor{T}
+    L::QLFiniteSectionLFactor{T}
+    tol
+end
+
+# Computes the initial data for the finite section based QL decomposition
+function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(T), maxN = 10000) where T
+    @assert size(A) == (ℵ₀, ℵ₀) # only makes sense for infinite matrices
+    N = 50 # We initialize with a 50 × 50 block that is adaptively expanded
+    Qerr = one(T)
+    Lerr = one(T)
+    Qs, Ls = ql(A[1:N,1:N])
+    while norm(Qerr,2)>tol || norm(Lerr,2)>tol
+        # compute QL for small (N×N) finite section and large (2N×2N) finite section
+        Ql, Ll = ql(A[1:2N,1:2N])
+        # stop if desired level of convergence achieved
+        Qerr = Ql[1:50,1:50]-Qs[1:50,1:50]
+        Lerr = Ll[1:50,1:50]-Ls[1:50,1:50]
+        if N ≥ maxN
+            error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
+        end
+        Qs, Ls = Ql, Ll
+        N = 2*N
+    end
+    return AdaptiveQLFiniteSection{T}(QLFiniteSectionQFactor{T}(Qs[1:50,1:50], A, 50, tol),QLFiniteSectionLFactor{T}(Ls[1:50,1:50], A, 50, tol),tol)
+end
+
+# Resize and filling functions for cached implementation
+function resizedata!(K::QLFiniteSectionLFactor, nm::Integer)
+    νμ = K.datasize
+    if nm > νμ
+        olddata = copy(K.data)
+        K.data = similar(K.data, nm, nm)
+        K.data[axes(olddata)...] = olddata
+        inds = νμ:nm
+        cache_filldata!(K, inds)
+        K.datasize = size(K.data,1)
+    end
+    K
+end
+
+function cache_filldata!(L::QLFiniteSectionLFactor{T}, inds::UnitRange{Int}) where T
+    j = maximum(inds)
+    maxN = 1000*j
+    Qerr = one(T)
+    Lerr = one(T)
+    N = j
+    Qs, Ls = ql(L.M[1:N,1:N])
+    while norm(Qerr,2)>L.tol || norm(Lerr,2)>L.tol
+        # compute QL for small (N×N) finite section and large (2N×2N) finite section
+        Ql, Ll = ql(L.M[1:2N,1:2N])
+        # stop if desired level of convergence achieved
+        Qerr = Ql[1:j,1:j]-Qs[1:j,1:j]
+        Lerr = Ll[1:j,1:j]-Ls[1:j,1:j]
+        if N == maxN
+            error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
+        end
+        Qs, Ls = Ql, Ll
+        N = 2*N
+    end
+    L.data = Ls[1:j,1:j]
+end
+function resizedata!(K::QLFiniteSectionQFactor, nm::Integer)
+    νμ = K.datasize
+    if nm > νμ
+        olddata = copy(K.data)
+        K.data = similar(K.data, nm, nm)
+        K.data[axes(olddata)...] = olddata
+        inds = νμ:nm
+        cache_filldata!(K, inds)
+        K.datasize = size(K.data,1)
+    end
+    K
+end
+function cache_filldata!(Q::QLFiniteSectionQFactor{T}, inds::UnitRange{Int}) where T
+    j = maximum(inds)
+    maxN = 1000*j
+    Qerr = one(T)
+    Lerr = one(T)
+    N = j
+    Qs, Ls = ql(Q.M[1:N,1:N])
+    while norm(Qerr,2)>Q.tol || norm(Lerr,2)>Q.tol
+        # compute QL for small (N×N) finite section and large (2N×2N) finite section
+        Ql, Ll = ql(Q.M[1:2N,1:2N])
+        # stop if desired level of convergence achieved
+        Qerr = Ql[1:j,1:j]-Qs[1:j,1:j]
+        Lerr = Ll[1:j,1:j]-Ls[1:j,1:j]
+        if N == maxN
+            error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
+        end
+        Qs, Ls = Ql, Ll
+        N = 2*N
+    end
+    Q.data = Qs[1:j,1:j]
+end
+
+function getindex(K::QLFiniteSectionQFactor, k::Integer, j::Integer)
+    resizedata!(K, max(k,j))
+    K.data[k, j]
+end
+function getindex(K::QLFiniteSectionLFactor, k::Integer, j::Integer)
+    resizedata!(K, max(k,j))
+    K.data[k, j]
+end
+function getindex(K::QLFiniteSectionQFactor, kr::Integer, jr::UnitRange{Int})
+    resizedata!(K, maximum(jr))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionLFactor, kr::Integer, jr::UnitRange{Int})
+    resizedata!(K, maximum(jr))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionQFactor, kr::Integer, jr::UnitRange{Int})
+    resizedata!(K, maximum(jr))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionLFactor, jr::UnitRange{Int}, kr::Integer)
+    resizedata!(K, maximum(jr))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionQFactor, jr::UnitRange{Int}, kr::Integer)
+    resizedata!(K, maximum(jr))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionQFactor, I::Vararg{Int,2})
+    resizedata!(K,maximum(I))
+    getindex(K.data,I[1],I[2])
+end
+function getindex(K::QLFiniteSectionLFactor, I::Vararg{Int,2})
+    resizedata!(K,maximum(I))
+    getindex(K.data,I[1],I[2])
+end
+function getindex(K::QLFiniteSectionQFactor, kr::UnitRange{Int}, jr::UnitRange{Int})
+    resizedata!(K, max(maximum(jr),maximum(kr)))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionLFactor, kr::UnitRange{Int}, jr::UnitRange{Int})
+    resizedata!(K, max(maximum(jr),maximum(kr)))
+    K.data[kr, jr]
+end
