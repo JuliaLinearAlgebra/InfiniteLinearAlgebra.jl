@@ -199,6 +199,35 @@ import BandedMatrices: _BandedMatrix
     @test_throws ErrorException ql(zeros(∞,∞))
 end
 
-@testset "Finite Section QL"
-    # todo
+@testset "Finite Section QL" begin
+    @testset "Symmetric tests" begin
+        Asym = LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        Aplain = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        Qsym, Lsym = AdaptiveQLFiniteSection(Aplain)
+        Qplain, Lplain = AdaptiveQLFiniteSection(Asym)
+
+        @test size(Qsym) == (ℵ₀, ℵ₀)
+        @test size(Lsym) == (ℵ₀, ℵ₀)
+        @test size(Qplain) == (ℵ₀, ℵ₀)
+        @test size(Lplain) == (ℵ₀, ℵ₀)
+        @test Qsym[1:100,1:100] ≈ Qplain[1:100,1:100]
+        @test Lsym[1:100,1:100] ≈ Lplain[1:100,1:100]
+        @test Qsym[101,1:110] ≈ Qplain[101,1:110]
+        @test Lsym[101,1:110] ≈ Lplain[101,1:110]
+    end
+    @testset "Explicit tolerance tests" begin
+        Asym = LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        Aplain = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        Qsym, Lsym = AdaptiveQLFiniteSection(Aplain, 1e-10)
+        Qplain, Lplain = AdaptiveQLFiniteSection(Asym, 1e-10)
+
+        @test size(Qsym) == (ℵ₀, ℵ₀)
+        @test size(Lsym) == (ℵ₀, ℵ₀)
+        @test size(Qplain) == (ℵ₀, ℵ₀)
+        @test size(Lplain) == (ℵ₀, ℵ₀)
+        @test Qsym[1:100,1:100] ≈ Qplain[1:100,1:100]
+        @test Lsym[1:100,1:100] ≈ Lplain[1:100,1:100]
+        @test Qsym[101,1:110] ≈ Qplain[101,1:110]
+        @test Lsym[101,1:110] ≈ Lplain[101,1:110]
+    end
 end
