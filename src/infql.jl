@@ -411,12 +411,12 @@ function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(float(T)), maxN
     Qerr = one(T)
     Lerr = one(T)
     Qs, Ls = ql(A[1:N,1:N])
-    while norm(Qerr,2)>tol || norm(Lerr,2)>tol
+    while Qerr > tol || Lerr > tol
         # compute QL for small (N×N) finite section and large (2N×2N) finite section
         Ql, Ll = ql(A[1:2N,1:2N])
         # stop if desired level of convergence achieved
-        Qerr = Ql[1:50,1:50]-Qs[1:50,1:50]
-        Lerr = Ll[1:50,1:50]-Ls[1:50,1:50]
+        Qerr = norm(Ql[1:50,1:50]-Qs[1:50,1:50],2)
+        Lerr = norm(Ll[1:50,1:50]-Ls[1:50,1:50],2)
         if N ≥ maxN
             error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
         end
@@ -447,12 +447,12 @@ function cache_filldata!(L::QLFiniteSectionLFactor{T}, inds::UnitRange{Int}) whe
     Lerr = one(T)
     N = j
     Qs, Ls = ql(L.M[1:N,1:N])
-    while norm(Qerr,2)>L.tol || norm(Lerr,2)>L.tol
+    while Qerr > L.tol || Lerr > L.tol
         # compute QL for small (N×N) finite section and large (2N×2N) finite section
         Ql, Ll = ql(L.M[1:2N,1:2N])
         # stop if desired level of convergence achieved
-        Qerr = Ql[1:j,1:j]-Qs[1:j,1:j]
-        Lerr = Ll[1:j,1:j]-Ls[1:j,1:j]
+        Qerr = norm(Ql[1:j,1:j]-Qs[1:j,1:j],2)
+        Lerr = norm(Ll[1:j,1:j]-Ls[1:j,1:j],2)
         if N == maxN
             error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
         end
@@ -480,12 +480,12 @@ function cache_filldata!(Q::QLFiniteSectionQFactor{T}, inds::UnitRange{Int}) whe
     Lerr = one(T)
     N = j
     Qs, Ls = ql(Q.M[1:N,1:N])
-    while norm(Qerr,2)>Q.tol || norm(Lerr,2)>Q.tol
+    while Qerr > Q.tol || Lerr > Q.tol
         # compute QL for small (N×N) finite section and large (2N×2N) finite section
         Ql, Ll = ql(Q.M[1:2N,1:2N])
         # stop if desired level of convergence achieved
-        Qerr = Ql[1:j,1:j]-Qs[1:j,1:j]
-        Lerr = Ll[1:j,1:j]-Ls[1:j,1:j]
+        Qerr = norm(Ql[1:j,1:j]-Qs[1:j,1:j],2)
+        Lerr = norm(Ll[1:j,1:j]-Ls[1:j,1:j],2)
         if N == maxN
             error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
         end
