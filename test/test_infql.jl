@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, LazyArrays, FillArrays, LinearAlgebra, Test
+using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, LazyArrays, FillArrays, ArrayLayouts, LinearAlgebra, Test
 import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz, AdaptiveQLFiniteSection
 import BandedMatrices: _BandedMatrix
 
@@ -200,6 +200,15 @@ import BandedMatrices: _BandedMatrix
 end
 
 @testset "Finite Section QL" begin
+    @testset "Basic properties" begin
+        A = _BandedMatrix(Vcat(2*Ones(1,∞), ((1 ./(1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
+        Q, L = AdaptiveQLFiniteSection(A)
+        b = Vcat([1, 2, 3], Zeros(∞))
+        @test LazyArrays.MemoryLayout(L) == ArrayLayouts.TriangularLayout{'L', 'N', ArrayLayouts.UnknownLayout}()
+        @test LazyArrays.MemoryLayout(L') == ArrayLayouts.TriangularLayout{'U', 'N', ArrayLayouts.UnknownLayout}()
+        @test (Q*b)[1:2] == ApplyArray(*,Q,b)[1:2] == [-2,-3]
+        @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
+    end
     @testset "Symmetric tests" begin
         Asym = LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
         Aplain = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])

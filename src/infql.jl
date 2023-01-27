@@ -400,7 +400,7 @@ size(::QLFiniteSectionLFactor) = (ℵ₀, ℵ₀)
 
 mutable struct AdaptiveQLFiniteSection{T}
     Q::QLFiniteSectionQFactor{T}
-    L::QLFiniteSectionLFactor{T}
+    L::LowerTriangular{T, QLFiniteSectionLFactor{T}}
     tol
 end
 
@@ -423,7 +423,7 @@ function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(float(T)), maxN
         Qs, Ls = Ql, Ll
         N = 2*N
     end
-    return AdaptiveQLFiniteSection{float(T)}(QLFiniteSectionQFactor{float(T)}(Qs[1:50,1:50], A, 50, tol),QLFiniteSectionLFactor{float(T)}(Ls[1:50,1:50], A, 50, tol),tol)
+    return AdaptiveQLFiniteSection{float(T)}(QLFiniteSectionQFactor{float(T)}(Qs[1:50,1:50], A, 50, tol),LowerTriangular(QLFiniteSectionLFactor{float(T)}(Ls[1:50,1:50], A, 50, tol)),tol)
 end
 
 # Resize and filling functions for cached implementation
@@ -535,6 +535,8 @@ function show(io::IO, mime::MIME{Symbol("text/plain")}, F::AdaptiveQLFiniteSecti
     println(io, "\nL factor:")
     show(io, mime, F.L)
 end
+
+*(L::LowerTriangular{T, QLFiniteSectionLFactor{T}}, b::LayoutVector) where T = LazyArrays.ApplyArray(*, L, b)
 
 Base.iterate(S::AdaptiveQLFiniteSection) = (S.Q, Val(:L))
 Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:L}) = (S.L, Val(:done))
