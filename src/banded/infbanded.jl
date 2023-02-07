@@ -15,7 +15,7 @@ getindex(B::InfBandCartesianIndices, k::Int) = B.b ≥ 0 ? CartesianIndex(k, k+B
 
 Base.checkindex(::Type{Bool}, ::NTuple{2,OneToInf{Int}}, ::InfBandCartesianIndices) = true
 BandedMatrices.band_to_indices(_, ::NTuple{2,OneToInf{Int}}, b) = (InfBandCartesianIndices(b),)
-Base.BroadcastStyle(::Type{<:SubArray{<:Any,1,<:Any,Tuple{InfBandCartesianIndices}}}) = LazyArrayStyle{1}()
+BroadcastStyle(::Type{<:SubArray{<:Any,1,<:Any,Tuple{InfBandCartesianIndices}}}) = LazyArrayStyle{1}()
 
 _inf_banded_sub_materialize(_, V) = V
 function _inf_banded_sub_materialize(::BandedColumns, V)
@@ -487,7 +487,7 @@ for Typ in (:(LinearAlgebra.Tridiagonal{<:Any,<:InfFill}),
             :(LazyBandedMatrices.SymTridiagonal{<:Any,<:InfFill,<:InfFill}))
     @eval begin
         MemoryLayout(::Type{<:$Typ}) = TridiagonalToeplitzLayout()
-        Base.BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
+        BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
     end
 end
 
@@ -497,7 +497,7 @@ for Typ in (:(LinearAlgebra.Bidiagonal{<:Any,<:InfFill}),
             :(LazyBandedMatrices.Bidiagonal{<:Any,<:InfFill,<:InfFill}))
     @eval begin
         MemoryLayout(::Type{<:$Typ}) = BidiagonalToeplitzLayout()
-        Base.BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
+        BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
     end
 end
 

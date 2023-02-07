@@ -1,4 +1,4 @@
-const OneToInfCumsum = InfiniteArrays.RangeCumsum{Int,OneToInf{Int}}
+const OneToInfCumsum = RangeCumsum{Int,OneToInf{Int}}
 
 BlockArrays.sortedunion(::AbstractVector{<:PosInfinity}, ::AbstractVector{<:PosInfinity}) = [∞]
 function BlockArrays.sortedunion(::AbstractVector{<:PosInfinity}, b)

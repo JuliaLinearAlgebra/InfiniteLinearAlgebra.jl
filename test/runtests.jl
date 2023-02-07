@@ -150,7 +150,7 @@ include("test_infbanded.jl")
             N = 1000
             v = view(n, Block.(Base.OneTo(N)))
             @test view(v, Block(2)) ≡ Fill(2, 2)
-            @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test axes(v) isa Tuple{BlockedUnitRange{ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
             @test @allocated(axes(v)) ≤ 40
 
             dest = PseudoBlockArray{Float64}(undef, axes(v))
@@ -159,7 +159,7 @@ include("test_infbanded.jl")
 
             v = view(k, Block.(Base.OneTo(N)))
             @test view(v, Block(2)) ≡ Base.OneTo(2)
-            @test axes(v) isa Tuple{BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test axes(v) isa Tuple{BlockedUnitRange{ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
             @test @allocated(axes(v)) ≤ 40
             @test copyto!(dest, v) == v
 
@@ -173,7 +173,7 @@ include("test_infbanded.jl")
             @test v[Block(1)] == 1:2
             @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
 
-            @test axes(n, 1) isa BlockedUnitRange{InfiniteArrays.RangeCumsum{Int64,OneToInf{Int64}}}
+            @test axes(n, 1) isa BlockedUnitRange{ArrayLayouts.RangeCumsum{Int64,OneToInf{Int64}}}
         end
 
         @testset "BlockHcat copyto!" begin

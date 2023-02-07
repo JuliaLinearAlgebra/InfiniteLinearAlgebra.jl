@@ -159,6 +159,13 @@ partialqr!(F::QR, n) = partialqr!(F.factors, n)
 partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
 
 #########
+# getindex
+#########
+
+getindex(Q::QRPackedQ{<:Any,<:AdaptiveQRFactors,<:AdaptiveQRTau}, I::AbstractVector{Int}, J::AbstractVector{Int64}) =
+    hcat((Q[:,j][I] for j in J)...)
+
+#########
 # lmul!
 #########
 
@@ -210,7 +217,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
     COLGROWTH = 1000 # rate to grow columns
 
     require_one_based_indexing(B)
-    A = adjA.parent
+    A = parent(adjA)
     mA, nA = size(A.factors)
     mB = length(B)
     if mA != mB
@@ -274,7 +281,7 @@ end
 
 function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout}; tolerance=1E-30)
     adjA,B_in = M.A,M.B
-    A = adjA.parent
+    A = parent(adjA)
     T = eltype(M)
     COLGROWTH = 300 # rate to grow columns
     ax1,ax2 = axes(A.factors.data.data)
@@ -309,15 +316,15 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:Abst
 end
 
 
-function _lmul_copymutable(A::AbstractMatrix{T}, x::AbstractVector{S}; kwds...) where {T,S}
+function _lmul_copymutable(A::Union{AbstractMatrix{T},AbstractQ{T}}, x::AbstractVector{S}; kwds...) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, Base.copymutable(convert(AbstractVector{TS},x)); kwds...)
 end
 
 (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
-(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::AdjointQtype{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
 (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
-(*)(A::Adjoint{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::AdjointQtype{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
 
 function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}})
     n = B.datasize[1]

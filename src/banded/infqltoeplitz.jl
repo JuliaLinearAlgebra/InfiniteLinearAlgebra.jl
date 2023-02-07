@@ -88,10 +88,18 @@ struct ProductQ{T,QQ<:Tuple} <: LayoutQ{T}
     Qs::QQ
 end
 
-ArrayLayouts.@layoutmatrix ProductQ
-ArrayLayouts.@_layoutlmul ProductQ
+if VERSION < v"1.8-"
+    ArrayLayouts.@layoutmatrix ProductQ
+    ArrayLayouts.@_layoutlmul ProductQ
+else # ArrayLayouts.@layoutmatrix ProductQ without ArrayLayouts.@layoutgetindex
+    ArrayLayouts.@layoutldiv ProductQ
+    ArrayLayouts.@layoutmul ProductQ
+    ArrayLayouts.@layoutlmul ProductQ
+    ArrayLayouts.@layoutfactorizations ProductQ
+    ArrayLayouts.@_layoutlmul ProductQ
+end
 
-ProductQ(Qs::AbstractMatrix...) = ProductQ{mapreduce(eltype, promote_type, Qs),typeof(Qs)}(Qs)
+ProductQ(Qs::Union{AbstractMatrix,AbstractQ}...) = ProductQ{mapreduce(eltype, promote_type, Qs),typeof(Qs)}(Qs)
 
 adjoint(Q::ProductQ) = ProductQ(reverse(map(adjoint, Q.Qs))...)
 
@@ -105,14 +113,21 @@ function lmul!(Q::ProductQ, v::AbstractVecOrMat)
     v
 end
 
-# Avoid ambiguities
-getindex(Q::ProductQ, i::Int, j::Int) = Q[:, j][i]
+if VERSION < v"1.8-"
+    # Avoid ambiguities
+    getindex(Q::ProductQ, i::Int, j::Int) = Q[:, j][i]
 
-function getindex(Q::ProductQ, ::Colon, j::Int)
-    y = zeros(eltype(Q), size(Q, 2))
-    y[j] = 1
-    lmul!(Q, y)
+    function getindex(Q::ProductQ, ::Colon, j::Int)
+        y = zeros(eltype(Q), size(Q, 2))
+        y[j] = 1
+        lmul!(Q, y)
+    end
 end
+if VERSION >= v"1.10-"
+    getindex(Q::ProductQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+        hcat((Q[:,j][I] for j in J)...)
+end
+
 getindex(Q::ProductQ{<:Any,<:Tuple{Vararg{LowerHessenbergQ}}}, i::Int, j::Int) = (Q')[j, i]'
 
 function _productq_mul(A::ProductQ{T}, x::AbstractVector{S}) where {T,S}
