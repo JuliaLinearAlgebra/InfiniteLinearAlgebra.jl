@@ -145,7 +145,7 @@ end
 function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayout})
     adjA,B = M.A,M.B
     require_one_based_indexing(B)
-    A = adjA.parent
+    A = parent(adjA)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
     if mA != mB
@@ -179,9 +179,9 @@ function _lmul_cache(A::AbstractMatrix{T}, x::AbstractVector{S}) where {T,S}
 end
 
 (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
 (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::LazyVector) where {T} = _lmul_cache(A, x)
-(*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::LazyVector) where {T} = _lmul_cache(A, x)
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::LazyVector) where {T} = _lmul_cache(A, x)
 
 
 function blocktailiterate(c,a,b, d=c, e=a)
@@ -230,9 +230,9 @@ ql(A::Adjoint{T,BlockTriPertToeplitz{T}}) where T = ql(BlockTridiagonal(A))
 
 const InfBlockBandedMatrix{T} = BlockSkylineMatrix{T,<:Vcat{T,1,<:Tuple{Vector{T},<:BlockArray{T,1,<:Fill{<:Any,1,Tuple{OneToInf{Int64}}}}}}}
 
-function lmul!(adjA::Adjoint{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix}}, B::AbstractVector)
+function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix}}, B::AbstractVector)
     require_one_based_indexing(B)
-    A = adjA.parent
+    A = parent(adjA)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
     if mA != mB
@@ -270,7 +270,7 @@ function (*)(A::QLPackedQ{T,<:InfBlockBandedMatrix}, x::AbstractVector{S}) where
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
 
-function (*)(A::Adjoint{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
+function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
@@ -308,7 +308,7 @@ _data_tail(::CachedLayout, a) = cacheddata(a), getindex_value(a.array)
 function _data_tail(::ApplyLayout{typeof(vcat)}, a)
     args = arguments(vcat, a)
     dat,tl = _data_tail(last(args))
-    vcat(most(args)..., dat), tl
+    vcat(Base.front(args)..., dat), tl
 end
 _data_tail(a) = _data_tail(MemoryLayout(a), a)
 

@@ -5,7 +5,8 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMa
 
 import Base: +, -, *, /, \, ^, OneTo, getindex, promote_op, _unsafe_getindex, size, axes, length,
             AbstractMatrix, AbstractArray, Matrix, Array, Vector, AbstractVector, Slice,
-            show, getproperty, copy, copyto!, map, require_one_based_indexing, similar, inv
+            show, getproperty, copy, copyto!, map, require_one_based_indexing, similar, inv,
+            oneto, unitrange
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, triangulardata, TriangularLayout, TridiagonalLayout,
@@ -17,8 +18,8 @@ import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, PosInfinity, InfiniteCardinal, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
 import LinearAlgebra: matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose, AdjOrTrans
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, LazyArrayStyle,
-                    resizedata!, MemoryLayout, most,
-                    factorize, sub_materialize, LazyLayout, LazyArrayStyle,
+                    resizedata!, MemoryLayout,
+                    factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     applylayout, ApplyLayout, PaddedLayout, CachedLayout, cacheddata, zero!, MulAddStyle,
                     LazyArray, LazyMatrix, LazyVector, paddeddata, arguments
 import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, getU, reflector!, reflectorApply!, QL, QR, QRPackedQ,
@@ -40,16 +41,12 @@ import DSP: conv
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 
-if VERSION < v"1.6-"
-    oneto(n) = Base.OneTo(n)
-else
-    import Base: oneto, unitrange
+if VERSION ≥ v"1.7-"
+    LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
+    LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
 end
 
-if VERSION ≥ v"1.7-"
-    LinearAlgebra._cut_B(x::AbstractVector, r::InfUnitRange) = x
-    LinearAlgebra._cut_B(X::AbstractMatrix, r::InfUnitRange) = X
-end
+const AdjointQtype = isdefined(LinearAlgebra, :AdjointQ) ? LinearAlgebra.AdjointQ : Adjoint
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
