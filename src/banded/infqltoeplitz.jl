@@ -123,10 +123,8 @@ if VERSION < v"1.8-"
         lmul!(Q, y)
     end
 end
-if VERSION >= v"1.10-"
-    getindex(Q::ProductQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+getindex(Q::ProductQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
         hcat((Q[:,j][I] for j in J)...)
-end
 
 getindex(Q::ProductQ{<:Any,<:Tuple{Vararg{LowerHessenbergQ}}}, i::Int, j::Int) = (Q')[j, i]'
 
