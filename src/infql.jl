@@ -378,14 +378,6 @@ end
 ###
 # Experimental adaptive finite section QL
 ###
-mutable struct QLFiniteSectionFactors{T} <: LazyArrays.AbstractCachedMatrix{T}
-    data
-    M
-    datasize::Integer
-    tol
-    QLFiniteSectionFactors{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
-end
-
 mutable struct QLFiniteSectionTau{T} <: LazyArrays.AbstractCachedVector{T}
     data
     M
@@ -393,13 +385,21 @@ mutable struct QLFiniteSectionTau{T} <: LazyArrays.AbstractCachedVector{T}
     tol
     QLFiniteSectionTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
 end
+mutable struct QLFiniteSectionFactors{T} <: LazyArrays.AbstractCachedMatrix{T}
+    data
+    τ::QLFiniteSectionTau{T}
+    M
+    datasize::Integer
+    tol
+    QLFiniteSectionFactors{T}(D, τ, M, N::Integer, tol) where T = new{T}(D, τ, M, N, tol)
+end
 
 size(::QLFiniteSectionFactors) = (ℵ₀, ℵ₀)
 size(::QLFiniteSectionTau) = (ℵ₀, )
 
+# supports .factors, .τ, .Q and .L
 mutable struct AdaptiveQLFiniteSection{T}
     factors
-    τ
 end
 
 # Computes the initial data for the finite section based QL decomposition
@@ -422,7 +422,7 @@ function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(float(T)), maxN
         N = 2*N
     end
     F = ql(A[1:(N÷2),1:(N÷2)])
-    return AdaptiveQLFiniteSection{float(T)}(QLFiniteSectionFactors{float(T)}(F.factors[1:50,1:50],A,50,tol), QLFiniteSectionTau{float(T)}(F.τ[1:50], A, 50, tol))
+    return AdaptiveQLFiniteSection{float(T)}(QLFiniteSectionFactors{float(T)}(F.factors[1:50,1:50],QLFiniteSectionTau{float(T)}(F.τ[1:50], A, 50, tol),A,50,tol))
 end
 
 # Resize and filling functions for cached implementation
@@ -525,10 +525,14 @@ function getproperty(F::AdaptiveQLFiniteSection, d::Symbol)
         return getL(F)
     elseif d == :Q
         return getQ(F)
+    elseif d == :τ
+        return getτ(F)
     else
         getfield(F, d)
     end
 end
+
+@inline getτ(F) = F.factors.τ
 
 @inline getL(F::AdaptiveQLFiniteSection) = LowerTriangular(F.factors)
 
