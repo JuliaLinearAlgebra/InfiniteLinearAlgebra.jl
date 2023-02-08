@@ -374,3 +374,233 @@ function LazyBandedMatrices._SymTridiagonal(::Tuple{TriangularLayout{'L', 'N', P
     ev = [A[k,k+1] for k=1:m-1]
     SymTridiagonal([dv; Fill(dv[end],∞)], [ev; Fill(ev[end],∞)])
 end
+
+###
+# Experimental adaptive finite section QL
+###
+mutable struct QLFiniteSectionFactors{T} <: LazyArrays.AbstractCachedMatrix{T}
+    data
+    M
+    datasize::Integer
+    tol
+    QLFiniteSectionFactors{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
+end
+
+mutable struct QLFiniteSectionTau{T} <: LazyArrays.AbstractCachedVector{T}
+    data
+    M
+    datasize::Integer
+    tol
+    QLFiniteSectionTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
+end
+
+size(::QLFiniteSectionFactors) = (ℵ₀, ℵ₀)
+size(::QLFiniteSectionTau) = (ℵ₀, )
+
+mutable struct AdaptiveQLFiniteSection{T}
+    factors
+    τ
+end
+
+# Computes the initial data for the finite section based QL decomposition
+function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(float(T)), maxN = 10000) where T
+    @assert size(A) == (ℵ₀, ℵ₀) # only makes sense for infinite matrices
+    j = 50 # We initialize with a 50 × 50 block that is adaptively expanded
+    Lerr = one(T)
+    N = j
+    checkinds = max(1,j-bandwidth(A,1)-bandwidth(A,2))
+    @inbounds Ls = ql(A[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
+    @inbounds while Lerr > tol
+        # compute QL for small finite section and large finite section
+        Ll = ql(A[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
+        # compare bottom right sections and stop if desired level of convergence achieved
+        Lerr = norm(Ll-Ls,2)
+        if N == maxN
+            error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
+        end
+        Ls = Ll
+        N = 2*N
+    end
+    F = ql(A[1:(N÷2),1:(N÷2)])
+    return AdaptiveQLFiniteSection{float(T)}(QLFiniteSectionFactors{float(T)}(F.factors[1:50,1:50],A,50,tol), QLFiniteSectionTau{float(T)}(F.τ[1:50], A, 50, tol))
+end
+
+# Resize and filling functions for cached implementation
+function resizedata!(K::QLFiniteSectionFactors, nm::Integer)
+    νμ = K.datasize
+    if nm > νμ
+        olddata = copy(K.data)
+        K.data = similar(K.data, nm, nm)
+        K.data[axes(olddata)...] = olddata
+        inds = νμ:nm
+        cache_filldata!(K, inds)
+        K.datasize = size(K.data,1)
+    end
+    K
+end
+
+function resizedata!(K::QLFiniteSectionTau, nm::Integer)
+    νμ = K.datasize
+    if nm > νμ
+        olddata = copy(K.data)
+        K.data = similar(K.data, nm)
+        K.data[axes(olddata)...] = olddata
+        inds = νμ:nm
+        cache_filldata!(K, inds)
+        K.datasize = size(K.data,1)
+    end
+    K
+end
+
+function cache_filldata!(A::QLFiniteSectionFactors{T}, inds::UnitRange{Int}) where T
+    j = maximum(inds)
+    maxN = 1000*j
+    Lerr = one(T)
+    N = j
+    checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
+    @inbounds Ls = ql(A.M[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
+    @inbounds while Lerr > A.tol
+        # compute QL for small finite section and large finite section
+        Ll = ql(A.M[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
+        # compare bottom right sections and stop if desired level of convergence achieved
+        Lerr = norm(Ll-Ls,2)
+        if N == maxN
+            error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
+        end
+        Ls = Ll
+        N = 2*N
+    end
+    A.data = ql(A.M[1:(N÷2),1:(N÷2)]).factors[1:j,1:j]
+end
+
+
+function cache_filldata!(A::QLFiniteSectionTau{T}, inds::UnitRange{Int}) where T
+    j = maximum(inds)
+    maxN = 1000*j
+    Lerr = one(T)
+    N = j
+    checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
+    @inbounds Ls = ql(A.M[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
+    @inbounds while Lerr > A.tol
+        # compute QL for small finite section and large finite section
+        Ll = ql(A.M[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
+        # compare bottom right sections and stop if desired level of convergence achieved
+        Lerr = norm(Ll-Ls,2)
+        if N == maxN
+            error("Reached max. iterations in finite section QL without convergence to desired tolerance.")
+        end
+        Ls = Ll
+        N = 2*N
+    end
+    A.data = ql(A.M[1:(N÷2),1:(N÷2)]).τ[1:j]
+end
+
+function getindex(K::QLFiniteSectionFactors, k::Integer, j::Integer)
+    resizedata!(K, max(k,j))
+    K.data[k, j]
+end
+function getindex(K::QLFiniteSectionFactors, k::Integer, jr::UnitRange{Int})
+    resizedata!(K, max(k,maximum(jr)))
+    K.data[k, jr]
+end
+function getindex(K::QLFiniteSectionFactors, kr::UnitRange{Int}, j::Integer)
+    resizedata!(K, max(j,maximum(kr)))
+    K.data[kr, j]
+end
+function getindex(K::QLFiniteSectionFactors, kr::UnitRange{Int}, jr::UnitRange{Int})
+    resizedata!(K, max(maximum(jr),maximum(kr)))
+    K.data[kr, jr]
+end
+function getindex(K::QLFiniteSectionTau, jr::UnitRange{Int})
+    resizedata!(K, maximum(jr))
+    K.data[jr]
+end
+function getindex(K::QLFiniteSectionTau, k::Integer)
+    resizedata!(K, k)
+    K.data[k]
+end
+
+function getproperty(F::AdaptiveQLFiniteSection, d::Symbol)
+    if d == :L
+        return getL(F)
+    elseif d == :Q
+        return getQ(F)
+    else
+        getfield(F, d)
+    end
+end
+
+@inline getL(F::AdaptiveQLFiniteSection) = LowerTriangular(F.factors)
+
+@inline function getQ(F::AdaptiveQLFiniteSection{T}) where T
+    Q = AdaptiveQLQFactor{T}([one(T)],F.factors,F.τ,0)
+    # initialize as 50x50, then adaptively expand
+    resizedata!(Q,50)
+    return Q
+end
+
+mutable struct AdaptiveQLQFactor{T} <: LazyArrays.AbstractCachedMatrix{T}
+    data
+    factors
+    τ
+    datasize::Integer
+    AdaptiveQLQFactor{T}(D, f, tau, N::Integer) where T = new{T}(D, f, tau, N)
+end
+
+size(::AdaptiveQLQFactor) = (ℵ₀, ℵ₀)
+
+function resizedata!(K::AdaptiveQLQFactor, nm::Integer)
+    νμ = K.datasize
+    if nm > νμ
+        inds = νμ:nm
+        cache_filldata!(K, inds)
+        K.datasize = size(K.data,1)÷2
+    end
+    K
+end
+
+# Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
+function cache_filldata!(F::AdaptiveQLQFactor{T}, inds::UnitRange{Int}) where T
+    nm = 2*maximum(inds)
+    τ = F.τ[1:nm]
+    v = I + triu(F.factors[1:nm,1:nm],1)
+    prod = Diagonal(ones(T,nm))
+    @inbounds for j = 1:nm
+        prod = prod * (I - F.τ[j]*v[:,j]*v[:,j]')
+    end
+    F.data = prod'
+end
+
+function getindex(K::AdaptiveQLQFactor, k::Integer, j::Integer)
+    resizedata!(K, max(k,j))
+    K.data[k, j]
+end
+function getindex(K::AdaptiveQLQFactor, k::Integer, jr::UnitRange{Int})
+    resizedata!(K, max(k,maximum(jr)))
+    K.data[k, jr]
+end
+function getindex(K::AdaptiveQLQFactor, kr::UnitRange{Int}, j::Integer)
+    resizedata!(K, max(j,maximum(kr)))
+    K.data[kr, j]
+end
+function getindex(K::AdaptiveQLQFactor, kr::UnitRange{Int}, jr::UnitRange{Int})
+    resizedata!(K, max(maximum(jr),maximum(kr)))
+    K.data[kr, jr]
+end
+
+function show(io::IO, mime::MIME{Symbol("text/plain")}, F::AdaptiveQLFiniteSection)
+    summary(io, F); println(io)
+    println(io, "Q factor:")
+    show(io, mime, F.Q)
+    println(io, "\nL factor:")
+    show(io, mime, F.L)
+end
+
+Base.iterate(S::AdaptiveQLFiniteSection) = (S.Q, Val(:L))
+Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:L}) = (S.L, Val(:done))
+Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:done}) = nothing
+
+*(L::LowerTriangular{T, QLFiniteSectionFactors{T}}, b::LayoutVector) where T = LazyArrays.ApplyArray(*, L, b)
+
+MemoryLayout(::QLFiniteSectionFactors) = BandedLayout()
+bandwidths(F::QLFiniteSectionFactors) = bandwidths(F.data)

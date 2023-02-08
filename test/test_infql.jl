@@ -1,6 +1,6 @@
 using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, LazyArrays, FillArrays, ArrayLayouts, LinearAlgebra, Test
 import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz, AdaptiveQLFiniteSection
-import BandedMatrices: _BandedMatrix
+import BandedMatrices: _BandedMatrix, BandedLayout
 
 @testset "Inf QL" begin
     @testset "Toeplitz QLHessenberg" begin
@@ -238,5 +238,14 @@ end
         @test Lsym[1:100,1:100] ≈ Lplain[1:100,1:100]
         @test Qsym[101,1:110] ≈ Qplain[101,1:110]
         @test Lsym[101,1:110] ≈ Lplain[101,1:110]
+    end
+    @testset "compare with Toeplitz QL" begin
+        A = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        Abanded = _BandedMatrix(Hcat(Vcat(1.,A.du),A.d,A.dl)', ℵ₀, 1, 1)
+        F = AdaptiveQLFiniteSection(Abanded)
+        G = ql(A)
+        @test F.L[1:300,1:200] ≈ G.L[1:300,1:200]
+        @test MemoryLayout(F.L.data) == BandedLayout()
+        @test bandwidths(F.L) == (2,0)
     end
 end
