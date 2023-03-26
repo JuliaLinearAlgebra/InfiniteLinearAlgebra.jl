@@ -9,7 +9,7 @@ import BlockArrays: _BlockArray, blockcolsupport
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
-import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
+import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedLayout
 import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout, BlockVec
 
@@ -36,9 +36,16 @@ end
     @test pad(1:3, 5) == [1:3; 0; 0]
     @test pad(1:3, oneto(∞)) isa Vcat
     X = Matrix(reshape(1:6, 3, 2))
-    @test pad(X, oneto(3), oneto(∞)) isa PaddedArray
-    @test pad(BlockVec(X), blockedrange(Fill(3,∞))) isa BlockVec
-    @test pad(BlockVec(X'), blockedrange(Fill(3,∞))) isa BlockVec{Int,<:Adjoint}
+    P = pad(X, oneto(3), oneto(∞))
+    @test P isa PaddedArray
+    P = pad(BlockVec(X), blockedrange(Fill(3,∞)))
+    @test P isa BlockVec
+    @test MemoryLayout(P) isa PaddedLayout
+    @test paddeddata(P) isa BlockVec
+    @test colsupport(P) == 1:6
+    P = pad(BlockVec(X'), blockedrange(Fill(3,∞)))
+    @test P isa BlockVec{Int,<:Adjoint}
+    @test MemoryLayout(P) isa PaddedLayout
     @test pad(BlockVec(transpose(X)), blockedrange(Fill(3,∞))) isa BlockVec{Int,<:Transpose}
 end
 
