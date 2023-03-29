@@ -30,7 +30,7 @@ import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUn
 import BandedMatrices: BandedMatrix, bandwidths, AbstractBandedLayout, _banded_qr!, _banded_qr, _BandedMatrix, banded_chol!
 
 import LazyBandedMatrices: ApplyBandedLayout, BroadcastBandedLayout, _krontrav_axes, _block_interlace_axes, LazyBandedLayout, AbstractLazyBandedBlockBandedLayout,
-                            AbstractLazyBandedLayout, OneToCumsum, BlockSlice1, KronTravBandedBlockBandedLayout, krontravargs, _broadcast_sub_arguments
+                            AbstractLazyBandedLayout, OneToCumsum, BlockSlice1, KronTravBandedBlockBandedLayout, krontravargs, _broadcast_sub_arguments, BlockVec
 
 import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMatrix, blockstart, blockstride,
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal,
@@ -73,6 +73,12 @@ function choplength(c::AbstractVector, tol)
 end
 
 # resize! to nearest block
+"""
+compatible_resize!(c::AbstractVector, n)
+
+resizes a vector `c` but in a way that block sizes are not changed when `c` has blocked axes.
+It may allocate a new vector in some settings.
+"""
 compatible_resize!(_, c::AbstractVector, n) = resize!(c, n)
 compatible_resize!(ax::BlockedUnitRange, c::AbstractVector, n) = resize!(c, iszero(n) ? Block(0) : findblock(ax, n))
 compatible_resize!(c, n) = compatible_resize!(axes(c,1), c, n)
@@ -93,6 +99,13 @@ function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
     end
     return A
 end
+
+pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = [c; Zeros{T}(length(ax)-length(c))]
+pad(c, ax...) = PaddedArray(c, ax)
+
+pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
+pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
+pad(c::BlockVec, ax::BlockedUnitRange{<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
