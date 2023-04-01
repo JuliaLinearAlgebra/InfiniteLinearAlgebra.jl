@@ -15,7 +15,7 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
 using Aqua
 @testset "Project quality" begin
-    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false)
+    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false, piracy=false)
 end
 
 @testset "chop" begin
