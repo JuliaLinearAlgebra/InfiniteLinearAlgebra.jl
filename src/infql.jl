@@ -382,6 +382,7 @@ end
 ###
 # Experimental adaptive finite section QL
 ###
+            
 mutable struct QLFiniteSectionTau{T} <: LazyArrays.AbstractCachedVector{T}
     data
     M
