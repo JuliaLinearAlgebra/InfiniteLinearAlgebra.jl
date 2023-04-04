@@ -94,6 +94,8 @@ end
 
 getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Int, j::Int) where T =
     (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
+getindex(Q::QLPackedQ{<:Any,<:InfBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+    [Q[i,j] for i in I, j in J]
 
 getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
@@ -173,7 +175,7 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayo
     B
 end
 
-function _lmul_cache(A::AbstractMatrix{T}, x::AbstractVector{S}) where {T,S}
+function _lmul_cache(A::Union{AbstractMatrix{T},AbstractQ{T}}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
@@ -264,6 +266,8 @@ end
 
 getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Integer, j::Integer) where T =
     (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
+getindex(Q::QLPackedQ{<:Any,<:InfBlockBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+    [Q[i,j] for i in I, j in J]
 
 function (*)(A::QLPackedQ{T,<:InfBlockBandedMatrix}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
