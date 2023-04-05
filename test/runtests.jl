@@ -2,20 +2,20 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
     MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate, tailiterate!, tail_de, ql_X!,
     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
-    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!,
+    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!, pad,
     BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout
-import Base: BroadcastStyle
+import Base: BroadcastStyle, oneto
 import BlockArrays: _BlockArray, blockcolsupport
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
-import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments
+import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedLayout
 import InfiniteArrays: OneToInf, oneto, RealInfinity
-import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout
+import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout, BlockVec
 
 using Aqua
 @testset "Project quality" begin
-    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false)
+    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false, piracy=false)
 end
 
 @testset "chop" begin
@@ -32,6 +32,21 @@ end
     c = PseudoBlockArray([randn(5); zeros(10)], (blockedrange(1:5),))
     d = chop!(c, 0)
     @test length(d) == 6
+
+    @test pad(1:3, 5) == [1:3; 0; 0]
+    @test pad(1:3, oneto(∞)) isa Vcat
+    X = Matrix(reshape(1:6, 3, 2))
+    P = pad(X, oneto(3), oneto(∞))
+    @test P isa PaddedArray
+    P = pad(BlockVec(X), blockedrange(Fill(3,∞)))
+    @test P isa BlockVec
+    @test MemoryLayout(P) isa PaddedLayout
+    @test paddeddata(P) isa BlockVec
+    @test colsupport(P) == 1:6
+    P = pad(BlockVec(X'), blockedrange(Fill(3,∞)))
+    @test P isa BlockVec{Int,<:Adjoint}
+    @test MemoryLayout(P) isa PaddedLayout
+    @test pad(BlockVec(transpose(X)), blockedrange(Fill(3,∞))) isa BlockVec{Int,<:Transpose}
 end
 
 include("test_infconv.jl")
