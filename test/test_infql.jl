@@ -208,6 +208,7 @@ end
         @test LazyArrays.MemoryLayout(L') == ArrayLayouts.TriangularLayout{'U', 'N', ArrayLayouts.UnknownLayout}()
         @test (Q*b)[1:2] == ApplyArray(*,Q,b)[1:2] == [-2,-3]
         @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
+        @test size(AdaptiveQLFiniteSection(A).τ) == (ℵ₀, )
     end
     @testset "Symmetric tests" begin
         Asym = LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])

@@ -378,19 +378,19 @@ end
 ###
 # Experimental adaptive finite section QL
 ###
-mutable struct QLFiniteSectionTau{T} <: LazyArrays.AbstractCachedVector{T}
-    data
-    M
+mutable struct QLFiniteSectionTau{T} <: AbstractCachedVector{T}
+    data::Vector{T}
+    M::AbstractMatrix{T}
     datasize::Integer
-    tol
+    tol::T
     QLFiniteSectionTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
 end
-mutable struct QLFiniteSectionFactors{T} <: LazyArrays.AbstractCachedMatrix{T}
-    data
+mutable struct QLFiniteSectionFactors{T} <: AbstractCachedMatrix{T}
+    data::BandedMatrix{T}
     τ::QLFiniteSectionTau{T}
-    M
+    M::AbstractMatrix{T}
     datasize::Integer
-    tol
+    tol::T
     QLFiniteSectionFactors{T}(D, τ, M, N::Integer, tol) where T = new{T}(D, τ, M, N, tol)
 end
 
@@ -399,7 +399,7 @@ size(::QLFiniteSectionTau) = (ℵ₀, )
 
 # supports .factors, .τ, .Q and .L
 mutable struct AdaptiveQLFiniteSection{T}
-    factors
+    factors::QLFiniteSectionFactors{T}
 end
 
 # Computes the initial data for the finite section based QL decomposition
@@ -543,7 +543,7 @@ end
     return Q
 end
 
-mutable struct AdaptiveQLQFactor{T} <: LazyArrays.AbstractCachedMatrix{T}
+mutable struct AdaptiveQLQFactor{T} <: AbstractCachedMatrix{T}
     data
     factors
     τ
@@ -604,7 +604,7 @@ Base.iterate(S::AdaptiveQLFiniteSection) = (S.Q, Val(:L))
 Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:L}) = (S.L, Val(:done))
 Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:done}) = nothing
 
-*(L::LowerTriangular{T, QLFiniteSectionFactors{T}}, b::LayoutVector) where T = LazyArrays.ApplyArray(*, L, b)
+*(L::LowerTriangular{T, QLFiniteSectionFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
 
 MemoryLayout(::QLFiniteSectionFactors) = BandedLayout()
 bandwidths(F::QLFiniteSectionFactors) = bandwidths(F.data)
