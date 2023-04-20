@@ -1,5 +1,5 @@
-using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, LazyArrays, FillArrays, ArrayLayouts, LinearAlgebra, Test
-import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz, AdaptiveQLFiniteSection
+using InfiniteLinearAlgebra, InfiniteArrays, Random, BandedMatrices, LazyArrays, FillArrays, ArrayLayouts, LinearAlgebra, LazyBandedMatrices, Test
+import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz
 import BandedMatrices: _BandedMatrix, BandedLayout
 
 @testset "Inf QL" begin
@@ -199,38 +199,23 @@ import BandedMatrices: _BandedMatrix, BandedLayout
     @test_throws ErrorException ql(zeros(∞,∞))
 end
 
-@testset "Finite Section QL" begin
+@testset "Adaptive finite-section-based QL" begin
     @testset "Basic properties" begin
         A = _BandedMatrix(Vcat(2*Ones(1,∞), ((1 ./(1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
-        Q, L = AdaptiveQLFiniteSection(A)
+        Q, L = ql(A)
         b = Vcat([1, 2, 3], Zeros(∞))
         @test LazyArrays.MemoryLayout(L) == ArrayLayouts.TriangularLayout{'L', 'N', ArrayLayouts.UnknownLayout}()
         @test LazyArrays.MemoryLayout(L') == ArrayLayouts.TriangularLayout{'U', 'N', ArrayLayouts.UnknownLayout}()
         @test (Q*b)[1:2] == ApplyArray(*,Q,b)[1:2] == [-2,-3]
         @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
-        @test size(AdaptiveQLFiniteSection(A).τ) == (ℵ₀, )
-    end
-    @testset "Symmetric tests" begin
-        Asym = LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
-        Aplain = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
-        Qsym, Lsym = AdaptiveQLFiniteSection(Aplain)
-        Qplain, Lplain = AdaptiveQLFiniteSection(Asym)
-
-        @test size(Qsym) == (ℵ₀, ℵ₀)
-        @test size(Lsym) == (ℵ₀, ℵ₀)
-        @test size(Qplain) == (ℵ₀, ℵ₀)
-        @test size(Lplain) == (ℵ₀, ℵ₀)
-        @test Qsym[1:100,1:100] ≈ Qplain[1:100,1:100]
-        @test Lsym[1:100,1:100] ≈ Lplain[1:100,1:100]
-        @test Qsym[101,1:110] ≈ Qplain[101,1:110]
-        @test Lsym[101,1:110] ≈ Lplain[101,1:110]
+        @test size(ql(A).τ) == (ℵ₀, )
     end
     @testset "Explicit tolerance tests" begin
-        Asym = LinearAlgebra.SymTridiagonal([[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
-        Aplain = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
-        Qsym, Lsym = AdaptiveQLFiniteSection(Aplain, 1e-10)
-        Qplain, Lplain = AdaptiveQLFiniteSection(Asym, 1e-10)
-
+        Asym = LinearAlgebra.SymTridiagonal([[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
+        Aplain = LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
+        Qsym, Lsym = ql(Asym, 1e-10)
+        Qplain, Lplain = ql(Aplain, 1e-10)
+        
         @test size(Qsym) == (ℵ₀, ℵ₀)
         @test size(Lsym) == (ℵ₀, ℵ₀)
         @test size(Qplain) == (ℵ₀, ℵ₀)
@@ -241,9 +226,9 @@ end
         @test Lsym[101,1:110] ≈ Lplain[101,1:110]
     end
     @testset "compare with Toeplitz QL" begin
-        A = LinearAlgebra.Tridiagonal([[1, 2]; Fill(1,∞)], [[1,2]; Fill(3,∞)], [[1, 2]; Fill(1,∞)])
+        A = LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
         Abanded = _BandedMatrix(Hcat(Vcat(1.,A.du),A.d,A.dl)', ℵ₀, 1, 1)
-        F = AdaptiveQLFiniteSection(Abanded)
+        F = ql(Abanded)
         G = ql(A)
         @test F.L[1:300,1:200] ≈ G.L[1:300,1:200]
         @test MemoryLayout(F.L.data) == BandedLayout()

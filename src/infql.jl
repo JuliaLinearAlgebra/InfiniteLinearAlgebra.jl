@@ -382,34 +382,34 @@ end
 ###
 # Experimental adaptive finite section QL
 ###
-mutable struct QLFiniteSectionTau{T} <: AbstractCachedVector{T}
+mutable struct AdaptiveQLTau{T} <: AbstractCachedVector{T}
     data::Vector{T}
     M::AbstractMatrix{T}
     datasize::Integer
     tol::T
-    QLFiniteSectionTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
+    AdaptiveQLTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
 end
-mutable struct QLFiniteSectionFactors{T} <: AbstractCachedMatrix{T}
+mutable struct AdaptiveQLFactors{T} <: AbstractCachedMatrix{T}
     data::BandedMatrix{T}
-    τ::QLFiniteSectionTau{T}
     M::AbstractMatrix{T}
-    datasize::Integer
+    datasize::Tuple{Int, Int}
     tol::T
-    QLFiniteSectionFactors{T}(D, τ, M, N::Integer, tol) where T = new{T}(D, τ, M, N, tol)
+    AdaptiveQLFactors{T}(D, M, N::Tuple{Int, Int}, tol) where T = new{T}(D, M, N, tol)
 end
 
-size(::QLFiniteSectionFactors) = (ℵ₀, ℵ₀)
-size(::QLFiniteSectionTau) = (ℵ₀, )
+size(::AdaptiveQLFactors) = (ℵ₀, ℵ₀)
+size(::AdaptiveQLTau) = (ℵ₀, )
 
-# supports .factors, .τ, .Q and .L
-mutable struct AdaptiveQLFiniteSection{T}
-    factors::QLFiniteSectionFactors{T}
+# adaptive QL accepts optional tolerance
+function ql(A::InfBandedMatrix{T}, tol = eps(float(T))) where T
+    factors, τ = initialadaptiveQLblock(A, tol)
+    QL(AdaptiveQLFactors{T}(factors, A, size(factors), tol),AdaptiveQLTau{T}(τ, A, length(τ), tol))
 end
 
 # Computes the initial data for the finite section based QL decomposition
-function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(float(T)), maxN = 10000) where T
-    @assert size(A) == (ℵ₀, ℵ₀) # only makes sense for infinite matrices
-    j = 50 # We initialize with a 50 × 50 block that is adaptively expanded
+function initialadaptiveQLblock(A::AbstractMatrix{T}, tol) where T
+    maxN = 10000   # Prevent runaway loop
+    j = 50         # We initialize with a 50 × 50 block that is adaptively expanded
     Lerr = one(T)
     N = j
     checkinds = max(1,j-bandwidth(A,1)-bandwidth(A,2))
@@ -426,39 +426,36 @@ function AdaptiveQLFiniteSection(A::AbstractMatrix{T}, tol = eps(float(T)), maxN
         N = 2*N
     end
     F = ql(A[1:(N÷2),1:(N÷2)])
-    return AdaptiveQLFiniteSection{float(T)}(QLFiniteSectionFactors{float(T)}(F.factors[1:50,1:50],QLFiniteSectionTau{float(T)}(F.τ[1:50], A, 50, tol),A,50,tol))
+    return (F.factors[1:50,1:50], F.τ[1:50])
 end
 
 # Resize and filling functions for cached implementation
-function resizedata!(K::QLFiniteSectionFactors, nm::Integer)
-    νμ = K.datasize
+function resizedata!(K::AdaptiveQLFactors, nm::Integer)
+    νμ = K.datasize[1]
     if nm > νμ
         olddata = copy(K.data)
         K.data = similar(K.data, nm, nm)
         K.data[axes(olddata)...] = olddata
         inds = νμ:nm
         cache_filldata!(K, inds)
-        K.datasize = size(K.data,1)
+        K.datasize = size(K.data)
     end
     K
 end
 
-function resizedata!(K::QLFiniteSectionTau, nm::Integer)
+function resizedata!(K::AdaptiveQLTau, nm::Integer)
     νμ = K.datasize
     if nm > νμ
-        olddata = copy(K.data)
-        K.data = similar(K.data, nm)
-        K.data[axes(olddata)...] = olddata
-        inds = νμ:nm
-        cache_filldata!(K, inds)
+        resize!(K.data,νμ)
+        cache_filldata!(K, νμ:nm)
         K.datasize = size(K.data,1)
     end
     K
 end
 
-function cache_filldata!(A::QLFiniteSectionFactors{T}, inds::UnitRange{Int}) where T
+function cache_filldata!(A::AdaptiveQLFactors{T}, inds::UnitRange{Int}) where T
     j = maximum(inds)
-    maxN = 1000*j
+    maxN = 1000*j # Prevent runaway loop
     Lerr = one(T)
     N = j
     checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
@@ -478,7 +475,7 @@ function cache_filldata!(A::QLFiniteSectionFactors{T}, inds::UnitRange{Int}) whe
 end
 
 
-function cache_filldata!(A::QLFiniteSectionTau{T}, inds::UnitRange{Int}) where T
+function cache_filldata!(A::AdaptiveQLTau{T}, inds::UnitRange{Int}) where T
     j = maximum(inds)
     maxN = 1000*j
     Lerr = one(T)
@@ -499,76 +496,70 @@ function cache_filldata!(A::QLFiniteSectionTau{T}, inds::UnitRange{Int}) where T
     A.data = ql(A.M[1:(N÷2),1:(N÷2)]).τ[1:j]
 end
 
-function getindex(K::QLFiniteSectionFactors, k::Integer, j::Integer)
+function getindex(K::AdaptiveQLFactors, k::Integer, j::Integer)
     resizedata!(K, max(k,j))
     K.data[k, j]
 end
-function getindex(K::QLFiniteSectionFactors, k::Integer, jr::UnitRange{Int})
+function getindex(K::AdaptiveQLFactors, k::Integer, jr::UnitRange{Int})
     resizedata!(K, max(k,maximum(jr)))
     K.data[k, jr]
 end
-function getindex(K::QLFiniteSectionFactors, kr::UnitRange{Int}, j::Integer)
+function getindex(K::AdaptiveQLFactors, kr::UnitRange{Int}, j::Integer)
     resizedata!(K, max(j,maximum(kr)))
     K.data[kr, j]
 end
-function getindex(K::QLFiniteSectionFactors, kr::UnitRange{Int}, jr::UnitRange{Int})
+function getindex(K::AdaptiveQLFactors, kr::UnitRange{Int}, jr::UnitRange{Int})
     resizedata!(K, max(maximum(jr),maximum(kr)))
     K.data[kr, jr]
 end
-function getindex(K::QLFiniteSectionTau, jr::UnitRange{Int})
+function getindex(K::AdaptiveQLTau, jr::UnitRange{Int})
     resizedata!(K, maximum(jr))
     K.data[jr]
 end
-function getindex(K::QLFiniteSectionTau, k::Integer)
+function getindex(K::AdaptiveQLTau, k::Integer)
     resizedata!(K, k)
     K.data[k]
 end
 
-function getproperty(F::AdaptiveQLFiniteSection, d::Symbol)
+function getproperty(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}, d::Symbol) where T
     if d == :L
-        return getL(F)
+        return LowerTriangular(F.factors)
     elseif d == :Q
         return getQ(F)
-    elseif d == :τ
-        return getτ(F)
     else
         getfield(F, d)
     end
 end
 
-@inline getτ(F) = F.factors.τ
-
-@inline getL(F::AdaptiveQLFiniteSection) = LowerTriangular(F.factors)
-
-@inline function getQ(F::AdaptiveQLFiniteSection{T}) where T
-    Q = AdaptiveQLQFactor{T}([one(T)],F.factors,F.τ,0)
+@inline function getQ(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}) where T
+    Q = AdaptiveQLQ{T}([one(T)],F.factors,F.τ,(0,0))
     # initialize as 50x50, then adaptively expand
     resizedata!(Q,50)
     return Q
 end
 
-mutable struct AdaptiveQLQFactor{T} <: AbstractCachedMatrix{T}
+mutable struct AdaptiveQLQ{T} <: AbstractCachedMatrix{T}
     data
-    factors
-    τ
-    datasize::Integer
-    AdaptiveQLQFactor{T}(D, f, tau, N::Integer) where T = new{T}(D, f, tau, N)
+    factors::AdaptiveQLFactors{T}
+    τ::AdaptiveQLTau{T}
+    datasize::Tuple{Int, Int}
+    AdaptiveQLQ{T}(D, f, tau, N::Tuple{Int, Int}) where T = new{T}(D, f, tau, N)
 end
 
-size(::AdaptiveQLQFactor) = (ℵ₀, ℵ₀)
+size(::AdaptiveQLQ) = (ℵ₀, ℵ₀)
 
-function resizedata!(K::AdaptiveQLQFactor, nm::Integer)
-    νμ = K.datasize
+function resizedata!(K::AdaptiveQLQ, nm::Integer)
+    νμ = K.datasize[1]
     if nm > νμ
         inds = νμ:nm
         cache_filldata!(K, inds)
-        K.datasize = size(K.data,1)÷2
+        K.datasize = size(K.data).÷2
     end
     K
 end
 
 # Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
-function cache_filldata!(F::AdaptiveQLQFactor{T}, inds::UnitRange{Int}) where T
+function cache_filldata!(F::AdaptiveQLQ{T}, inds::UnitRange{Int}) where T
     nm = 2*maximum(inds)
     τ = F.τ[1:nm]
     v = I + triu(F.factors[1:nm,1:nm],1)
@@ -579,36 +570,24 @@ function cache_filldata!(F::AdaptiveQLQFactor{T}, inds::UnitRange{Int}) where T
     F.data = prod'
 end
 
-function getindex(K::AdaptiveQLQFactor, k::Integer, j::Integer)
+function getindex(K::AdaptiveQLQ, k::Integer, j::Integer)
     resizedata!(K, max(k,j))
     K.data[k, j]
 end
-function getindex(K::AdaptiveQLQFactor, k::Integer, jr::UnitRange{Int})
+function getindex(K::AdaptiveQLQ, k::Integer, jr::UnitRange{Int})
     resizedata!(K, max(k,maximum(jr)))
     K.data[k, jr]
 end
-function getindex(K::AdaptiveQLQFactor, kr::UnitRange{Int}, j::Integer)
+function getindex(K::AdaptiveQLQ, kr::UnitRange{Int}, j::Integer)
     resizedata!(K, max(j,maximum(kr)))
     K.data[kr, j]
 end
-function getindex(K::AdaptiveQLQFactor, kr::UnitRange{Int}, jr::UnitRange{Int})
+function getindex(K::AdaptiveQLQ, kr::UnitRange{Int}, jr::UnitRange{Int})
     resizedata!(K, max(maximum(jr),maximum(kr)))
     K.data[kr, jr]
 end
 
-function show(io::IO, mime::MIME{Symbol("text/plain")}, F::AdaptiveQLFiniteSection)
-    summary(io, F); println(io)
-    println(io, "Q factor:")
-    show(io, mime, F.Q)
-    println(io, "\nL factor:")
-    show(io, mime, F.L)
-end
+*(L::LowerTriangular{T, AdaptiveQLFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
 
-Base.iterate(S::AdaptiveQLFiniteSection) = (S.Q, Val(:L))
-Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:L}) = (S.L, Val(:done))
-Base.iterate(S::AdaptiveQLFiniteSection, ::Val{:done}) = nothing
-
-*(L::LowerTriangular{T, QLFiniteSectionFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
-
-MemoryLayout(::QLFiniteSectionFactors) = BandedLayout()
-bandwidths(F::QLFiniteSectionFactors) = bandwidths(F.data)
+MemoryLayout(::AdaptiveQLFactors) = BandedLayout()
+bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
