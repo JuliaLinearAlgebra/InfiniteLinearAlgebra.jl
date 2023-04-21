@@ -589,5 +589,5 @@ end
 
 *(L::LowerTriangular{T, AdaptiveQLFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
 
-MemoryLayout(::AdaptiveQLFactors) = BandedLayout()
+MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
 bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
