@@ -1,5 +1,6 @@
 using InfiniteLinearAlgebra, InfiniteArrays, Random, BandedMatrices, LazyArrays, FillArrays, ArrayLayouts, LinearAlgebra, LazyBandedMatrices, Test
 import InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz
+import LazyBandedMatrices: LazyBandedLayout
 import BandedMatrices: _BandedMatrix, BandedLayout
 
 @testset "Inf QL" begin
@@ -231,7 +232,7 @@ end
         F = ql(Abanded)
         G = ql(A)
         @test F.L[1:300,1:200] ≈ G.L[1:300,1:200]
-        @test MemoryLayout(F.L.data) == BandedLayout()
+        @test MemoryLayout(F.L.data) == LazyBandedLayout()
         @test bandwidths(F.L) == (2,0)
     end
 end

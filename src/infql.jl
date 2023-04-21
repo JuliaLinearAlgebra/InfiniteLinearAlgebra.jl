@@ -430,24 +430,24 @@ function initialadaptiveQLblock(A::AbstractMatrix{T}, tol) where T
 end
 
 # Resize and filling functions for cached implementation
-function resizedata!(K::AdaptiveQLFactors, nm::Integer)
+function resizedata!(K::AdaptiveQLFactors, nm...)
     νμ = K.datasize[1]
-    if nm > νμ
+    if nm[end] > νμ
         olddata = copy(K.data)
-        K.data = similar(K.data, nm, nm)
+        K.data = similar(K.data, nm[end], nm[end])
         K.data[axes(olddata)...] = olddata
-        inds = νμ:nm
+        inds = νμ:nm[end]
         cache_filldata!(K, inds)
         K.datasize = size(K.data)
     end
     K
 end
 
-function resizedata!(K::AdaptiveQLTau, nm::Integer)
+function resizedata!(K::AdaptiveQLTau, nm...)
     νμ = K.datasize
-    if nm > νμ
-        resize!(K.data,νμ)
-        cache_filldata!(K, νμ:nm)
+    if nm[end] > νμ
+        resize!(K.data,nm[end])
+        cache_filldata!(K, νμ:nm[end])
         K.datasize = size(K.data,1)
     end
     K
@@ -496,6 +496,61 @@ function cache_filldata!(A::AdaptiveQLTau{T}, inds::UnitRange{Int}) where T
     A.data = ql(A.M[1:(N÷2),1:(N÷2)]).τ[1:j]
 end
 
+function getproperty(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}, d::Symbol) where T
+    if d == :L
+        return LowerTriangular(F.factors)
+    elseif d == :Q
+        return getQ(F)
+    else
+        getfield(F, d)
+    end
+end
+
+@inline function getQ(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}) where T
+    Q = AdaptiveQLQ{T}(zeros(1,1),F.factors,F.τ,(0,0))
+    # initialize as 50x50, then adaptively expand
+    resizedata!(Q,50)
+    return Q
+end
+
+mutable struct AdaptiveQLQ{T} <: AbstractCachedMatrix{T}
+    data::Matrix{T}
+    factors::AdaptiveQLFactors{T}
+    τ::AdaptiveQLTau{T}
+    datasize::Tuple{Int, Int}
+    AdaptiveQLQ{T}(D, f, tau, N::Tuple{Int, Int}) where T = new{T}(D, f, tau, N)
+end
+
+size(::AdaptiveQLQ) = (ℵ₀, ℵ₀)
+
+function resizedata!(K::AdaptiveQLQ, nm...)
+    νμ = K.datasize[1]
+    if nm[end] > νμ
+        cache_filldata!(K, νμ:nm[end])
+        K.datasize = size(K.data).÷2
+    end
+    K
+end
+
+# Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
+function cache_filldata!(F::AdaptiveQLQ{T}, inds::UnitRange{Int}) where T
+    nm = 2*maximum(inds)
+    τ = F.τ[1:nm]
+    v = I + triu(F.factors[1:nm,1:nm],1)
+    prod = Diagonal(ones(T,nm))
+    @inbounds for j = 1:nm
+        prod = prod * (I - F.τ[j]*v[:,j]*v[:,j]')
+    end
+    F.data = prod'
+end
+
+# TODO: adaptively build L*b using caching and forward-substitution
+*(L::LowerTriangular{T, AdaptiveQLFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
+
+MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
+bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
+
+# TODO: Remove custom getindex functions once bandedness break is fixed/understood
 function getindex(K::AdaptiveQLFactors, k::Integer, j::Integer)
     resizedata!(K, max(k,j))
     K.data[k, j]
@@ -520,56 +575,6 @@ function getindex(K::AdaptiveQLTau, k::Integer)
     resizedata!(K, k)
     K.data[k]
 end
-
-function getproperty(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}, d::Symbol) where T
-    if d == :L
-        return LowerTriangular(F.factors)
-    elseif d == :Q
-        return getQ(F)
-    else
-        getfield(F, d)
-    end
-end
-
-@inline function getQ(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}) where T
-    Q = AdaptiveQLQ{T}([one(T)],F.factors,F.τ,(0,0))
-    # initialize as 50x50, then adaptively expand
-    resizedata!(Q,50)
-    return Q
-end
-
-mutable struct AdaptiveQLQ{T} <: AbstractCachedMatrix{T}
-    data
-    factors::AdaptiveQLFactors{T}
-    τ::AdaptiveQLTau{T}
-    datasize::Tuple{Int, Int}
-    AdaptiveQLQ{T}(D, f, tau, N::Tuple{Int, Int}) where T = new{T}(D, f, tau, N)
-end
-
-size(::AdaptiveQLQ) = (ℵ₀, ℵ₀)
-
-function resizedata!(K::AdaptiveQLQ, nm::Integer)
-    νμ = K.datasize[1]
-    if nm > νμ
-        inds = νμ:nm
-        cache_filldata!(K, inds)
-        K.datasize = size(K.data).÷2
-    end
-    K
-end
-
-# Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
-function cache_filldata!(F::AdaptiveQLQ{T}, inds::UnitRange{Int}) where T
-    nm = 2*maximum(inds)
-    τ = F.τ[1:nm]
-    v = I + triu(F.factors[1:nm,1:nm],1)
-    prod = Diagonal(ones(T,nm))
-    @inbounds for j = 1:nm
-        prod = prod * (I - F.τ[j]*v[:,j]*v[:,j]')
-    end
-    F.data = prod'
-end
-
 function getindex(K::AdaptiveQLQ, k::Integer, j::Integer)
     resizedata!(K, max(k,j))
     K.data[k, j]
@@ -586,8 +591,3 @@ function getindex(K::AdaptiveQLQ, kr::UnitRange{Int}, jr::UnitRange{Int})
     resizedata!(K, max(maximum(jr),maximum(kr)))
     K.data[kr, jr]
 end
-
-*(L::LowerTriangular{T, AdaptiveQLFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
-
-MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
-bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
