@@ -431,12 +431,13 @@ end
 
 # Resize and filling functions for cached implementation
 function resizedata!(K::AdaptiveQLFactors, nm...)
+    nm = maximum(nm)
     νμ = K.datasize[1]
-    if nm[end] > νμ
+    if nm > νμ
         olddata = copy(K.data)
-        K.data = similar(K.data, nm[end], nm[end])
+        K.data = similar(K.data, nm, nm)
         K.data[axes(olddata)...] = olddata
-        inds = νμ:nm[end]
+        inds = νμ:nm
         cache_filldata!(K, inds)
         K.datasize = size(K.data)
     end
@@ -444,10 +445,11 @@ function resizedata!(K::AdaptiveQLFactors, nm...)
 end
 
 function resizedata!(K::AdaptiveQLTau, nm...)
+    nm = maximum(nm)
     νμ = K.datasize
-    if nm[end] > νμ
-        resize!(K.data,nm[end])
-        cache_filldata!(K, νμ:nm[end])
+    if nm > νμ
+        resize!(K.data,nm)
+        cache_filldata!(K, νμ:nm)
         K.datasize = size(K.data,1)
     end
     K
@@ -524,9 +526,10 @@ end
 size(::AdaptiveQLQ) = (ℵ₀, ℵ₀)
 
 function resizedata!(K::AdaptiveQLQ, nm...)
+    nm = maximum(nm)
     νμ = K.datasize[1]
-    if nm[end] > νμ
-        cache_filldata!(K, νμ:nm[end])
+    if nm > νμ
+        cache_filldata!(K, νμ:nm)
         K.datasize = size(K.data).÷2
     end
     K
@@ -550,44 +553,4 @@ end
 MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
 bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
 
-# TODO: Remove custom getindex functions once bandedness break is fixed/understood
-function getindex(K::AdaptiveQLFactors, k::Integer, j::Integer)
-    resizedata!(K, max(k,j))
-    K.data[k, j]
-end
-function getindex(K::AdaptiveQLFactors, k::Integer, jr::UnitRange{Int})
-    resizedata!(K, max(k,maximum(jr)))
-    K.data[k, jr]
-end
-function getindex(K::AdaptiveQLFactors, kr::UnitRange{Int}, j::Integer)
-    resizedata!(K, max(j,maximum(kr)))
-    K.data[kr, j]
-end
-function getindex(K::AdaptiveQLFactors, kr::UnitRange{Int}, jr::UnitRange{Int})
-    resizedata!(K, max(maximum(jr),maximum(kr)))
-    K.data[kr, jr]
-end
-function getindex(K::AdaptiveQLTau, jr::UnitRange{Int})
-    resizedata!(K, maximum(jr))
-    K.data[jr]
-end
-function getindex(K::AdaptiveQLTau, k::Integer)
-    resizedata!(K, k)
-    K.data[k]
-end
-function getindex(K::AdaptiveQLQ, k::Integer, j::Integer)
-    resizedata!(K, max(k,j))
-    K.data[k, j]
-end
-function getindex(K::AdaptiveQLQ, k::Integer, jr::UnitRange{Int})
-    resizedata!(K, max(k,maximum(jr)))
-    K.data[k, jr]
-end
-function getindex(K::AdaptiveQLQ, kr::UnitRange{Int}, j::Integer)
-    resizedata!(K, max(j,maximum(kr)))
-    K.data[kr, j]
-end
-function getindex(K::AdaptiveQLQ, kr::UnitRange{Int}, jr::UnitRange{Int})
-    resizedata!(K, max(maximum(jr),maximum(kr)))
-    K.data[kr, jr]
-end
+
