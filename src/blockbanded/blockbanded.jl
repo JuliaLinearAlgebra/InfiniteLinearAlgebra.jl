@@ -81,6 +81,7 @@ MemoryLayout(::Type{<:KronTrav{<:Any,2,<:Any,NTuple{2,BlockedUnitRange{OneToInfC
 
 sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice1}}) = BroadcastBandedLayout{typeof(*)}()
 sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice{BlockRange{1,Tuple{OneTo{Int}}}}}}) = KronTravBandedBlockBandedLayout()
+sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:Tuple{BlockRangeInd, BlockRangeInd}}) = SubKronTravBandedBlockBandedLayout()
 
 copy(M::Mul{InfKronTravBandedBlockBandedLayout, InfKronTravBandedBlockBandedLayout}) = KronTrav((krontravargs(M.A) .* krontravargs(M.B))...)
 
