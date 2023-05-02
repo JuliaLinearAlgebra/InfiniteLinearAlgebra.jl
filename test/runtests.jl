@@ -11,7 +11,7 @@ import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
 import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedLayout
 import InfiniteArrays: OneToInf, oneto, RealInfinity
-import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout, BlockVec
+import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout, BlockVec, DiagTravLayout
 
 using Aqua
 @testset "Project quality" begin
@@ -121,6 +121,10 @@ include("test_infbanded.jl")
         A = DiagTrav(C)
         @test blockcolsupport(A) == Block.(1:6)
         @test A[Block.(1:7)] == [1; 5; 2; 9; 6; 3; 0; 10; 7; 4; 0; 0; 11; 8; 0; 0; 0; 0; 12; zeros(9)]
+        dest = similar(Array{Float64}, axes(A))
+        copyto!(dest, A)
+        @test dest == PseudoBlockArray(A)
+        @test A == PseudoBlockArray(A)
 
         C = zeros(∞,4);
         C[1:3,1:4] .= [1 2 3 4; 5 6 7 8; 9 10 11 12]
@@ -149,7 +153,12 @@ include("test_infbanded.jl")
         @test bandwidths(view(A, Block(1, 1))) == (1, 1)
 
         @test A*A isa KronTrav
+        @test A^2 isa KronTrav
         @test (A*A)[Block.(Base.OneTo(3)), Block.(Base.OneTo(3))] ≈ A[Block.(1:3), Block.(1:4)]A[Block.(1:4), Block.(1:3)]
+
+        F = zeros(∞,∞); F[1:5,1:5] = randn(5,5);
+
+        @test MemoryLayout(A * DiagTrav(F)) isa DiagTravLayout{<:PaddedLayout}
     end
 
     @testset "triangle recurrences" begin
