@@ -84,5 +84,12 @@ sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice{Blo
 sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:Tuple{BlockRangeInd, BlockRangeInd}}) = SubKronTravBandedBlockBandedLayout()
 
 copy(M::Mul{InfKronTravBandedBlockBandedLayout, InfKronTravBandedBlockBandedLayout}) = KronTrav((krontravargs(M.A) .* krontravargs(M.B))...)
+function copy(M::Mul{InfKronTravBandedBlockBandedLayout, <:DiagTravLayout})
+    A,B =  krontravargs(M.A)
+    X = M.B.array
+    DiagTrav(B*X*A')
+end
 
 _broadcast_sub_arguments(::InfKronTravBandedBlockBandedLayout, M, V) = _broadcast_sub_arguments(KronTravBandedBlockBandedLayout(), M, V)
+
+
