@@ -92,11 +92,6 @@ function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
     QLHessenberg(_BandedMatrix(H, ℵ₀, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
 end
 
-getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Int, j::Int) where T =
-    (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
-getindex(Q::QLPackedQ{<:Any,<:InfBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
-    [Q[i,j] for i in I, j in J]
-
 getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 
@@ -508,45 +503,6 @@ function getproperty(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}, d::Symbol
     end
 end
 
-@inline function getQ(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}) where T
-    Q = AdaptiveQLQ{T}(zeros(1,1),F.factors,F.τ,(0,0))
-    # initialize as 50x50, then adaptively expand
-    resizedata!(Q,50)
-    return Q
-end
-
-mutable struct AdaptiveQLQ{T} <: AbstractCachedMatrix{T}
-    data::Matrix{T}
-    factors::AdaptiveQLFactors{T}
-    τ::AdaptiveQLTau{T}
-    datasize::Tuple{Int, Int}
-    AdaptiveQLQ{T}(D, f, tau, N::Tuple{Int, Int}) where T = new{T}(D, f, tau, N)
-end
-
-size(::AdaptiveQLQ) = (ℵ₀, ℵ₀)
-
-function resizedata!(K::AdaptiveQLQ, nm...)
-    nm = maximum(nm)
-    νμ = K.datasize[1]
-    if nm > νμ
-        cache_filldata!(K, νμ:nm)
-        K.datasize = size(K.data).÷2
-    end
-    K
-end
-
-# Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
-function cache_filldata!(F::AdaptiveQLQ{T}, inds::UnitRange{Int}) where T
-    nm = 2*maximum(inds)
-    τ = F.τ[1:nm]
-    v = I + triu(F.factors[1:nm,1:nm],1)
-    prod = Diagonal(ones(T,nm))
-    @inbounds for j = 1:nm
-        prod = prod * (I - F.τ[j]*v[:,j]*v[:,j]')
-    end
-    F.data = prod'
-end
-
 # TODO: adaptively build L*b using caching and forward-substitution
 *(L::LowerTriangular{T, AdaptiveQLFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
 
@@ -554,3 +510,113 @@ MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
 bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
 
 
+# Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
+@inline getQ(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}) where T = QLPackedQ(F.factors,F.τ)
+
+getindex(Q::QLPackedQ{T,<:AdaptiveQLFactors{T}}, i::Int, j::Int) where T =
+(Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
+getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+    [Q[i,j] for i in I, j in J]
+
+
+(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::AbstractVector) where {T} = _lmul_cache(A, x)
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
+(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::LazyVector) where {T} = _lmul_cache(A, x)
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::LazyVector) where {T} = _lmul_cache(A, x)
+
+function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
+    A,B = M.A,M.B
+    require_one_based_indexing(B)
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = bandwidths(Afactors)
+    D = Afactors.data
+    for k = 1:∞
+        ν = k
+        allzero = k > nzzeros(B,1) ? true : false
+        for j = 1:nB
+            vBj = B[k,j]
+            for i = max(1,ν-u):k-1
+                Bij = B[i,j]
+                if !iszero(Bij)
+                    allzero = false
+                    vBj += conj(D[i-ν+u+1,ν])*Bij
+                end
+            end
+            vBj = A.τ[k]*vBj
+            B[k,j] -= vBj
+            for i = max(1,ν-u):k-1
+                B[i,j] -= D[i-ν+u+1,ν]*vBj
+            end
+        end
+        allzero && break
+    end
+    B
+end
+
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
+    adjA,B = M.A,M.B
+    require_one_based_indexing(B)
+    A = parent(adjA)
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = bandwidths(Afactors)
+    D = Afactors.data
+    @inbounds begin
+        for k = nzzeros(B,1)+u:-1:1
+            ν = k
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,ν-u):k-1
+                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
+                end
+                vBj = conj(A.τ[k])*vBj
+                B[k,j] -= vBj
+                for i = max(1,ν-u):k-1
+                    B[i,j] -= D[i-ν+u+1,ν]*vBj
+                end
+            end
+        end
+    end
+    B
+end
+
+function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:AdaptiveQLFactors}}, B::AbstractVector)
+    require_one_based_indexing(B)
+    A = parent(adjA)
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = blockbandwidths(Afactors)
+    # todo: generalize
+    l = 2l+1
+    u = 2u+1
+    @inbounds begin
+        for k = nzzeros(B,1)+u:-1:1
+            ν = k
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,ν-u):k-1
+                    vBj += conj(Afactors[i,ν])*B[i,j]
+                end
+                vBj = conj(A.τ[k])*vBj
+                B[k,j] -= vBj
+                for i = max(1,ν-u):k-1
+                    B[i,j] -= Afactors[i,ν]*vBj
+                end
+            end
+        end
+    end
+    B
+end
