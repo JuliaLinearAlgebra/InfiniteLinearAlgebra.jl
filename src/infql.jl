@@ -161,15 +161,6 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayo
     B
 end
 
-function _lmul_cache(A::Union{AbstractMatrix{T},AbstractQ{T}}, x::AbstractVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, cache(convert(AbstractVector{TS},x)))
-end
-
-(*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::LazyVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::LazyVector) where {T} = _lmul_cache(A, x)
 
 
 function blocktailiterate(c,a,b, d=c, e=a)
@@ -497,12 +488,7 @@ getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
 getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
     [Q[i,j] for i in I, j in J]
 
-(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::LayoutVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::LayoutVector) where {T} = _lmul_cache(A, x)
-
-function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
+function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:PaddedLayout})
     A,B = M.A,M.B
     require_one_based_indexing(B)
     mA, nA = size(A.factors)
@@ -515,7 +501,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:Padde
     B
 end
 
-function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:PaddedLayout})
     adjA,B = M.A,M.B
     A = parent(adjA)
     mA, nA = size(A.factors)
