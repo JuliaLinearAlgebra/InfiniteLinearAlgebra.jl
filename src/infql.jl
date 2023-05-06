@@ -95,15 +95,6 @@ end
 getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 
-# number of structural non-zeros in axis k
-nzzeros(A::AbstractArray, k) = size(A,k)
-nzzeros(::Zeros, k) = 0
-nzzeros(B::Vcat, k) = sum(size.(B.args[1:end-1],k))
-nzzeros(B::CachedArray, k) = max(B.datasize[k], nzzeros(B.array,k))
-function nzzeros(B::AbstractMatrix, k)
-    l,u = bandwidths(B)
-    k == 1 ? size(B,2) + l : size(B,1) + u
-end
 
 function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout})
     A,B = M.A,M.B
@@ -118,7 +109,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout}
     D = Afactors.data
     for k = 1:∞
         ν = k
-        allzero = k > nzzeros(B,1) ? true : false
+        allzero = k > last(colsupport(B)) ? true : false
         for j = 1:nB
             vBj = B[k,j]
             for i = max(1,ν-u):k-1
@@ -152,7 +143,7 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayo
     l,u = bandwidths(Afactors)
     D = Afactors.data
     @inbounds begin
-        for k = nzzeros(B,1)+u:-1:1
+        for k = last(colsupport(B))+u:-1:1
             ν = k
             for j = 1:nB
                 vBj = B[k,j]
@@ -241,7 +232,7 @@ function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix
     l = 2l+1
     u = 2u+1
     @inbounds begin
-        for k = nzzeros(B,1)+u:-1:1
+        for k = last(colsupport(B))+u:-1:1
             ν = k
             for j = 1:nB
                 vBj = B[k,j]
@@ -285,7 +276,7 @@ function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{Per
         throw(DimensionMismatch("second dimension of left hand side A, $n, and length of right hand side b, $(length(b)), must be equal"))
     end
     data = triangulardata(A)
-    nz = nzzeros(b,1)
+    nz = last(colsupport(b))
     @inbounds for j in 1:n
         iszero(data[j,j]) && throw(SingularException(j))
         bj = b[j] = data[j,j] \ b[j]
@@ -520,7 +511,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:Padde
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    ℓ = nzzeros(B,1)
+    ℓ = last(colsupport(B))
     B[1:ℓ] = (QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])*B[1:ℓ+1])[1:ℓ]
     B
 end
@@ -536,7 +527,7 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:Pa
     end
     Afactors = A.factors
     @inbounds begin
-        for k = nzzeros(B,1)+1:-1:1
+        for k = last(colsupport(B))+1:-1:1
             for j = 1:nB
                 vBj = B[k,j]
                 for i = max(1,k-1):k-1

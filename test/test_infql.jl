@@ -249,4 +249,9 @@ end
         @test MemoryLayout(F.L.data) == LazyBandedLayout()
         @test bandwidths(F.L) == (2,0)
     end
+    @testset "non-tridiagonal" begin
+        A = _BandedMatrix(Vcat(2*Ones(2,∞), ((1 ./(1:∞)).+4)', Ones(1,∞)./3, Ones(1,∞)./3), ℵ₀, 2, 2)
+        Q,L = ql(A)
+        @test_broken ql(A[1:100,1:100]).Q[1:10,1:10] ≈ Q[1:10,1:10]
+    end
 end
