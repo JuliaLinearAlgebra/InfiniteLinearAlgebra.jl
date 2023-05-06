@@ -521,7 +521,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:Padde
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
     ℓ = nzzeros(B,1)
-    B[1:ℓ+1] = QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])*B[1:ℓ+1]
+    B[1:ℓ] = (QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])*B[1:ℓ+1])[1:ℓ]
     B
 end
 
