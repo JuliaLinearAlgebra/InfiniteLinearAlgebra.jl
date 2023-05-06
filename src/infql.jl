@@ -509,8 +509,8 @@ getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
 
 (*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::AbstractVector) where {T} = _lmul_cache(A, x)
 (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::LazyVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::LazyVector) where {T} = _lmul_cache(A, x)
+(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::LayoutVector) where {T} = _lmul_cache(A, x)
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::LayoutVector) where {T} = _lmul_cache(A, x)
 
 function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
     A,B = M.A,M.B
