@@ -239,4 +239,12 @@ end
         @test (F.Q*[ones(200) ; zeros(∞)])[1:200] ≈ (G.Q*[ones(200) ; zeros(∞)])[1:200]
         @test (F.L*[ones(200) ; zeros(∞)])[1:200] ≈ (G.L*[ones(200) ; zeros(∞)])[1:200]
     end
+    @testset "Adaptive QL with complex entries" begin
+        A = im * LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
+        Abanded = _BandedMatrix(conj.(Hcat(Vcat(1.,A.du),A.d,A.dl)'), ℵ₀, 1, 1)
+        F = ql(Abanded)
+        @test (F.Q[1:51,1:51]*F.L[1:51,1:51])[1:50,1:50] ≈ A[1:50,1:50] 
+        @test MemoryLayout(F.L.data) == LazyBandedLayout()
+        @test bandwidths(F.L) == (2,0)
+    end
 end
