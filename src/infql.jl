@@ -535,14 +535,29 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:Padde
 end
 
 function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
-    A,B = parent(M.A),M.B
+    adjA,B = M.A,M.B
     require_one_based_indexing(B)
+    A = parent(adjA)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    ℓ = nzzeros(B,1)
-    B[1:ℓ+1] = QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])'*B[1:ℓ+1]
+    Afactors = A.factors
+    @inbounds begin
+        for k = nzzeros(B,1)+1:-1:1
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,k-1):k-1
+                    vBj += conj(Afactors[i,k])*B[i,j]
+                end
+                vBj = conj(A.τ[k])*vBj
+                B[k,j] -= vBj
+                for i = max(1,k-1):k-1
+                    B[i,j] -= Afactors[i,k]*vBj
+                end
+            end
+        end
+    end
     B
 end
