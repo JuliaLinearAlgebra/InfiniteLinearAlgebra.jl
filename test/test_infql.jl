@@ -223,8 +223,10 @@ end
         @test size(Lplain) == (ℵ₀, ℵ₀)
         @test Qsym[1:100,1:100] ≈ Qplain[1:100,1:100]
         @test Lsym[1:100,1:100] ≈ Lplain[1:100,1:100]
-        @test Qsym[101:101,1:110] ≈ Qplain[101:101,1:110]
-        @test Lsym[101:101,1:110] ≈ Lplain[101:101,1:110]
+        @test Qsym[101,1:110] ≈ Qplain[101,1:110]
+        @test Qsym[1:101,110] ≈ Qplain[1:101,110]
+        @test Qsym[Vector(1:100),Vector(1:100)] ≈ Qplain[Vector(1:100),Vector(1:100)]
+        @test Lsym[101,1:110] ≈ Lplain[101,1:110]
     end
     @testset "compare with Toeplitz QL" begin
         A = LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
