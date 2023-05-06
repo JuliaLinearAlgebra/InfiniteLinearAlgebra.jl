@@ -171,8 +171,7 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayo
 end
 
 function _lmul_cache(A::Union{AbstractMatrix{T},AbstractQ{T}}, x::AbstractVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, cache(convert(AbstractVector{TS},x)))
+    lmul!(A, cache(x))
 end
 
 (*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector) where {T} = _lmul_cache(A, x)
@@ -328,8 +327,6 @@ function _ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds
     ql(_BandedMatrix(Hcat(dat, [ev∞,d∞,ev∞] * Ones{T}(1,∞)), ℵ₀, 1, 1), args...; kwds...)
 end
 
-
-
 # TODO: This should be redesigned as ql(BandedMatrix(A))
 # But we need to support dispatch on axes
 function _ql(::TridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
@@ -381,14 +378,14 @@ mutable struct AdaptiveQLTau{T} <: AbstractCachedVector{T}
     data::Vector{T}
     M::AbstractMatrix{T}
     datasize::Integer
-    tol::T
+    tol::Real
     AdaptiveQLTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
 end
 mutable struct AdaptiveQLFactors{T} <: AbstractCachedMatrix{T}
     data::BandedMatrix{T}
     M::AbstractMatrix{T}
     datasize::Tuple{Int, Int}
-    tol::T
+    tol::Real
     AdaptiveQLFactors{T}(D, M, N::Tuple{Int, Int}, tol) where T = new{T}(D, M, N, tol)
 end
 
@@ -396,7 +393,7 @@ size(::AdaptiveQLFactors) = (ℵ₀, ℵ₀)
 size(::AdaptiveQLTau) = (ℵ₀, )
 
 # adaptive QL accepts optional tolerance
-function ql(A::InfBandedMatrix{T}, tol = eps(float(T))) where T
+function ql(A::InfBandedMatrix{T}, tol = eps(float(real(T)))) where T
     factors, τ = initialadaptiveQLblock(A, tol)
     QL(AdaptiveQLFactors{T}(factors, A, size(factors), tol),AdaptiveQLTau{T}(τ, A, length(τ), tol))
 end
@@ -405,7 +402,7 @@ end
 function initialadaptiveQLblock(A::AbstractMatrix{T}, tol) where T
     maxN = 10000   # Prevent runaway loop
     j = 50         # We initialize with a 50 × 50 block that is adaptively expanded
-    Lerr = one(T)
+    Lerr = one(real(T))
     N = j
     checkinds = max(1,j-bandwidth(A,1)-bandwidth(A,2))
     @inbounds Ls = ql(A[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
@@ -453,7 +450,7 @@ end
 function cache_filldata!(A::AdaptiveQLFactors{T}, inds::UnitRange{Int}) where T
     j = maximum(inds)
     maxN = 1000*j # Prevent runaway loop
-    Lerr = one(T)
+    Lerr = one(real(T))
     N = j
     checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
     @inbounds Ls = ql(A.M[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
@@ -475,7 +472,7 @@ end
 function cache_filldata!(A::AdaptiveQLTau{T}, inds::UnitRange{Int}) where T
     j = maximum(inds)
     maxN = 1000*j
-    Lerr = one(T)
+    Lerr = one(real(T))
     N = j
     checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
     @inbounds Ls = ql(A.M[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
@@ -509,20 +506,20 @@ end
 MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
 bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
 
-
 # Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
-@inline getQ(F::QL{T, AdaptiveQLFactors{T}, AdaptiveQLTau{T}}) where T = QLPackedQ(F.factors,F.τ)
-
 getindex(Q::QLPackedQ{T,<:AdaptiveQLFactors{T}}, i::Int, j::Int) where T =
 (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
 getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
     [Q[i,j] for i in I, j in J]
+getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
+    [Q[i,j] for i in I, j in J]
+getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
+    [Q[i,j] for i in I, j in J]
 
-
-(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::LazyVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::LazyVector) where {T} = _lmul_cache(A, x)
+(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::AbstractVector) where {T} = _lmul_cache(A, cache(x))
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::AbstractVector) where {T} = _lmul_cache(A, cache(x))
+(*)(A::QLPackedQ{T,<:AdaptiveQLFactors}, x::LazyVector) where {T} = _lmul_cache(A, cache(x))
+(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:AdaptiveQLFactors}}, x::LazyVector) where {T} = _lmul_cache(A, cache(x))
 
 function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
     A,B = M.A,M.B
@@ -532,91 +529,20 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyArrays.LazyLayout},<:Padde
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    Afactors = A.factors
-    l,u = bandwidths(Afactors)
-    D = Afactors.data
-    for k = 1:∞
-        ν = k
-        allzero = k > nzzeros(B,1) ? true : false
-        for j = 1:nB
-            vBj = B[k,j]
-            for i = max(1,ν-u):k-1
-                Bij = B[i,j]
-                if !iszero(Bij)
-                    allzero = false
-                    vBj += conj(D[i-ν+u+1,ν])*Bij
-                end
-            end
-            vBj = A.τ[k]*vBj
-            B[k,j] -= vBj
-            for i = max(1,ν-u):k-1
-                B[i,j] -= D[i-ν+u+1,ν]*vBj
-            end
-        end
-        allzero && break
-    end
+    ℓ = nzzeros(B,1)
+    B[1:ℓ+1] = QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])*B[1:ℓ+1]
     B
 end
 
 function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
-    adjA,B = M.A,M.B
+    A,B = parent(M.A),M.B
     require_one_based_indexing(B)
-    A = parent(adjA)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
     if mA != mB
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
-    Afactors = A.factors
-    l,u = bandwidths(Afactors)
-    D = Afactors.data
-    @inbounds begin
-        for k = nzzeros(B,1)+u:-1:1
-            ν = k
-            for j = 1:nB
-                vBj = B[k,j]
-                for i = max(1,ν-u):k-1
-                    vBj += conj(D[i-ν+u+1,ν])*B[i,j]
-                end
-                vBj = conj(A.τ[k])*vBj
-                B[k,j] -= vBj
-                for i = max(1,ν-u):k-1
-                    B[i,j] -= D[i-ν+u+1,ν]*vBj
-                end
-            end
-        end
-    end
-    B
-end
-
-function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:AdaptiveQLFactors}}, B::AbstractVector)
-    require_one_based_indexing(B)
-    A = parent(adjA)
-    mA, nA = size(A.factors)
-    mB, nB = size(B,1), size(B,2)
-    if mA != mB
-        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
-    end
-    Afactors = A.factors
-    l,u = blockbandwidths(Afactors)
-    # todo: generalize
-    l = 2l+1
-    u = 2u+1
-    @inbounds begin
-        for k = nzzeros(B,1)+u:-1:1
-            ν = k
-            for j = 1:nB
-                vBj = B[k,j]
-                for i = max(1,ν-u):k-1
-                    vBj += conj(Afactors[i,ν])*B[i,j]
-                end
-                vBj = conj(A.τ[k])*vBj
-                B[k,j] -= vBj
-                for i = max(1,ν-u):k-1
-                    B[i,j] -= Afactors[i,ν]*vBj
-                end
-            end
-        end
-    end
+    ℓ = nzzeros(B,1)
+    B[1:ℓ+1] = QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])'*B[1:ℓ+1]
     B
 end

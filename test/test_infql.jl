@@ -204,10 +204,10 @@ end
     @testset "Basic properties" begin
         A = _BandedMatrix(Vcat(2*Ones(1,∞), ((1 ./(1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
         Q, L = ql(A)
-        b = Vcat([1, 2, 3], Zeros(∞))
+        b = [[1, 2, 3]; zeros(∞)]
         @test LazyArrays.MemoryLayout(L) == ArrayLayouts.TriangularLayout{'L', 'N', ArrayLayouts.UnknownLayout}()
         @test LazyArrays.MemoryLayout(L') == ArrayLayouts.TriangularLayout{'U', 'N', ArrayLayouts.UnknownLayout}()
-        @test (Q*b)[1:2] == ApplyArray(*,Q,b)[1:2] == [-2,-3]
+        @test (Q'*b)[1:2] == ApplyArray(*,Q',b)[1:2] == [-0.,-1.]
         @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
         @test size(ql(A).τ) == (ℵ₀, )
     end
@@ -223,8 +223,8 @@ end
         @test size(Lplain) == (ℵ₀, ℵ₀)
         @test Qsym[1:100,1:100] ≈ Qplain[1:100,1:100]
         @test Lsym[1:100,1:100] ≈ Lplain[1:100,1:100]
-        @test Qsym[101,1:110] ≈ Qplain[101,1:110]
-        @test Lsym[101,1:110] ≈ Lplain[101,1:110]
+        @test Qsym[101:101,1:110] ≈ Qplain[101:101,1:110]
+        @test Lsym[101:101,1:110] ≈ Lplain[101:101,1:110]
     end
     @testset "compare with Toeplitz QL" begin
         A = LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
@@ -234,5 +234,7 @@ end
         @test LowerTriangular(F.factors[1:300,1:300])[1:300,1:200] ≈ F.L[1:300,1:200] ≈ G.L[1:300,1:200]
         @test MemoryLayout(F.L.data) == LazyBandedLayout()
         @test bandwidths(F.L) == (2,0)
+        @test (F.Q*[ones(200) ; zeros(∞)])[1:200] ≈ (G.Q*[ones(200) ; zeros(∞)])[1:200]
+        @test (F.L*[ones(200) ; zeros(∞)])[1:200] ≈ (G.L*[ones(200) ; zeros(∞)])[1:200]
     end
 end
