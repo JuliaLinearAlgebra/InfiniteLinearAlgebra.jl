@@ -460,7 +460,6 @@ function cache_filldata!(A::AdaptiveQLFactors{T}, inds::UnitRange{Int}) where T
     A.data = ql(A.M[1:(N÷2),1:(N÷2)]).factors[1:j,1:j]
 end
 
-
 function cache_filldata!(A::AdaptiveQLTau{T}, inds::UnitRange{Int}) where T
     j = maximum(inds)
     maxN = 1000*j
@@ -518,7 +517,6 @@ end
 
 function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:PaddedLayout})
     adjA,B = M.A,M.B
-    require_one_based_indexing(B)
     A = parent(adjA)
     mA, nA = size(A.factors)
     mB, nB = size(B,1), size(B,2)
@@ -526,16 +524,19 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyArrays.LazyLayout},<:Pa
         throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
     end
     Afactors = A.factors
+    l,u = bandwidths(Afactors)
+    l = 2l+1
+    u = 2u+1
     @inbounds begin
-        for k = last(colsupport(B))+1:-1:1
+        for k = last(colsupport(B))+u:-1:1
             for j = 1:nB
                 vBj = B[k,j]
-                for i = max(1,k-1):k-1
+                for i = max(1,k-u):k-1
                     vBj += conj(Afactors[i,k])*B[i,j]
                 end
                 vBj = conj(A.τ[k])*vBj
                 B[k,j] -= vBj
-                for i = max(1,k-1):k-1
+                for i = max(1,k-u):k-1
                     B[i,j] -= Afactors[i,k]*vBj
                 end
             end

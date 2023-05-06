@@ -203,13 +203,13 @@ end
 @testset "Adaptive finite-section-based QL" begin
     @testset "Basic properties" begin
         A = _BandedMatrix(Vcat(2*Ones(1,∞), ((1 ./(1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
-        Q, L = ql(A)
+        Q, L = ql(A, eps())
         b = [[1, 2, 3]; zeros(∞)]
         @test LazyArrays.MemoryLayout(L) == ArrayLayouts.TriangularLayout{'L', 'N', ArrayLayouts.UnknownLayout}()
         @test LazyArrays.MemoryLayout(L') == ArrayLayouts.TriangularLayout{'U', 'N', ArrayLayouts.UnknownLayout}()
         @test (Q'*b)[1:2] == ApplyArray(*,Q',b)[1:2] == [-0.,-1.]
         @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
-        @test size(ql(A).τ) == (ℵ₀, )
+        @test size(ql(A,eps()).τ) == (ℵ₀, )
     end
     @testset "Explicit tolerance tests" begin
         Asym = LinearAlgebra.SymTridiagonal([[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
@@ -252,6 +252,6 @@ end
     @testset "non-tridiagonal" begin
         A = _BandedMatrix(Vcat(2*Ones(2,∞), ((1 ./(1:∞)).+4)', Ones(1,∞)./3, Ones(1,∞)./3), ℵ₀, 2, 2)
         Q,L = ql(A)
-        @test_broken ql(A[1:100,1:100]).Q[1:10,1:10] ≈ Q[1:10,1:10]
+        @test ql(A[1:100,1:100]).Q[1:10,1:10] ≈ Q[1:10,1:10]
     end
 end
