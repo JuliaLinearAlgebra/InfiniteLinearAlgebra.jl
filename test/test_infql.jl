@@ -261,8 +261,8 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
             B = zeros(∞,2); B[1:2,1:2] = [1 2; 3 4];
             @test (Q' * B)[1:10,:] ≈ Q[1:10,1:10]'*B[1:10,:]
 
-            @test_broken (Q * [1; 2; zeros(∞)])[1:10] ≈ Q[1:10,1:10] * [1; 2; zeros(8)]
-            @test_broken (Q * B)[1:10,:] ≈ Q[1:10,1:10]*B[1:10,:]
+            @test (Q * [1; 2; zeros(∞)])[1:10] ≈ Q[1:10,1:10] * [1; 2; zeros(8)]
+            @test (Q * B)[1:10,:] ≈ Q[1:10,1:10]*B[1:10,:]
         end
     end
 end

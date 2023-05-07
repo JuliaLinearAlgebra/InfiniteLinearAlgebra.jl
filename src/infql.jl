@@ -488,18 +488,7 @@ getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
 getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
     [Q[i,j] for i in I, j in J]
 
-function materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:PaddedLayout})
-    A,B = M.A,M.B
-    require_one_based_indexing(B)
-    mA, nA = size(A.factors)
-    mB, nB = size(B,1), size(B,2)
-    if mA != mB
-        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
-    end
-    ℓ = last(colsupport(B))
-    B[1:ℓ] = (QLPackedQ(A.factors[1:ℓ+1,1:ℓ+1],A.τ[1:ℓ+1])*B[1:ℓ+1])[1:ℓ]
-    B
-end
+materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:PaddedLayout}) = ApplyArray(*,M.A,M.B)
 
 function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:PaddedLayout})
     adjA,B = M.A,M.B
