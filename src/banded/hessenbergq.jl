@@ -112,7 +112,7 @@ function materialize!(L::MatLmulVec{<:HessenbergQLayout{'L'}})
     Q, x = L.A,L.B
     T = eltype(Q)
     t = Array{T}(undef, 2)
-    nz = nzzeros(x,1)
+    nz = last(colsupport(x))
     for n = 1:length(Q.q)
         v = view(x, n:n+1)
         mul!(t, Q.q[n], v)
@@ -126,7 +126,7 @@ function materialize!(L::MatLmulVec{<:HessenbergQLayout{'U'}})
     Q, x = L.A,L.B
     T = eltype(Q)
     t = Array{T}(undef, 2)
-    for n = min(length(Q.q),nzzeros(x,1)):-1:1
+    for n = min(length(Q.q),last(colsupport(x))):-1:1
         v = view(x, n:n+1)
         mul!(t, Q.q[n], v)
         v .= t

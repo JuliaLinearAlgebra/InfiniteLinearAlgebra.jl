@@ -92,23 +92,9 @@ function ql_hessenberg!(B::InfBandedMatrix{TT}; kwds...) where TT
     QLHessenberg(_BandedMatrix(H, ℵ₀, l, 1), Vcat( LowerHessenbergQ(F.Q).q, F∞.q))
 end
 
-getindex(Q::QLPackedQ{T,<:InfBandedMatrix{T}}, i::Int, j::Int) where T =
-    (Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
-getindex(Q::QLPackedQ{<:Any,<:InfBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
-    [Q[i,j] for i in I, j in J]
-
 getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 
-# number of structural non-zeros in axis k
-nzzeros(A::AbstractArray, k) = size(A,k)
-nzzeros(::Zeros, k) = 0
-nzzeros(B::Vcat, k) = sum(size.(B.args[1:end-1],k))
-nzzeros(B::CachedArray, k) = max(B.datasize[k], nzzeros(B.array,k))
-function nzzeros(B::AbstractMatrix, k)
-    l,u = bandwidths(B)
-    k == 1 ? size(B,2) + l : size(B,1) + u
-end
 
 function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout})
     A,B = M.A,M.B
@@ -123,7 +109,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout}
     D = Afactors.data
     for k = 1:∞
         ν = k
-        allzero = k > nzzeros(B,1) ? true : false
+        allzero = k > last(colsupport(B)) ? true : false
         for j = 1:nB
             vBj = B[k,j]
             for i = max(1,ν-u):k-1
@@ -157,7 +143,7 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayo
     l,u = bandwidths(Afactors)
     D = Afactors.data
     @inbounds begin
-        for k = nzzeros(B,1)+u:-1:1
+        for k = last(colsupport(B))+u:-1:1
             ν = k
             for j = 1:nB
                 vBj = B[k,j]
@@ -175,15 +161,6 @@ function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayo
     B
 end
 
-function _lmul_cache(A::Union{AbstractMatrix{T},AbstractQ{T}}, x::AbstractVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, cache(convert(AbstractVector{TS},x)))
-end
-
-(*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::AbstractVector) where {T} = _lmul_cache(A, x)
-(*)(A::QLPackedQ{T,<:InfBandedMatrix}, x::LazyVector) where {T} = _lmul_cache(A, x)
-(*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBandedMatrix}}, x::LazyVector) where {T} = _lmul_cache(A, x)
 
 
 function blocktailiterate(c,a,b, d=c, e=a)
@@ -246,7 +223,7 @@ function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix
     l = 2l+1
     u = 2u+1
     @inbounds begin
-        for k = nzzeros(B,1)+u:-1:1
+        for k = last(colsupport(B))+u:-1:1
             ν = k
             for j = 1:nB
                 vBj = B[k,j]
@@ -290,7 +267,7 @@ function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{Per
         throw(DimensionMismatch("second dimension of left hand side A, $n, and length of right hand side b, $(length(b)), must be equal"))
     end
     data = triangulardata(A)
-    nz = nzzeros(b,1)
+    nz = last(colsupport(b))
     @inbounds for j in 1:n
         iszero(data[j,j]) && throw(SingularException(j))
         bj = b[j] = data[j,j] \ b[j]
@@ -332,8 +309,6 @@ function _ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds
 
     ql(_BandedMatrix(Hcat(dat, [ev∞,d∞,ev∞] * Ones{T}(1,∞)), ℵ₀, 1, 1), args...; kwds...)
 end
-
-
 
 # TODO: This should be redesigned as ql(BandedMatrix(A))
 # But we need to support dispatch on axes
@@ -377,4 +352,170 @@ function LazyBandedMatrices._SymTridiagonal(::Tuple{TriangularLayout{'L', 'N', P
     dv = [A[k,k] for k=1:m]
     ev = [A[k,k+1] for k=1:m-1]
     SymTridiagonal([dv; Fill(dv[end],∞)], [ev; Fill(ev[end],∞)])
+end
+
+###
+# Experimental adaptive finite section QL
+###
+mutable struct AdaptiveQLTau{T} <: AbstractCachedVector{T}
+    data::Vector{T}
+    M::AbstractMatrix{T}
+    datasize::Integer
+    tol::Real
+    AdaptiveQLTau{T}(D, M, N::Integer, tol) where T = new{T}(D, M, N, tol)
+end
+mutable struct AdaptiveQLFactors{T} <: AbstractCachedMatrix{T}
+    data::BandedMatrix{T}
+    M::AbstractMatrix{T}
+    datasize::Tuple{Int, Int}
+    tol::Real
+    AdaptiveQLFactors{T}(D, M, N::Tuple{Int, Int}, tol) where T = new{T}(D, M, N, tol)
+end
+
+size(::AdaptiveQLFactors) = (ℵ₀, ℵ₀)
+size(::AdaptiveQLTau) = (ℵ₀, )
+
+# adaptive QL accepts optional tolerance
+function ql(A::InfBandedMatrix{T}, tol = eps(float(real(T)))) where T
+    factors, τ = initialadaptiveQLblock(A, tol)
+    QL(AdaptiveQLFactors{T}(factors, A, size(factors), tol),AdaptiveQLTau{T}(τ, A, length(τ), tol))
+end
+
+# Computes the initial data for the finite section based QL decomposition
+function initialadaptiveQLblock(A::AbstractMatrix{T}, tol) where T
+    maxN = 10000   # Prevent runaway loop
+    j = 50         # We initialize with a 50 × 50 block that is adaptively expanded
+    Lerr = one(real(T))
+    N = j
+    checkinds = max(1,j-bandwidth(A,1)-bandwidth(A,2))
+    @inbounds Ls = ql(A[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
+    @inbounds while Lerr > tol
+        # compute QL for small finite section and large finite section
+        Ll = ql(A[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
+        # compare bottom right sections and stop if desired level of convergence achieved
+        Lerr = norm(Ll-Ls,2)
+        if N == maxN
+            error("Reached max. iterations in adaptive QL without convergence to desired tolerance.")
+        end
+        Ls = Ll
+        N = 2*N
+    end
+    F = ql(A[1:(N÷2),1:(N÷2)])
+    return (F.factors[1:50,1:50], F.τ[1:50])
+end
+
+# Resize and filling functions for cached implementation
+function resizedata!(K::AdaptiveQLFactors, nm...)
+    nm = maximum(nm)
+    νμ = K.datasize[1]
+    if nm > νμ
+        olddata = copy(K.data)
+        K.data = similar(K.data, nm, nm)
+        K.data[axes(olddata)...] = olddata
+        inds = νμ:nm
+        cache_filldata!(K, inds)
+        K.datasize = size(K.data)
+    end
+    K
+end
+
+function resizedata!(K::AdaptiveQLTau, nm...)
+    nm = maximum(nm)
+    νμ = K.datasize
+    if nm > νμ
+        resize!(K.data,nm)
+        cache_filldata!(K, νμ:nm)
+        K.datasize = size(K.data,1)
+    end
+    K
+end
+
+function cache_filldata!(A::AdaptiveQLFactors{T}, inds::UnitRange{Int}) where T
+    j = maximum(inds)
+    maxN = 1000*j # Prevent runaway loop
+    Lerr = one(real(T))
+    N = j
+    checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
+    @inbounds Ls = ql(A.M[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
+    @inbounds while Lerr > A.tol
+        # compute QL for small finite section and large finite section
+        Ll = ql(A.M[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
+        # compare bottom right sections and stop if desired level of convergence achieved
+        Lerr = norm(Ll-Ls,2)
+        if N == maxN
+            error("Reached max. iterations in adaptive QL without convergence to desired tolerance.")
+        end
+        Ls = Ll
+        N = 2*N
+    end
+    A.data = ql(A.M[1:(N÷2),1:(N÷2)]).factors[1:j,1:j]
+end
+
+function cache_filldata!(A::AdaptiveQLTau{T}, inds::UnitRange{Int}) where T
+    j = maximum(inds)
+    maxN = 1000*j
+    Lerr = one(real(T))
+    N = j
+    checkinds = max(1,j-bandwidth(A.M,1)-bandwidth(A.M,2))
+    @inbounds Ls = ql(A.M[checkinds:N,checkinds:N]).L[2:j-checkinds+1,2:j-checkinds+1]
+    @inbounds while Lerr > A.tol
+        # compute QL for small finite section and large finite section
+        Ll = ql(A.M[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
+        # compare bottom right sections and stop if desired level of convergence achieved
+        Lerr = norm(Ll-Ls,2)
+        if N == maxN
+            error("Reached max. iterations in adaptive QL without convergence to desired tolerance.")
+        end
+        Ls = Ll
+        N = 2*N
+    end
+    A.data = ql(A.M[1:(N÷2),1:(N÷2)]).τ[1:j]
+end
+
+# TODO: adaptively build L*b using caching and forward-substitution
+*(L::LowerTriangular{T, AdaptiveQLFactors{T}}, b::LayoutVector) where T = ApplyArray(*, L, b)
+
+MemoryLayout(::AdaptiveQLFactors) = LazyBandedLayout()
+bandwidths(F::AdaptiveQLFactors) = bandwidths(F.data)
+
+# Q = \\prod_{i=1}^{\\min(m,n)} (I - \\tau_i v_i v_i^T)
+getindex(Q::QLPackedQ{T,<:AdaptiveQLFactors{T}}, i::Int, j::Int) where T =
+(Q'*[Zeros{T}(i-1); one(T); Zeros{T}(∞)])[j]'
+getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
+    [Q[i,j] for i in I, j in J]
+getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
+    [Q[i,j] for i in I, j in J]
+getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
+    [Q[i,j] for i in I, j in J]
+
+materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:PaddedLayout}) = ApplyArray(*,M.A,M.B)
+
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:PaddedLayout})
+    adjA,B = M.A,M.B
+    A = parent(adjA)
+    mA, nA = size(A.factors)
+    mB, nB = size(B,1), size(B,2)
+    if mA != mB
+        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
+    end
+    Afactors = A.factors
+    l,u = bandwidths(Afactors)
+    l = 2l+1
+    u = 2u+1
+    @inbounds begin
+        for k = last(colsupport(B))+u:-1:1
+            for j = 1:nB
+                vBj = B[k,j]
+                for i = max(1,k-u):k-1
+                    vBj += conj(Afactors[i,k])*B[i,j]
+                end
+                vBj = conj(A.τ[k])*vBj
+                B[k,j] -= vBj
+                for i = max(1,k-u):k-1
+                    B[i,j] -= Afactors[i,k]*vBj
+                end
+            end
+        end
+    end
+    B
 end
