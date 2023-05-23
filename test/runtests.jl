@@ -69,7 +69,7 @@ include("test_infbanded.jl")
         @test c[Block.(2:∞)][Block.(2:10)] == c[Block.(3:11)]
 
         @test length(axes(b, 1)) ≡ ℵ₀
-        @test last(axes(b, 1)) ≡ RealInfinity()
+        @test last(axes(b, 1)) ≡ ℵ₀
         @test Base.BroadcastStyle(typeof(b)) isa LazyArrayStyle{1}
 
         @test unitblocks(oneto(∞)) ≡ blockedrange(Ones{Int}(∞))
