@@ -7,7 +7,9 @@ end
 size(U::AdaptiveCholeskyFactors) = size(U.data.array)
 bandwidths(A::AdaptiveCholeskyFactors) = (0,bandwidth(A.data,2))
 
-function AdaptiveCholeskyFactors(::SymmetricLayout{<:AbstractBandedLayout}, S::AbstractMatrix{T}) where T
+const SymmetricBandedLayouts = Union{SymTridiagonalLayout,SymmetricLayout{<:AbstractBandedLayout},DiagonalLayout}
+
+function AdaptiveCholeskyFactors(::SymmetricBandedLayouts, S::AbstractMatrix{T}) where T
     A = parent(S)
     l,u = bandwidths(A)
     data = BandedMatrix{T}(undef,(0,0),(l,u)) # pad super
@@ -45,7 +47,7 @@ end
 adaptivecholesky(A) = Cholesky(AdaptiveCholeskyFactors(A), :U, 0)
 
 
-ArrayLayouts._cholesky(::SymmetricLayout{<:AbstractBandedLayout}, ::NTuple{2,OneToInf{Int}}, A, ::CNoPivot) = adaptivecholesky(A)
+ArrayLayouts._cholesky(::SymmetricBandedLayouts, ::NTuple{2,OneToInf{Int}}, A, ::CNoPivot) = adaptivecholesky(A)
 
 function colsupport(F::AdaptiveCholeskyFactors, j)
     partialcholesky!(F, maximum(j)+bandwidth(F,2))
