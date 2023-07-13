@@ -101,7 +101,7 @@ size(F::AdaptiveQRFactors) = size(F.data.data)
 axes(F::AdaptiveQRFactors) = axes(F.data.data)
 bandwidths(F::AdaptiveQRFactors) = bandwidths(F.data.data)
 
-axes(A::AbstractTriangular{<:Any,<:AdaptiveQRFactors}) = axes(parent(A))
+axes(A::UpperOrLowerTriangular{<:Any,<:AdaptiveQRFactors}) = axes(parent(A))
 
 function colsupport(F::AdaptiveQRFactors, j)
     partialqr!(F.data, maximum(j))
