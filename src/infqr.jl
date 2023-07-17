@@ -358,3 +358,4 @@ qr(A::SymTridiagonal{T,<:AbstractFill{T,1,Tuple{OneToInf{Int}}}}) where T = adap
 
 copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
 copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
+copy(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
