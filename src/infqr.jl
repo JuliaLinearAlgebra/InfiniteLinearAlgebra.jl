@@ -92,10 +92,13 @@ struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: Layout
     data::AdaptiveQRData{T,DM,M}
 end
 
-struct AdaptiveLayout{M} <: MemoryLayout end
+struct AdaptiveLayout{M} <: AbstractLazyLayout end
 MemoryLayout(::Type{AdaptiveQRFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
 triangularlayout(::Type{Tri}, ::ML) where {Tri, ML<:AdaptiveLayout} = Tri{ML}()
 transposelayout(A::AdaptiveLayout{ML}) where ML = AdaptiveLayout{typeof(transposelayout(ML()))}()
+
+simplifiable(::Mul{<:TriangularLayout{a, b, <:AdaptiveLayout}, <:TriangularLayout{c, d, <:AdaptiveLayout}}) where {a,b,c,d} = Val(false)
+copy(M::Mul{<:TriangularLayout{a, b, <:AdaptiveLayout}, <:TriangularLayout{c, d, <:AdaptiveLayout}}) where {a,b,c,d} = ApplyMatrix(*, M.A,M.B)
 
 size(F::AdaptiveQRFactors) = size(F.data.data)
 axes(F::AdaptiveQRFactors) = axes(F.data.data)
