@@ -356,6 +356,13 @@ ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector; kwds...) = ldiv!(F.R, l
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
 qr(A::SymTridiagonal{T,<:AbstractFill{T,1,Tuple{OneToInf{Int}}}}) where T = adaptiveqr(A)
 
-copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
-copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
-copy(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
+simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout},<:LazyLayouts}) = Val(false)
+simplifiable(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+simplifiable(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+
+
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout},<:LazyLayouts}) = simplify(M)
+copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)
+copy(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)

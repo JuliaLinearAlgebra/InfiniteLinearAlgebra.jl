@@ -21,7 +21,7 @@ import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector,
                     resizedata!, MemoryLayout, AbstractLazyLayout,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     applylayout, ApplyLayout, PaddedLayout, CachedLayout, AbstractCachedVector, AbstractCachedMatrix, cacheddata, zero!, MulAddStyle, ApplyArray,
-                    LazyArray, LazyMatrix, LazyVector, paddeddata, arguments, resizedata!, simplifiable
+                    LazyArray, LazyMatrix, LazyVector, paddeddata, arguments, resizedata!, simplifiable, simplify, LazyLayouts
 import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, getQ, getU, reflector!, reflectorApply!, QL, QR, QRPackedQ,
                             QRPackedQLayout, AdjQRPackedQLayout, QLPackedQLayout, AdjQLPackedQLayout, LayoutQ
 

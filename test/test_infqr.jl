@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
-        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays, BlockBandedMatrices
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
