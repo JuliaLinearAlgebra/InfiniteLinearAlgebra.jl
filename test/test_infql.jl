@@ -207,8 +207,8 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
             A = _BandedMatrix(Vcat(2*Ones(1,∞), ((1 ./(1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
             Q, L = ql(A)
             b = [[1, 2, 3]; zeros(∞)]
-            @test MemoryLayout(L) == TriangularLayout{'L', 'N', UnknownLayout}()
-            @test MemoryLayout(L') == TriangularLayout{'U', 'N', UnknownLayout}()
+            @test MemoryLayout(L) isa TriangularLayout{'L', 'N'}
+            @test MemoryLayout(L') isa TriangularLayout{'U', 'N'}
             @test (Q'*b)[1:2] == ApplyArray(*,Q',b)[1:2] == [-0.,-1.]
             @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
             @test size(ql(A).τ) == (ℵ₀, )

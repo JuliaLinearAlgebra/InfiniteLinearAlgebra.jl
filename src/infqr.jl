@@ -92,7 +92,7 @@ struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: Layout
     data::AdaptiveQRData{T,DM,M}
 end
 
-struct AdaptiveLayout{M} <: MemoryLayout end
+struct AdaptiveLayout{M} <: AbstractLazyLayout end
 MemoryLayout(::Type{AdaptiveQRFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
 triangularlayout(::Type{Tri}, ::ML) where {Tri, ML<:AdaptiveLayout} = Tri{ML}()
 transposelayout(A::AdaptiveLayout{ML}) where ML = AdaptiveLayout{typeof(transposelayout(ML()))}()
@@ -356,5 +356,15 @@ ldiv!(F::QR{<:Any,<:AdaptiveQRFactors}, b::LayoutVector; kwds...) = ldiv!(F.R, l
 factorize(A::BandedMatrix{<:Any,<:Any,<:OneToInf}) = qr(A)
 qr(A::SymTridiagonal{T,<:AbstractFill{T,1,Tuple{OneToInf{Int}}}}) where T = adaptiveqr(A)
 
-copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
-copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = ApplyArray(*, M.A, M.B)
+simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout},<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout},<:LazyLayouts}) = Val(false)
+simplifiable(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+simplifiable(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveLayout}}) = Val(false)
+
+
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout},<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveLayout},<:LazyLayouts}) = simplify(M)
+copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)
+copy(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveLayout}}) = simplify(M)

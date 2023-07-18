@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
-        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays
+        FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays, BlockBandedMatrices, ArrayLayouts
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
@@ -308,5 +308,16 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         A = BandedMatrix(1 => Ones(∞), 0 => Fill(-2,∞), -1 => Ones(∞))
         u = \(A, [1; zeros(∞)]; tolerance=1E-8)
         @test A*u ≈ [1; zeros(∞)]
+    end
+
+    @testset "lazy mul" begin
+        A = BandedMatrix(1 => Ones(∞), 0 => Fill(-2,∞), -1 => Ones(∞))
+        Q,R = qr(A)
+        @test (Q*R)[1:10,1:10] ≈ A[1:10,1:10]
+        @test (Q*Q)[1:10,1:10] ≈ Q[1:10,1:11]Q[1:11,1:10]
+        # MatrixFactorizations currently catches * so this is temporary to
+        # increase coverage
+        @test mul(Q, Ones(∞,∞)) isa ApplyArray
+        @test mul(Ones(∞,∞), Q) isa ApplyArray
     end
 end
