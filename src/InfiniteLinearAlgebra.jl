@@ -36,8 +36,6 @@ import BlockBandedMatrices: _BlockSkylineMatrix, _BandedMatrix, _BlockSkylineMat
         BlockSkylineSizes, BlockSkylineMatrix, BlockBandedMatrix, _BlockBandedMatrix, BlockTridiagonal,
         AbstractBlockBandedLayout, _blockbanded_qr!, BlockBandedLayout
 
-import DSP: conv
-
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 
@@ -118,8 +116,6 @@ pad(c::BlockVec, ax::BlockedUnitRange{<:InfStepRange}) = BlockVec(pad(c.args[1],
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
-include("infconv.jl")
-
 include("banded/hessenbergq.jl")
 
 include("banded/infbanded.jl")
@@ -130,5 +126,9 @@ include("infqr.jl")
 include("inful.jl")
 include("infcholesky.jl")
 
+
+if !isdefined(Base, :get_extension)
+    include("../ext/InfiniteLinearAlgebraDSPExt.jl")
+end
 
 end # module

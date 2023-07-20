@@ -15,7 +15,12 @@ import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayo
 
 using Aqua
 @testset "Project quality" begin
-    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false, piracy=false)
+    Aqua.test_all(InfiniteLinearAlgebra, ambiguities=false, unbound_args=false, piracy=false,
+        # Project.toml formatting issue on v1.6
+        # Pkg issue: https://github.com/JuliaLang/Pkg.jl/issues/3481
+        # Aqua workaround: https://github.com/JuliaTesting/Aqua.jl/issues/105#issuecomment-1551405866
+        # we only check the formatting on more recent versions
+        project_toml_formatting = VERSION>=v"1.7")
 end
 
 @testset "chop" begin
