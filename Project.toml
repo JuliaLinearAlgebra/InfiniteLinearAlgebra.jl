@@ -1,13 +1,12 @@
 name = "InfiniteLinearAlgebra"
 uuid = "cde9dba0-b1de-11e9-2c62-0bab9446c55c"
-version = "0.6.23"
+version = "0.6.24"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
 BlockArrays = "8e7c35d0-a365-5155-bbbb-fb81a777f24e"
 BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 InfiniteArrays = "4858937d-0d70-526a-a4dd-2d5cb5dd786c"
 LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
@@ -16,21 +15,14 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
-[weakdeps]
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
-
-[extensions]
-InfiniteLinearAlgebraDSPExt = "DSP"
-
 [compat]
 Aqua = "0.6"
 ArrayLayouts = "1.0.12"
 BandedMatrices = "0.17.19"
 BlockArrays = "0.16.14"
 BlockBandedMatrices = "0.12"
-DSP = "0.7"
 FillArrays = "1"
-InfiniteArrays = "0.12"
+InfiniteArrays = "0.13"
 LazyArrays = "1.3"
 LazyBandedMatrices = "0.8.7"
 MatrixFactorizations = "1, 2"
@@ -39,11 +31,10 @@ julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DSP", "Test", "Random", "SpecialFunctions", "StaticArrays"]
+test = ["Aqua", "Test", "Random", "SpecialFunctions", "StaticArrays"]
