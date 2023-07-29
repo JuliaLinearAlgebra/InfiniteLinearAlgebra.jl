@@ -126,9 +126,4 @@ include("infqr.jl")
 include("inful.jl")
 include("infcholesky.jl")
 
-
-if !isdefined(Base, :get_extension)
-    include("../ext/InfiniteLinearAlgebraDSPExt.jl")
-end
-
 end # module

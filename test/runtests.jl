@@ -54,7 +54,6 @@ end
     @test pad(BlockVec(transpose(X)), blockedrange(Fill(3,∞))) isa BlockVec{Int,<:Transpose}
 end
 
-include("test_infconv.jl")
 include("test_infbanded.jl")
 
 @testset "∞-block arrays" begin
