@@ -83,6 +83,9 @@ function ql_pruneband(A; kwds...)
     Q, H
 end
 
+
+copymutable_size(::NTuple{2,InfiniteCardinal{0}}, Q) = cache(Q)
+
 # represent Q as a product of orthogonal operations
 struct ProductQ{T,QQ<:Tuple} <: LayoutQ{T}
     Qs::QQ
@@ -139,7 +142,6 @@ mul(A::ProductQ, x::AbstractVector) = _productq_mul(A, x)
 
 mul(Q::ProductQ, X::AbstractMatrix) = ApplyArray(*, Q.Qs...) * X
 mul(X::AbstractMatrix, Q::ProductQ) = X * ApplyArray(*, Q.Qs...)
-
 
 
 # LQ where Q is a product of orthogonal operations
