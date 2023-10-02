@@ -93,6 +93,11 @@ include("test_infbanded.jl")
         @test b .* o isa typeof(b)
     end
 
+    @testset "padded" begin
+        c = PseudoBlockArray([1; zeros(∞)], Vcat(2, Fill(3, ∞)))
+        @test c + c isa PseudoBlockVector
+    end
+
     @testset "concat" begin
         a = unitblocks(1:∞)
         b = exp.(a)
