@@ -192,7 +192,7 @@ function _blocktripert_ql(A, d, e)
     B = BlockBandedMatrix(A,(2,1))
 
 
-    BB = _BlockBandedMatrix(B.data.args[1], (fill(2,N+2), fill(2,N)), (2,1))
+    BB = _BlockBandedMatrix(B.data.args[1], fill(2,N+2), fill(2,N), (2,1))
     BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
     F = ql!(view(BB, Block.(1:N), Block.(1:N)))
     BB[Block(N+1),Block.(N-1:N)] .= P[Block(2), Block.(1:2)]
