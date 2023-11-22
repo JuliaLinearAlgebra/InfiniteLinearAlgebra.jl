@@ -275,7 +275,7 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
 
         A[1,1] = 2 
 
-        x -0.95
+        x = -0.95
         @test ql(A-x*I).L[1,1] isa Float64
     end
 end
