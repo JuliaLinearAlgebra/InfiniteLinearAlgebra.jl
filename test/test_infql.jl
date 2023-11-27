@@ -267,4 +267,15 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
             @test (Q * B)[1:10,:] ≈ Q[1:10,1:10]*B[1:10,:]
         end
     end
+    @testset "Periodic Schrödinger" begin
+
+        A = BlockTridiagonal(Vcat([[0. 1.; 0. 0.]],Fill([0. 1.; 0. 0.], ∞)),
+                             Vcat([[-1. 1.; 1. 1.]], Fill([-1. 1.; 1. 1.], ∞)),
+                             Vcat([[0. 0.; 1. 0.]], Fill([0. 0.; 1. 0.], ∞)))
+
+        A[1,1] = 2 
+
+        x = -0.95
+        @test ql(A-x*I).L[1,1] isa Float64
+    end
 end
