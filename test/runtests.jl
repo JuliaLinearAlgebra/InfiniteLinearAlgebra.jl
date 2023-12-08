@@ -231,6 +231,8 @@ include("test_infbanded.jl")
             Dy = BlockBandedMatrices._BandedBlockBandedMatrix((k .+ (b + c))', axes(k, 1), (-1, 1), (-1, 1))
             N = 100
             @test Dy[Block.(1:N), Block.(1:N)] == BlockBandedMatrices._BandedBlockBandedMatrix((k.+(b+c))[Block.(1:N)]', axes(k, 1)[Block.(1:N)], (-1, 1), (-1, 1))
+            @test colsupport(Dy, axes(Dy,2)) == 1:∞
+            @test rowsupport(Dy, axes(Dy,1)) == 2:∞
         end
 
         @testset "Symmetric" begin
