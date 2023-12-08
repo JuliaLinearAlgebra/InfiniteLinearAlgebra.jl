@@ -12,6 +12,9 @@ function BlockArrays.sortedunion(b, ::AbstractVector{<:PosInfinity})
 end
 BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
 
+BlockBandedMatrices.blockbanded_colstop(A, x::InfiniteCardinal{0}) = x
+BlockBandedMatrices.blockbanded_rowstop(A, x::InfiniteCardinal{0}) = x
+
 
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}},
