@@ -3,9 +3,9 @@
 A Julia repository for linear algebra with infinite banded and block-banded matrices
 
 
-[![Build Status](https://github.com/JuliaMatrices/InfiniteLinearAlgebra.jl/workflows/CI/badge.svg)](https://github.com/JuliaMatrices/InfiniteLinearAlgebra.jl/actions)
+[![Build Status](https://github.com/JuliaLinearAlgebra/InfiniteLinearAlgebra.jl/workflows/CI/badge.svg)](https://github.com/JuliaLinearAlgebra/InfiniteLinearAlgebra.jl/actions)
 
-[![codecov](https://codecov.io/gh/JuliaMatrices/InfiniteLinearAlgebra.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaMatrices/InfiniteLinearAlgebra.jl)
+[![codecov](https://codecov.io/gh/JuliaLinearAlgebra/InfiniteLinearAlgebra.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaLinearAlgebra/InfiniteLinearAlgebra.jl)
 
 ## Infinite-dimensional QR factorization
 
@@ -86,6 +86,6 @@ ql(A - 5*I)
 ```
 The infinite-dimensional QL factorization is a subtly thing: its defined when the operator has non-positive Fredholm index, and if the Fredholm index is not zero, it may not be unique. For the Bull head matrix `A`, here are plots of `ql(A-λ*I).L[1,1]` alongside the image of the symbol `A`, which depicts the essential spectrum of `A` and where the Fredholm index changes. Note we have two plots as the regions with negative Fredholm index  have multiple QL factorizations. Where the Fredholm index is positive, the QL factorization doesn't exist and is depicted in black.
 
-<img src=https://github.com/JuliaMatrices/InfiniteLinearAlgebra.jl/raw/master/images/ql1.png width=500 height=400>
-<img src=https://github.com/JuliaMatrices/InfiniteLinearAlgebra.jl/raw/master/images/ql2.png width=500 height=400>
+<img src=https://github.com/JuliaLinearAlgebra/InfiniteLinearAlgebra.jl/raw/master/images/ql1.png width=500 height=400>
+<img src=https://github.com/JuliaLinearAlgebra/InfiniteLinearAlgebra.jl/raw/master/images/ql2.png width=500 height=400>
 
