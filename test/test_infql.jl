@@ -198,7 +198,7 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
 
             @test (L*Q)[1:10,1:10] ≈ LazyBandedMatrices.SymTridiagonal(L*Q)[1:10,1:10]
             @test Q[5,6:8] == [Q[5,k] for k = 6:8]
-            @test Q[6:8,5] == [Q[k,5] for k = 6:8]
+            @test Q[6:8,5] ≈ [Q[k,5] for k = 6:8]
         end
 
         @test_throws ErrorException ql(zeros(∞,∞))

@@ -147,8 +147,17 @@ end
 # getindex
 ####
 
+function _getindex_by_col(Q, I, J)
+    T = eltype(Q)
+    ret = Matrix{T}(undef, length(I), length(J))
+    for j in J
+        ret[:,j] = Q[:,j][I]
+    end
+    ret
+end
+
 getindex(Q::UpperHessenbergQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
-    hcat((Q[:,j][I] for j in J)...)
+    _getindex_by_col(Q, I, J)
 
 getindex(Q::LowerHessenbergQ, i::Int, j::Int) = (Q')[j,i]'
 getindex(Q::LowerHessenbergQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
