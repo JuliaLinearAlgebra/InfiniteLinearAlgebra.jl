@@ -127,7 +127,7 @@ if VERSION < v"1.8-"
     end
 end
 getindex(Q::ProductQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
-        hcat((Q[:,j][I] for j in J)...)
+    _getindex_by_col(Q, I, J)
 
 getindex(Q::ProductQ{<:Any,<:Tuple{Vararg{LowerHessenbergQ}}}, i::Int, j::Int) = (Q')[j, i]'
 

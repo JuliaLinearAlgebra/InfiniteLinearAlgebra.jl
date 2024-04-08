@@ -163,7 +163,7 @@ partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
 #########
 
 getindex(Q::QRPackedQ{<:Any,<:AdaptiveQRFactors,<:AdaptiveQRTau}, I::AbstractVector{Int}, J::AbstractVector{Int64}) =
-    hcat((Q[:,j][I] for j in J)...)
+    _getindex_by_col(Q, I, J)
 
 #########
 # lmul!
