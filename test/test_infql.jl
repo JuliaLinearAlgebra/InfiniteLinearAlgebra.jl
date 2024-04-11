@@ -278,4 +278,10 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
         x = -0.95
         @test ql(A-x*I).L[1,1] isa Float64
     end
+
+    @testset "SymTridiagonal QL" begin
+        A = SymTridiagonal(Fill(3, ∞), Fill(1, ∞))
+        Q,L = ql(A)
+        Q*L
+    end
 end

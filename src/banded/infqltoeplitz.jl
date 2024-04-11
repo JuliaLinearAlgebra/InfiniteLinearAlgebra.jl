@@ -41,8 +41,8 @@ end
 
 
 
-function ql(Op::TriToeplitz{T}; kwds...) where {T<:Real}
-    Z, A, B = Op.dl.value, Op.d.value, Op.du.value
+function _ql(::TridiagonalToeplitzLayout, ::NTuple{2,OneToInf{Int}}, Op::AbstractMatrix{T}, args...; kwds...) where {T<:Real}
+    Z, A, B = subdiagonalconstant(Op), diagonalconstant(Op), supdiagonalconstant(Op)
     d, e = tail_de([Z, A, B]; kwds...) # fixed point of QL but with two Qs, one that changes sign
     X = [Z A B; zero(T) d e]
     F = ql_X!(X)

@@ -337,10 +337,20 @@ for Typ in (:ConstRows, :PertConstRows)
     end
 end
 
+"""
+    TridiagonalToeplitzLayout
+
+represents a matrix which is tridiagonal and toeplitz. Must support
+`subdiagonalconstant`, `diagonalconstant`, `supdiagonalconstant`.
+"""
 struct TridiagonalToeplitzLayout <: AbstractLazyBandedLayout end
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}
 const PertTriangularToeplitzLayout{UPLO,UNIT} = TriangularLayout{UPLO,UNIT,BandedColumns{PertConstRows}}
+
+subdiagonalconstant(A) = getindex_value(subdiagonaldata(A))
+diagonalconstant(A) = getindex_value(diagonaldata(A))
+supdiagonalconstant(A) = getindex_value(supdiagonaldata(A))
 
 
 _BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) =
@@ -438,6 +448,7 @@ mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, BandedToeplitzLayout}) =
 mulreduce(M::Mul{BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, BandedToeplitzLayout}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, PertToeplitzLayout}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, TriangularLayout{UPLO, UNIT, PertToeplitzLayout}}) where {UPLO,UNIT} = ApplyArray(M)
 mulreduce(M::Mul{<:DiagonalLayout, BandedToeplitzLayout}) = Lmul(M)
 mulreduce(M::Mul{BandedToeplitzLayout, <:DiagonalLayout}) = Rmul(M)
 
