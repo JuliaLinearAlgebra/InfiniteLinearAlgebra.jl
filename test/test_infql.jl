@@ -282,6 +282,6 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
     @testset "SymTridiagonal QL" begin
         A = SymTridiagonal(Fill(3, ∞), Fill(1, ∞))
         Q,L = ql(A)
-        Q*L
+        @test (Q*L)[1:10,1:10] ≈ A[1:10,1:10]
     end
 end

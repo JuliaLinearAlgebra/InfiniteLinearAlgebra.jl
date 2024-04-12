@@ -34,7 +34,7 @@ sub_materialize(_, V::SubArray{<:Any,1,<:AbstractMatrix,Tuple{InfBandCartesianIn
     _inf_banded_sub_materialize(MemoryLayout(parent(V)), V)
 
 const TriToeplitz{T} = Tridiagonal{T,Fill{T,1,Tuple{OneToInf{Int}}}}
-const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFill{<:Any,2,Tuple{OneTo{Int},OneToInf{Int}}}}}
+const ConstRowMatrix{T} = ApplyMatrix{T,typeof(*),<:Tuple{<:AbstractVector,<:AbstractFillMatrix{<:Any,Tuple{OneTo{Int},OneToInf{Int}}}}}
 const PertConstRowMatrix{T} = Hcat{T,<:Tuple{Array{T},<:ConstRowMatrix{T}}}
 const InfToeplitz{T} = BandedMatrix{T,<:ConstRowMatrix{T},OneToInf{Int}}
 const PertToeplitz{T} = BandedMatrix{T,<:PertConstRowMatrix{T},OneToInf{Int}}
@@ -347,6 +347,12 @@ struct TridiagonalToeplitzLayout <: AbstractLazyBandedLayout end
 const BandedToeplitzLayout = BandedColumns{ConstRows}
 const PertToeplitzLayout = BandedColumns{PertConstRows}
 const PertTriangularToeplitzLayout{UPLO,UNIT} = TriangularLayout{UPLO,UNIT,BandedColumns{PertConstRows}}
+struct BidiagonalToeplitzLayout <: AbstractLazyBandedLayout end
+struct PertBidiagonalToeplitzLayout <: AbstractLazyBandedLayout end
+struct PertTridiagonalToeplitzLayout <: AbstractLazyBandedLayout end
+
+const InfToeplitzLayouts = Union{TridiagonalToeplitzLayout, BandedToeplitzLayout, BidiagonalToeplitzLayout,
+                                 PertToeplitzLayout, PertTriangularToeplitzLayout, PertBidiagonalToeplitzLayout, PertTridiagonalToeplitzLayout}
 
 subdiagonalconstant(A) = getindex_value(subdiagonaldata(A))
 diagonalconstant(A) = getindex_value(diagonaldata(A))
@@ -438,19 +444,13 @@ _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,InfAxes}) = App
 _bandedfill_mul(M::MulAdd, ::Tuple{InfAxes,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyArray(*, M.A, M.B)
 _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyArray(*, M.A, M.B)
 
-mulreduce(M::Mul{BandedToeplitzLayout, BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{BandedToeplitzLayout,<:PaddedLayout}) = MulAdd(M)
-mulreduce(M::Mul{<:Any, BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, PertToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:PertToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
-mulreduce(M::Mul{<:BandedColumns{<:AbstractFillLayout}, BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{BandedToeplitzLayout, <:BandedColumns{<:AbstractFillLayout}}) = ApplyArray(M)
-mulreduce(M::Mul{<:AbstractQLayout, BandedToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:AbstractQLayout, PertToeplitzLayout}) = ApplyArray(M)
-mulreduce(M::Mul{<:AbstractQLayout, TriangularLayout{UPLO, UNIT, PertToeplitzLayout}}) where {UPLO,UNIT} = ApplyArray(M)
-mulreduce(M::Mul{<:DiagonalLayout, BandedToeplitzLayout}) = Lmul(M)
-mulreduce(M::Mul{BandedToeplitzLayout, <:DiagonalLayout}) = Rmul(M)
+mulreduce(M::Mul{<:InfToeplitzLayouts, <:InfToeplitzLayouts}) = ApplyArray(M)
+mulreduce(M::Mul{<:InfToeplitzLayouts}) = ApplyArray(M)
+mulreduce(M::Mul{<:InfToeplitzLayouts,<:PaddedLayout}) = MulAdd(M)
+mulreduce(M::Mul{<:Any, <:InfToeplitzLayouts}) = ApplyArray(M)
+mulreduce(M::Mul{<:AbstractQLayout, <:InfToeplitzLayouts}) = ApplyArray(M)
+mulreduce(M::Mul{<:DiagonalLayout, <:InfToeplitzLayouts}) = Lmul(M)
+mulreduce(M::Mul{<:InfToeplitzLayouts, <:DiagonalLayout}) = Rmul(M)
 
 
 function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
@@ -502,8 +502,6 @@ for Typ in (:(LinearAlgebra.Tridiagonal{<:Any,<:InfFill}),
     end
 end
 
-struct BidiagonalToeplitzLayout <: AbstractLazyBandedLayout end
-
 for Typ in (:(LinearAlgebra.Bidiagonal{<:Any,<:InfFill}),
             :(LazyBandedMatrices.Bidiagonal{<:Any,<:InfFill,<:InfFill}))
     @eval begin
@@ -511,6 +509,9 @@ for Typ in (:(LinearAlgebra.Bidiagonal{<:Any,<:InfFill}),
         BroadcastStyle(::Type{<:$Typ}) = LazyArrayStyle{2}()
     end
 end
+
+*(A::LinearAlgebra.Bidiagonal{<:Any,<:InfFill}, B::LinearAlgebra.Bidiagonal{<:Any,<:InfFill}) =
+    mul(A, B)
 
 # fall back for Ldiv
 triangularlayout(::Type{<:TriangularLayout{UPLO,'N'}}, ::TridiagonalToeplitzLayout) where UPLO = BidiagonalToeplitzLayout()
@@ -529,3 +530,10 @@ copy(A::Transpose{T,<:BandedMatrix{T,<:Any,OneToInf{Int}}}) where T = transpose(
 
 Base.typed_hcat(::Type{T}, A::BandedMatrix{<:Any,<:Any,OneToInf{Int}}, B::AbstractVecOrMat...) where T = Hcat{T}(A, B...)
 
+
+
+###
+# SymTriPertToeplitz
+###
+
+MemoryLayout(::Type{<:SymTriPertToeplitz}) = PertTridiagonalToeplitzLayout()
