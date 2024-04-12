@@ -293,7 +293,7 @@ function _data_tail(::ApplyLayout{typeof(vcat)}, a)
 end
 _data_tail(a) = _data_tail(MemoryLayout(a), a)
 
-function ql_layout(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
+function ql_layout(::Union{PertTridiagonalToeplitzLayout,SymTridiagonalLayout}, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
     T = eltype(A)
     d,d∞ = _data_tail(A.dv)
     ev,ev∞ = _data_tail(A.ev)
