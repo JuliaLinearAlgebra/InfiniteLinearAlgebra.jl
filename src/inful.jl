@@ -34,7 +34,7 @@ function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
     C*(V*Diagonal(inv.(λs))/V)
 end
 
-function _ul(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
+function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
     C = getindex_value(subdiagonaldata(J))
     A = getindex_value(diagonaldata(J))
     B = getindex_value(supdiagonaldata(J))
@@ -43,7 +43,7 @@ function _ul(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check
     UL(Tridiagonal(Fill(convert(typeof(L),C),∞), Fill(L,∞), Fill(U,∞)), OneToInf(), 0)
 end
 
-function _ul(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{true}; check::Bool = true)
+function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{true}; check::Bool = true)
     C = getindex_value(subdiagonaldata(J))
     A = getindex_value(diagonaldata(J))
     B = getindex_value(supdiagonaldata(J))
@@ -51,7 +51,7 @@ function _ul(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{true}; check:
     ul(J, Val(false))
 end
 
-function _ul(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
+function ul_layout(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
     C = getindex_value(subdiagonaldata(blocks(J)))
     A = getindex_value(diagonaldata(blocks(J)))
     B = getindex_value(supdiagonaldata(blocks(J)))

@@ -14,7 +14,7 @@ import ArrayLayouts: colsupport, rowsupport, triangularlayout, MatLdivVec, trian
                         _bidiag_forwardsub!, mulreduce, RangeCumsum, _factorize, transposelayout, ldiv!, lmul!, mul, CNoPivot
 import BandedMatrices: BandedMatrix, _BandedMatrix, AbstractBandedMatrix, bandeddata, bandwidths, BandedColumns, bandedcolumns, BandedLayout,
                         _default_banded_broadcast, banded_similar
-import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row
+import FillArrays: AbstractFill, getindex_value, axes_print_matrix_row, AbstractFillMatrix, AbstractFillVector
 import InfiniteArrays: OneToInf, InfUnitRange, Infinity, PosInfinity, InfiniteCardinal, InfStepRange, AbstractInfUnitRange, InfAxes, InfRanges
 import LinearAlgebra: matprod, qr, AbstractTriangular, AbstractQ, adjoint, transpose, AdjOrTrans, copymutable
 import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector, DenseColumnMajor, FillLayout, ApplyMatrix, check_mul_axes, LazyArrayStyle,
@@ -22,7 +22,7 @@ import LazyArrays: applybroadcaststyle, CachedArray, CachedMatrix, CachedVector,
                     factorize, sub_materialize, LazyLayout, LazyArrayStyle, layout_getindex,
                     applylayout, ApplyLayout, PaddedLayout, CachedLayout, AbstractCachedVector, AbstractCachedMatrix, cacheddata, zero!, MulAddStyle, ApplyArray,
                     LazyArray, LazyMatrix, LazyVector, paddeddata, arguments, resizedata!, simplifiable, simplify, LazyLayouts
-import MatrixFactorizations: ul, ul!, _ul, ql, ql!, _ql, QLPackedQ, getL, getR, getQ, getU, reflector!, reflectorApply!, QL, QR, QRPackedQ,
+import MatrixFactorizations: ul, ul!, ul_layout, ql, ql!, ql_layout, reversecholesky_layout, QLPackedQ, getL, getR, getQ, getU, reflector!, reflectorApply!, QL, QR, QRPackedQ,
                             QRPackedQLayout, AdjQRPackedQLayout, QLPackedQLayout, AdjQLPackedQLayout, LayoutQ, copymutable_size
 
 import BlockArrays: AbstractBlockVecOrMat, sizes_from_blocks, _length, BlockedUnitRange, blockcolsupport, BlockLayout, AbstractBlockLayout, BlockSlice
@@ -121,6 +121,7 @@ include("banded/hessenbergq.jl")
 include("banded/infbanded.jl")
 include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
+include("banded/infreversecholeskytoeplitz.jl")
 include("infql.jl")
 include("infqr.jl")
 include("inful.jl")

@@ -281,7 +281,7 @@ function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{Per
     b
 end
 
-_ql(layout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = error("Not implemented")
+ql_layout(layout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = error("Not implemented")
 
 _data_tail(::PaddedLayout, a) = paddeddata(a), zero(eltype(a))
 _data_tail(::AbstractFillLayout, a) = Vector{eltype(a)}(), getindex_value(a)
@@ -293,7 +293,7 @@ function _data_tail(::ApplyLayout{typeof(vcat)}, a)
 end
 _data_tail(a) = _data_tail(MemoryLayout(a), a)
 
-function _ql(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
+function ql_layout(::Union{PertTridiagonalToeplitzLayout,SymTridiagonalLayout}, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
     T = eltype(A)
     d,d∞ = _data_tail(A.dv)
     ev,ev∞ = _data_tail(A.ev)
@@ -312,7 +312,7 @@ end
 
 # TODO: This should be redesigned as ql(BandedMatrix(A))
 # But we need to support dispatch on axes
-function _ql(::TridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
+function ql_layout(::TridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...)
     T = eltype(A)
     d,d∞ = _data_tail(A.d)
     dl,dl∞ = _data_tail(A.dl)
