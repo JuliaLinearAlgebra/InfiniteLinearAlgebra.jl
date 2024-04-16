@@ -220,7 +220,7 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
             Aplain = LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
             Qsym, Lsym = ql(Asym, 1e-10)
             Qplain, Lplain = ql(Aplain, 1e-10)
-            
+
             @test size(Qsym) == (ℵ₀, ℵ₀)
             @test size(Lsym) == (ℵ₀, ℵ₀)
             @test size(Qplain) == (ℵ₀, ℵ₀)
@@ -250,7 +250,7 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
             A = im * LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
             Abanded = _BandedMatrix(conj.(Hcat(Vcat(1.,A.du),A.d,A.dl)'), ℵ₀, 1, 1)
             F = ql(Abanded)
-            @test (F.Q[1:51,1:51]*F.L[1:51,1:51])[1:50,1:50] ≈ A[1:50,1:50] 
+            @test (F.Q[1:51,1:51]*F.L[1:51,1:51])[1:50,1:50] ≈ A[1:50,1:50]
             @test MemoryLayout(F.L.data) == LazyBandedLayout()
             @test bandwidths(F.L) == (2,0)
         end
@@ -273,9 +273,15 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
                              Vcat([[-1. 1.; 1. 1.]], Fill([-1. 1.; 1. 1.], ∞)),
                              Vcat([[0. 0.; 1. 0.]], Fill([0. 0.; 1. 0.], ∞)))
 
-        A[1,1] = 2 
+        A[1,1] = 2
 
         x = -0.95
         @test ql(A-x*I).L[1,1] isa Float64
+    end
+
+    @testset "SymTridiagonal QL" begin
+        A = SymTridiagonal(Fill(3, ∞), Fill(1, ∞))
+        Q,L = ql(A)
+        @test (Q*L)[1:10,1:10] ≈ A[1:10,1:10]
     end
 end
