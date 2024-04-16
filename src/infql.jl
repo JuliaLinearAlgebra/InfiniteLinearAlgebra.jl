@@ -256,6 +256,12 @@ function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::Abstra
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
 
+function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::LayoutVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, cache(convert(AbstractVector{TS},x)))
+end
+
+
 ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
 ldiv!(F::QLProduct, b::LayoutVector) = ldiv!(F.L, lmul!(F.Q',b))
 
