@@ -165,15 +165,16 @@ end
 
 function blocktailiterate(c,a,b, d=c, e=a)
     z = zero(c)
+    n = size(c,1)
     for _=1:1_000_000
         X = [c a b; z d e]
         F = ql!(X)
-        d̃,ẽ = F.L[1:2,1:2], F.L[1:2,3:4]
+        d̃,ẽ = F.L[1:n,1:n], F.L[1:n,n+1:2n]
 
-        d̃,ẽ = QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*d̃,QLPackedQ(F.factors[1:2,3:4],F.τ[1:2])*ẽ  # undo last rotation
+        d̃,ẽ = QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*d̃,QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*ẽ  # undo last rotation
         if ≈(d̃, d; atol=1E-10) && ≈(ẽ, e; atol=1E-10)
-            X[1:2,1:2] = d̃; X[1:2,3:4] = ẽ
-            return PseudoBlockArray(X,fill(2,2), fill(2,3)), F.τ[3:end]
+            X[1:n,1:n] = d̃; X[1:n,n+1:2n] = ẽ
+            return PseudoBlockArray(X,fill(n,2), fill(n,3)), F.τ[n+1:2n]
         end
         d,e = d̃,ẽ
     end
@@ -191,8 +192,8 @@ function _blocktripert_ql(A, d, e)
     P,τ = blocktailiterate(c,a,b,d,e)
     B = BlockBandedMatrix(A,(2,1))
 
-
-    BB = _BlockBandedMatrix(B.data.args[1], fill(2,N+2), fill(2,N), (2,1))
+    n = size(c,1)
+    BB = _BlockBandedMatrix(B.data.args[1], fill(n,N+2), fill(n,N), (2,1))
     BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
     F = ql!(view(BB, Block.(1:N), Block.(1:N)))
     BB[Block(N+1),Block.(N-1:N)] .= P[Block(2), Block.(1:2)]
@@ -241,7 +242,7 @@ function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix
     B
 end
 
-getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Integer, j::Integer) where T =
+getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Int, j::Int) where T =
     (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
 getindex(Q::QLPackedQ{<:Any,<:InfBlockBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
     [Q[i,j] for i in I, j in J]
@@ -255,6 +256,12 @@ function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::Abstra
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
+
+function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::LayoutVector{S}) where {T,S}
+    TS = promote_op(matprod, T, S)
+    lmul!(A, cache(convert(AbstractVector{TS},x)))
+end
+
 
 ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
 ldiv!(F::QLProduct, b::LayoutVector) = ldiv!(F.L, lmul!(F.Q',b))
