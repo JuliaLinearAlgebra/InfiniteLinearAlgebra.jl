@@ -241,7 +241,7 @@ function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix
     B
 end
 
-getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Integer, j::Integer) where T =
+getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Int, j::Int) where T =
     (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
 getindex(Q::QLPackedQ{<:Any,<:InfBlockBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
     [Q[i,j] for i in I, j in J]
