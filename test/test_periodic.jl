@@ -38,4 +38,25 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, LinearAlgebra, Test
         @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10]'
         @test L[1,1]  ≠ 0 # non-degenerate
     end
+
+    @testset "bi" begin
+        B  = [ 0    0    1    0;
+       0    0    0    1;
+       0    0    0    0;
+       0    0    0    0]/2
+        A₀ = [ 1   1/2  1/2   0 ;
+            1/2  -1    0   1/2;
+            1/2   0   -1    0 ;
+            0   1/2   0    1]
+        A  = [ 1    0   1/2   0 ;
+            0   -1    0  1/2 ;
+            1/2   0   -1   0  ;
+            0   1/2   0   1 ]
+
+        A = BlockTridiagonal(Vcat([B],Fill(B, ∞)),
+                            Vcat([A₀], Fill(A, ∞)),
+                            Vcat([copy(B')], Fill(copy(B'), ∞)))
+        Q,L = ql(A)
+        @test Q[1:10,1:12]*L[1:12,1:10] ≈ A[1:10,1:10]
+    end
 end
