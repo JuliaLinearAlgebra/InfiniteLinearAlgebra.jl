@@ -4,10 +4,10 @@ using BlockArrays, BlockBandedMatrices, BandedMatrices, LazyArrays, LazyBandedMa
         FillArrays, InfiniteArrays, MatrixFactorizations, ArrayLayouts, LinearAlgebra
 
 import Base: *, +, -, /, \, ^, AbstractArray, AbstractMatrix, AbstractVector, Array,
-             Matrix, OneTo, Slice, Vector, _unsafe_getindex, adjoint,
+             Matrix, OneTo, Slice, Vector, adjoint,
              axes, copy, copymutable, copyto!, getindex, getproperty, inv,
              length, map, oneto, promote_op, require_one_based_indexing, show,
-             similar, size, transpose, unitrange, adjoint, copymutable, transpose,
+             similar, size, transpose, adjoint, copymutable, transpose,
              adjoint, copymutable, transpose
 
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
@@ -15,30 +15,30 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, CNoPivot, DenseColumnMajor, FillLayout,
                      MatLdivVec, MatLmulMat, MatLmulVec, MemoryLayout, QRPackedQLayout, RangeCumsum, TriangularLayout,
                      TridiagonalLayout, __qr, _bidiag_forwardsub!, _factorize, _qr, check_mul_axes, colsupport,
-                     diagonaldata, layout_getindex, ldiv!, lmul!, mul, mulreduce, reflector!, reflectorApply!,
+                     diagonaldata, ldiv!, lmul!, mul, mulreduce, reflector!, reflectorApply!,
                      rowsupport, sub_materialize, subdiagonaldata, sublayout, supdiagonaldata, transposelayout,
                      triangulardata, triangularlayout, zero!, materialize!
 
-import BandedMatrices: AbstractBandedMatrix, BandedColumns, BandedLayout, BandedMatrix, BandedMatrix, _BandedMatrix,
+import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix,
                        _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, _default_banded_broadcast, banded_chol!,
                        banded_similar, bandedcolumns, bandeddata, bandwidths, bandwidths
 
-import BlockArrays: AbstractBlockLayout, AbstractBlockVecOrMat, BlockLayout, BlockSlice, BlockSlice1, BlockedUnitRange,
-                    _length, blockcolsupport, sizes_from_blocks
+import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedUnitRange,
+                    blockcolsupport, sizes_from_blocks
 
-import BlockBandedMatrices: AbstractBlockBandedLayout, BlockBandedLayout, BlockBandedMatrix, BlockSkylineMatrix,
+import BlockBandedMatrices: AbstractBlockBandedLayout, BlockBandedMatrix, BlockSkylineMatrix,
                             BlockSkylineSizes, BlockTridiagonal, _BlockBandedMatrix, _BlockSkylineMatrix,
-                            _blockbanded_qr!, blockstart, blockstride
+                            _blockbanded_qr!
 
-import FillArrays: AbstractFill, AbstractFillMatrix, AbstractFillVector, axes_print_matrix_row, getindex_value
+import FillArrays: AbstractFill, AbstractFillMatrix, axes_print_matrix_row, getindex_value
 
 import InfiniteArrays: AbstractInfUnitRange, InfAxes, InfRanges, InfStepRange, InfUnitRange, OneToInf, PosInfinity
 
 import Infinities: InfiniteCardinal, Infinity
 
 import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayout, ApplyArray, ApplyLayout, ApplyMatrix,
-                   CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArray, LazyArrayStyle, LazyLayout,
-                   LazyLayouts, LazyMatrix, LazyVector, MulAddStyle, PaddedLayout, _broadcast_sub_arguments,
+                   CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
+                   LazyLayouts, LazyMatrix, PaddedLayout, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
                    simplify
 
@@ -46,7 +46,7 @@ import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBand
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout, OneToCumsum,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
-import LinearAlgebra: AbstractQ, AbstractTriangular, AdjOrTrans, factorize, matprod, qr
+import LinearAlgebra: AbstractQ, AdjOrTrans, factorize, matprod, qr
 
 import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPackedQLayout, QR, QRPackedQ,
                              copymutable_size, getL, getQ, getR, getU, ql, ql!, ql_layout, reversecholesky_layout, ul,
