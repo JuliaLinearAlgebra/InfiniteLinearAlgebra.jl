@@ -9,7 +9,7 @@ import BlockArrays: _BlockArray, blockcolsupport
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
-import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedLayout
+import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedColumns
 import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout, BlockVec
 
@@ -40,12 +40,12 @@ end
     @test P isa PaddedArray
     P = pad(BlockVec(X), blockedrange(Fill(3,∞)))
     @test P isa BlockVec
-    @test MemoryLayout(P) isa PaddedLayout
+    @test MemoryLayout(P) isa PaddedColumns
     @test paddeddata(P) isa BlockVec
     @test colsupport(P) == 1:6
     P = pad(BlockVec(X'), blockedrange(Fill(3,∞)))
     @test P isa BlockVec{Int,<:Adjoint}
-    @test MemoryLayout(P) isa PaddedLayout
+    @test MemoryLayout(P) isa PaddedColumns
     @test pad(BlockVec(transpose(X)), blockedrange(Fill(3,∞))) isa BlockVec{Int,<:Transpose}
 end
 
@@ -169,7 +169,7 @@ include("test_infbanded.jl")
             N = 1000
             v = view(n, Block.(Base.OneTo(N)))
             @test view(v, Block(2)) ≡ Fill(2, 2)
-            @test axes(v) isa Tuple{BlockedUnitRange{ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test axes(v) isa Tuple{BlockedOneTo{ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
             @test @allocated(axes(v)) ≤ 40
 
             dest = PseudoBlockArray{Float64}(undef, axes(v))
@@ -178,7 +178,7 @@ include("test_infbanded.jl")
 
             v = view(k, Block.(Base.OneTo(N)))
             @test view(v, Block(2)) ≡ Base.OneTo(2)
-            @test axes(v) isa Tuple{BlockedUnitRange{ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
+            @test axes(v) isa Tuple{BlockedOneTo{ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
             @test @allocated(axes(v)) ≤ 40
             @test copyto!(dest, v) == v
 
@@ -192,7 +192,7 @@ include("test_infbanded.jl")
             @test v[Block(1)] == 1:2
             @test v[Block(1)] ≡ k[Block(2)] ≡ Base.OneTo(2)
 
-            @test axes(n, 1) isa BlockedUnitRange{ArrayLayouts.RangeCumsum{Int64,OneToInf{Int64}}}
+            @test axes(n, 1) isa BlockedOneTo{ArrayLayouts.RangeCumsum{Int64,OneToInf{Int64}}}
         end
 
         @testset "BlockHcat copyto!" begin
@@ -352,14 +352,14 @@ end
         @test (im*I+A)[1:100, 1:100] == im * I + A[1:100, 1:100]
         @test (im*I-A)[1:100, 1:100] == im * I - A[1:100, 1:100]
 
-        T = mortar(LazyBandedMatrices.Tridiagonal(Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞)))
+        T = mortar(LazyBandedMatrices.Tridiagonal(Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞)));
         #TODO: copy BlockBidiagonal code from BlockBandedMatrices to LazyBandedMatrices
         @test T[Block(2, 2)] == [1 2; 3 4]
         @test_broken T[Block(1, 3)] == Zeros(2, 2)
     end
 
     @testset "BlockBidiagonal" begin
-        B = mortar(LazyBandedMatrices.Bidiagonal(Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞), :U))
+        B = mortar(LazyBandedMatrices.Bidiagonal(Fill([1 2; 3 4], ∞), Fill([1 2; 3 4], ∞), :U));
         #TODO: copy BlockBidiagonal code from BlockBandedMatrices to LazyBandedMatrices
         @test B[Block(2, 3)] == [1 2; 3 4]
         @test_broken B[Block(1, 3)] == Zeros(2, 2)

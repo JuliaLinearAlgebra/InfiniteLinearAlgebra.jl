@@ -170,7 +170,7 @@ getindex(Q::QRPackedQ{<:Any,<:AdaptiveQRFactors,<:AdaptiveQRTau}, I::AbstractVec
 #########
 
 _view_QRPackedQ(A, kr, jr) = QRPackedQ(view(A.factors.data.data.data,kr,jr), view(A.τ.data.τ,jr))
-function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout})
+function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     sB = size(paddeddata(B),1)
     partialqr!(A.factors.data,sB)
@@ -212,7 +212,7 @@ end
 
 _norm(x::Number) = abs(x)
 
-function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout}; tolerance=floatmin(real(eltype(M))))
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:AbstractPaddedLayout}; tolerance=floatmin(real(eltype(M))))
     adjA,B = M.A,M.B
     COLGROWTH = 1000 # rate to grow columns
 
@@ -263,7 +263,7 @@ function _view_QRPackedQ(A, KR::BlockRange, JR::BlockRange)
     QRPackedQ(view(A.factors.data.data.data,KR,JR), view(A.τ.data.τ,jr))
 end
 
-function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})
+function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:AbstractPaddedLayout})
     A,B_in = M.A,M.B
     sB = length(paddeddata(B_in))
     ax1,ax2 = axes(A.factors.data.data)
@@ -279,7 +279,7 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:Abstrac
     B
 end
 
-function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout}; tolerance=1E-30)
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:AbstractPaddedLayout}; tolerance=1E-30)
     adjA,B_in = M.A,M.B
     A = parent(adjA)
     T = eltype(M)

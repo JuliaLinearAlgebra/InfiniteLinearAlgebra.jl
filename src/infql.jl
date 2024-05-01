@@ -96,7 +96,7 @@ getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 
 
-function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout})
+function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     require_one_based_indexing(B)
     mA, nA = size(A.factors)
@@ -130,7 +130,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout}
     B
 end
 
-function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayout})
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:AbstractPaddedLayout})
     adjA,B = M.A,M.B
     require_one_based_indexing(B)
     A = parent(adjA)
@@ -266,7 +266,7 @@ end
 ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
 ldiv!(F::QLProduct, b::LayoutVector) = ldiv!(F.L, lmul!(F.Q',b))
 
-function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{PertConstRows}},<:PaddedLayout})
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{PertConstRows}},<:AbstractPaddedLayout})
     A,b = M.A,M.B
     require_one_based_indexing(A, b)
     n = size(A, 2)
@@ -290,7 +290,7 @@ end
 
 ql_layout(layout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = error("Not implemented")
 
-_data_tail(::PaddedLayout, a) = paddeddata(a), zero(eltype(a))
+_data_tail(::PaddedColumns, a) = paddeddata(a), zero(eltype(a))
 _data_tail(::AbstractFillLayout, a) = Vector{eltype(a)}(), getindex_value(a)
 _data_tail(::CachedLayout, a) = cacheddata(a), getindex_value(a.array)
 function _data_tail(::ApplyLayout{typeof(vcat)}, a)
@@ -495,9 +495,9 @@ getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
 getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
     [Q[i,j] for i in I, j in J]
 
-materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:PaddedLayout}) = ApplyArray(*,M.A,M.B)
+materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:AbstractPaddedLayout}) = ApplyArray(*,M.A,M.B)
 
-function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:PaddedLayout})
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:AbstractPaddedLayout})
     adjA,B = M.A,M.B
     A = parent(adjA)
     mA, nA = size(A.factors)
