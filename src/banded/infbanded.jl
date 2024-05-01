@@ -381,9 +381,9 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,OneTo{Int}}) = BandedMatrix(V)
 
-sub_materialize(_, V, ::Tuple{BlockedOneTo{<:InfRanges}}) = V
-sub_materialize(::AbstractBlockLayout, V, ::Tuple{BlockedOneTo{<:InfRanges}}) = V
-function sub_materialize(::PaddedColumns, v::AbstractVector{T}, ax::Tuple{BlockedOneTo{<:InfRanges}}) where T
+sub_materialize(_, V, ::Tuple{BlockedOneTo{Int,<:InfRanges}}) = V
+sub_materialize(::AbstractBlockLayout, V, ::Tuple{BlockedOneTo{Int,<:InfRanges}}) = V
+function sub_materialize(::PaddedColumns, v::AbstractVector{T}, ax::Tuple{BlockedOneTo{Int,<:InfRanges}}) where T
     dat = paddeddata(v)
     PseudoBlockVector(Vcat(sub_materialize(dat), Zeros{T}(∞)), ax)
 end

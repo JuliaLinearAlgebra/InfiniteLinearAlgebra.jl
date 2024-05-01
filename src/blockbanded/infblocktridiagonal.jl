@@ -1,5 +1,5 @@
 const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{T},1,Tuple{Vector{Matrix{T}},Fill{Matrix{T},1,Tuple{OneToInf{Int}}}}}},
-                                        NTuple{2,BlockedOneTo{Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
+                                        NTuple{2,BlockedOneTo{Int,Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
 
 const BlockTridiagonalToeplitzLayout = BlockLayout{TridiagonalToeplitzLayout,DenseColumnMajor}
 
