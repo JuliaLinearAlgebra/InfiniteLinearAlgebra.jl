@@ -64,6 +64,8 @@ include("test_infbanded.jl")
         @test b[Block.(2:∞)][Block.(2:10)] == b[Block.(3:11)]
         @test exp.(b)[Block.(2:∞)][Block.(2:10)] == exp.(b[Block.(3:11)])
 
+        @test blockedrange(Vcat(2, Fill(3, ∞))) isa BlockedOneTo{<:Any,<:InfiniteArrays.InfStepRange}
+
         c = PseudoBlockArray(1:∞, Vcat(2, Fill(3, ∞)))
         @test c[Block.(2:∞)][Block.(2:10)] == c[Block.(3:11)]
 
