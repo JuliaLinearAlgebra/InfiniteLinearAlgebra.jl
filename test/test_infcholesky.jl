@@ -10,6 +10,22 @@ import InfiniteLinearAlgebra: SymmetricBandedLayouts
     b = [randn(10_000); zeros(∞)]
     @test cholesky(S) \ b ≈ qr(S) \ b ≈ S \ b
 
+    @testset "copying and L factor" begin
+        z = 10_000;
+        A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞));
+        M = Symmetric(I-A)
+        chol = cholesky(M)
+    
+        # test copy
+        @test (chol.factors')[1:10,1:10] == copy(chol.factors')[1:10,1:10]
+        @test (chol.factors)[1:10,1:10] == copy(chol.factors)[1:10,1:10]
+    
+        # test fetching L factor
+        L = chol.L
+        U = chol.U
+        @test L[1:10,1:10]' == U[1:10,1:10]
+    end
+
     @testset "singularly perturbed" begin
         # using Symmetric(BandedMatrix(...))
         ε = 0.0001
