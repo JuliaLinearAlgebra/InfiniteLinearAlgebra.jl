@@ -174,7 +174,7 @@ function blocktailiterate(c,a,b, d=c, e=a)
         d̃,ẽ = QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*d̃,QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*ẽ  # undo last rotation
         if ≈(d̃, d; atol=1E-10) && ≈(ẽ, e; atol=1E-10)
             X[1:n,1:n] = d̃; X[1:n,n+1:2n] = ẽ
-            return PseudoBlockArray(X,fill(n,2), fill(n,3)), F.τ[n+1:2n]
+            return BlockedArray(X,fill(n,2), fill(n,3)), F.τ[n+1:2n]
         end
         d,e = d̃,ẽ
     end

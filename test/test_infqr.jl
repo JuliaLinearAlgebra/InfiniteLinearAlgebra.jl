@@ -275,7 +275,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
         x,y = 0.1,0.2
         θ,φ = acos(x),acos(y)
-        @test u[Block.(1:50)] isa PseudoBlockArray
+        @test u[Block.(1:50)] isa BlockedArray
         @test (sin.((1:50) .* φ)/sin(φ))' * InvDiagTrav(u[Block.(1:50)]) * sin.((1:50) .* θ)/sin(θ) ≈ 1/(x+y-4)
         @test (L*u)[1:10] ≈ [1; zeros(9)]
 

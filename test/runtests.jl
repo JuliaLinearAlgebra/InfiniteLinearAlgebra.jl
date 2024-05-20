@@ -29,7 +29,7 @@ end
     A = randn(5, 5)
     @test chop([A zeros(5, 2); zeros(2, 5) zeros(2, 2)], eps()) == A
 
-    c = PseudoBlockArray([randn(5); zeros(10)], (blockedrange(1:5),))
+    c = BlockedArray([randn(5); zeros(10)], (blockedrange(1:5),))
     d = chop!(c, 0)
     @test length(d) == 6
 
@@ -66,7 +66,7 @@ include("test_infbanded.jl")
 
         @test blockedrange(Vcat(2, Fill(3, ∞))) isa BlockedOneTo{<:Any,<:InfiniteArrays.InfStepRange}
 
-        c = PseudoBlockArray(1:∞, Vcat(2, Fill(3, ∞)))
+        c = BlockedArray(1:∞, Vcat(2, Fill(3, ∞)))
         @test c[Block.(2:∞)][Block.(2:10)] == c[Block.(3:11)]
 
         @test length(axes(b, 1)) ≡ ℵ₀
@@ -91,8 +91,8 @@ include("test_infbanded.jl")
     end
 
     @testset "padded" begin
-        c = PseudoBlockArray([1; zeros(∞)], Vcat(2, Fill(3, ∞)))
-        @test c + c isa PseudoBlockVector
+        c = BlockedArray([1; zeros(∞)], Vcat(2, Fill(3, ∞)))
+        @test c + c isa BlockedVector
     end
 
     @testset "concat" begin
@@ -174,7 +174,7 @@ include("test_infbanded.jl")
             @test axes(v) isa Tuple{BlockedOneTo{Int,ArrayLayouts.RangeCumsum{Int64,Base.OneTo{Int64}}}}
             @test @allocated(axes(v)) ≤ 40
 
-            dest = PseudoBlockArray{Float64}(undef, axes(v))
+            dest = BlockedArray{Float64}(undef, axes(v))
             @test copyto!(dest, v) == v
             @test @allocated(copyto!(dest, v)) ≤ 40
 
@@ -210,14 +210,14 @@ include("test_infbanded.jl")
             KR = Block.(Base.OneTo(N))
             V = view(dat, Block.(Base.OneTo(N)), :)
             @test MemoryLayout(V) isa LazyArrays.ApplyLayout{typeof(hcat)}
-            @test PseudoBlockArray(V)[Block.(1:5), :] == dat[Block.(1:5), :]
+            @test BlockedArray(V)[Block.(1:5), :] == dat[Block.(1:5), :]
             V = view(dat', :, Block.(Base.OneTo(N)))
             @test MemoryLayout(V) isa LazyArrays.ApplyLayout{typeof(vcat)}
             a = dat.arrays[1]'
             N = 100
             KR = Block.(Base.OneTo(N))
             v = view(a, :, KR)
-            @time r = PseudoBlockArray(v)
+            @time r = BlockedArray(v)
             @test v == r
         end
 
@@ -262,7 +262,7 @@ include("test_infbanded.jl")
     @testset "blockdiag" begin
         D = Diagonal(mortar(Fill.((-(0:∞) - (0:∞) .^ 2), 1:2:∞)))
         x = [randn(5); zeros(∞)]
-        x̃ = PseudoBlockArray(x, (axes(D, 1),))
+        x̃ = BlockedArray(x, (axes(D, 1),))
         @test (D*x)[1:10] == (D*x̃)[1:10]
     end
 
