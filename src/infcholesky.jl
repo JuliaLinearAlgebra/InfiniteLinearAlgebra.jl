@@ -18,6 +18,9 @@ end
 AdaptiveCholeskyFactors(A::AbstractMatrix{T}) where T = AdaptiveCholeskyFactors(MemoryLayout(A), A)
 MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
 
+copy(A::AdaptiveCholeskyFactors) = AdaptiveCholeskyFactors(copy(A.data), copy(A.ncols))
+copy(A::Adjoint{T,<:AdaptiveCholeskyFactors}) where T = copy(parent(A))'
+copy(A::Transpose{T,<:AdaptiveCholeskyFactors}) where T = transpose(copy(parent(A)))
 
 function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) where T
     if n > F.ncols

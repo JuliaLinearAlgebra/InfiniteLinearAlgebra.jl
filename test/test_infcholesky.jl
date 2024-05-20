@@ -1,5 +1,5 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, ArrayLayouts, LazyBandedMatrices, Test
-import InfiniteLinearAlgebra: SymmetricBandedLayouts
+import InfiniteLinearAlgebra: SymmetricBandedLayouts, AdaptiveCholeskyFactors
 
 @testset "infinite-cholesky" begin
     S = Symmetric(BandedMatrix(0 => 1:∞, 1=> Ones(∞)))
@@ -9,6 +9,28 @@ import InfiniteLinearAlgebra: SymmetricBandedLayouts
     # go past adaptive
     b = [randn(10_000); zeros(∞)]
     @test cholesky(S) \ b ≈ qr(S) \ b ≈ S \ b
+
+    @testset "copying and L factor" begin
+        z = 10_000;
+        A = BandedMatrix(0 => -2*(0:∞)/z, 1 => Ones(∞), -1 => Ones(∞));
+        M = Symmetric(I-A)
+        chol = cholesky(M)
+
+        # test consistency
+        @test copy(chol.factors) isa AdaptiveCholeskyFactors
+        @test copy(chol.factors') isa Adjoint
+        @test copy(transpose(chol.factors)) isa Transpose
+    
+        # test copy
+        @test (chol.factors')[1:10,1:10] == copy(chol.factors')[1:10,1:10]
+        @test transpose(chol.factors)[1:10,1:10] == copy(chol.factors')[1:10,1:10]
+        @test (chol.factors)[1:10,1:10] == copy(chol.factors)[1:10,1:10]
+    
+        # test fetching L factor
+        L = chol.L
+        U = chol.U
+        @test L[1:10,1:10]' == U[1:10,1:10]
+    end
 
     @testset "singularly perturbed" begin
         # using Symmetric(BandedMatrix(...))
