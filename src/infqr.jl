@@ -78,7 +78,7 @@ function partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, N::Block{1})
             zero!(τ)
         else
             factors = view(F.data.data,Ñ+1:N+l,Ñ+1:N+u);
-            _blockbanded_qr!(factors, PseudoBlockVector(τ, (axes(factors,2)[Block(1):(N-Ñ)],)), N-Ñ)
+            _blockbanded_qr!(factors, BlockedVector(τ, (axes(factors,2)[Block(1):(N-Ñ)],)), N-Ñ)
         end
         F.ncols = n
     end
@@ -170,7 +170,7 @@ getindex(Q::QRPackedQ{<:Any,<:AdaptiveQRFactors,<:AdaptiveQRTau}, I::AbstractVec
 #########
 
 _view_QRPackedQ(A, kr, jr) = QRPackedQ(view(A.factors.data.data.data,kr,jr), view(A.τ.data.τ,jr))
-function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout})
+function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     sB = size(paddeddata(B),1)
     partialqr!(A.factors.data,sB)
@@ -197,7 +197,7 @@ function resizedata_chop!(v::CachedVector, tol)
     v
 end
 
-function resizedata_chop!(v::PseudoBlockVector, tol)
+function resizedata_chop!(v::BlockedVector, tol)
     c = paddeddata(v.blocks)
     n = length(c)
     k_tol = choplength(c, tol)
@@ -212,7 +212,7 @@ end
 
 _norm(x::Number) = abs(x)
 
-function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:PaddedLayout}; tolerance=floatmin(real(eltype(M))))
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:AbstractPaddedLayout}; tolerance=floatmin(real(eltype(M))))
     adjA,B = M.A,M.B
     COLGROWTH = 1000 # rate to grow columns
 
@@ -252,7 +252,7 @@ function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout},<:Pad
     resizedata_chop!(B, tolerance)
 end
 
-function resizedata!(B::PseudoBlockVector, M::Block{1})
+function resizedata!(B::BlockedVector, M::Block{1})
     resizedata!(B.blocks, last(axes(B,1)[M]))
     B
 end
@@ -263,11 +263,11 @@ function _view_QRPackedQ(A, KR::BlockRange, JR::BlockRange)
     QRPackedQ(view(A.factors.data.data.data,KR,JR), view(A.τ.data.τ,jr))
 end
 
-function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout})
+function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:AbstractPaddedLayout})
     A,B_in = M.A,M.B
     sB = length(paddeddata(B_in))
     ax1,ax2 = axes(A.factors.data.data)
-    B = PseudoBlockVector(B_in, (ax2,))
+    B = BlockedVector(B_in, (ax2,))
     SB = findblock(ax2, sB)
     partialqr!(A.factors.data,SB)
     JR = Block(1):SB
@@ -279,13 +279,13 @@ function materialize!(M::MatLmulVec{<:QRPackedQLayout{<:AdaptiveLayout{<:Abstrac
     B
 end
 
-function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:PaddedLayout}; tolerance=1E-30)
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{<:AdaptiveLayout{<:AbstractBlockBandedLayout}},<:AbstractPaddedLayout}; tolerance=1E-30)
     adjA,B_in = M.A,M.B
     A = parent(adjA)
     T = eltype(M)
     COLGROWTH = 300 # rate to grow columns
     ax1,ax2 = axes(A.factors.data.data)
-    B = PseudoBlockVector(B_in, (ax1,))
+    B = BlockedVector(B_in, (ax1,))
 
     SB = findblock(ax1, length(paddeddata(B_in)))
     MA, NA = blocksize(A.factors.data.data.array)
@@ -334,7 +334,7 @@ function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:
 end
 
 
-function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::PseudoBlockArray)
+function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::BlockedArray)
     n = B.blocks.datasize[1]
     N = findblock(axes(R,1),n)
     partialqr!(parent(R).data, N)

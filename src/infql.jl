@@ -96,7 +96,7 @@ getL(Q::QL, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 getL(Q::QLHessenberg, ::NTuple{2,InfiniteCardinal{0}}) = LowerTriangular(Q.factors)
 
 
-function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout})
+function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     require_one_based_indexing(B)
     mA, nA = size(A.factors)
@@ -130,7 +130,7 @@ function materialize!(M::Lmul{<:QLPackedQLayout{<:BandedColumns},<:PaddedLayout}
     B
 end
 
-function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:PaddedLayout})
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:BandedColumns},<:AbstractPaddedLayout})
     adjA,B = M.A,M.B
     require_one_based_indexing(B)
     A = parent(adjA)
@@ -174,7 +174,7 @@ function blocktailiterate(c,a,b, d=c, e=a)
         d̃,ẽ = QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*d̃,QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*ẽ  # undo last rotation
         if ≈(d̃, d; atol=1E-10) && ≈(ẽ, e; atol=1E-10)
             X[1:n,1:n] = d̃; X[1:n,n+1:2n] = ẽ
-            return PseudoBlockArray(X,fill(n,2), fill(n,3)), F.τ[n+1:2n]
+            return BlockedArray(X,fill(n,2), fill(n,3)), F.τ[n+1:2n]
         end
         d,e = d̃,ẽ
     end
@@ -266,7 +266,7 @@ end
 ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
 ldiv!(F::QLProduct, b::LayoutVector) = ldiv!(F.L, lmul!(F.Q',b))
 
-function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{PertConstRows}},<:PaddedLayout})
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',BandedColumns{PertConstRows}},<:AbstractPaddedLayout})
     A,b = M.A,M.B
     require_one_based_indexing(A, b)
     n = size(A, 2)
@@ -290,7 +290,7 @@ end
 
 ql_layout(layout, ::NTuple{2,OneToInf{Int}}, A, args...; kwds...) = error("Not implemented")
 
-_data_tail(::PaddedLayout, a) = paddeddata(a), zero(eltype(a))
+_data_tail(::PaddedColumns, a) = paddeddata(a), zero(eltype(a))
 _data_tail(::AbstractFillLayout, a) = Vector{eltype(a)}(), getindex_value(a)
 _data_tail(::CachedLayout, a) = cacheddata(a), getindex_value(a.array)
 function _data_tail(::ApplyLayout{typeof(vcat)}, a)
@@ -495,9 +495,9 @@ getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
 getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
     [Q[i,j] for i in I, j in J]
 
-materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:PaddedLayout}) = ApplyArray(*,M.A,M.B)
+materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:AbstractPaddedLayout}) = ApplyArray(*,M.A,M.B)
 
-function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:PaddedLayout})
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:AbstractPaddedLayout})
     adjA,B = M.A,M.B
     A = parent(adjA)
     mA, nA = size(A.factors)

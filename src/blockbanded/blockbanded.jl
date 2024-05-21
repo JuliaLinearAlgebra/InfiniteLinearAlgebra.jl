@@ -15,6 +15,7 @@ BlockArrays.sortedunion(a::OneToInfCumsum, ::OneToInfCumsum) = a
 BlockBandedMatrices.blockbanded_colstop(A, x::InfiniteCardinal{0}) = x
 BlockBandedMatrices.blockbanded_rowstop(A, x::InfiniteCardinal{0}) = x
 
+BlockArrays.blocklasts(a::InfRanges) = Fill(length(a),1)
 
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}},
@@ -24,10 +25,10 @@ function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{
 end
 
 sizes_from_blocks(A::AbstractVector, ::Tuple{OneToInf{Int}}) = (map(length,A),)
-length(::BlockedUnitRange{<:InfRanges}) = ℵ₀
+length(::BlockedOneTo{Int,<:InfRanges}) = ℵ₀
 
-const OneToInfBlocks = BlockedUnitRange{OneToInfCumsum}
-const OneToBlocks = BlockedUnitRange{OneToCumsum}
+const OneToInfBlocks = BlockedOneTo{Int,OneToInfCumsum}
+const OneToBlocks = BlockedOneTo{Int,OneToCumsum}
 
 axes(a::OneToInfBlocks) = (a,)
 axes(a::OneToBlocks) = (a,)
@@ -48,9 +49,9 @@ function copy(bc::Broadcasted{<:BroadcastStyle,<:Any,typeof(*),<:Tuple{AbstractA
     convert(AbstractArray{promote_type(T,V),N}, a)
 end
 
-_block_interlace_axes(::Int, ax::Tuple{BlockedUnitRange{OneToInf{Int}}}...) = (blockedrange(Fill(length(ax), ∞)),)
+_block_interlace_axes(::Int, ax::Tuple{BlockedOneTo{Int,OneToInf{Int}}}...) = (blockedrange(Fill(length(ax), ∞)),)
 
-_block_interlace_axes(nbc::Int, ax::NTuple{2,BlockedUnitRange{OneToInf{Int}}}...) =
+_block_interlace_axes(nbc::Int, ax::NTuple{2,BlockedOneTo{Int,OneToInf{Int}}}...) =
     (blockedrange(Fill(length(ax) ÷ nbc, ∞)),blockedrange(Fill(mod1(length(ax),nbc), ∞)))
 
 
@@ -66,10 +67,10 @@ BroadcastStyle(::Type{<:SubArray{T,N,Arr,<:NTuple{N,BlockSlice{BlockRange{1,Tupl
     LazyArrayStyle{N}()
 
 # TODO: generalise following
-BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedUnitRange{<:InfRanges}}}}) where {T,N} = LazyArrayStyle{N}()
-# BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedUnitRange{<:InfRanges}}}}) where {T,N} = LazyArrayStyle{N}()
-BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
-# BroadcastStyle(::Type{<:PseudoBlockArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedUnitRange{<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
+BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedOneTo{Int,<:InfRanges}}}}) where {T,N} = LazyArrayStyle{N}()
+# BroadcastStyle(::Type{<:BlockedArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedOneTo{Int,<:InfRanges}}}}) where {T,N} = LazyArrayStyle{N}()
+BroadcastStyle(::Type{<:BlockArray{T,N,<:AbstractArray{<:AbstractArray{T,N},N},<:NTuple{N,BlockedOneTo{Int,<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
+# BroadcastStyle(::Type{<:BlockedArray{T,N,<:AbstractArray{T,N},<:NTuple{N,BlockedOneTo{Int,<:RangeCumsum{Int,<:InfRanges}}}}}) where {T,N} = LazyArrayStyle{N}()
 
 
 ###
@@ -80,7 +81,7 @@ _krontrav_axes(A::OneToInf{Int}, B::OneToInf{Int}) = blockedrange(oneto(length(A
 
 
 struct InfKronTravBandedBlockBandedLayout <: AbstractLazyBandedBlockBandedLayout end
-MemoryLayout(::Type{<:KronTrav{<:Any,2,<:Any,NTuple{2,BlockedUnitRange{OneToInfCumsum}}}}) = InfKronTravBandedBlockBandedLayout()
+MemoryLayout(::Type{<:KronTrav{<:Any,2,<:Any,NTuple{2,BlockedOneTo{Int,OneToInfCumsum}}}}) = InfKronTravBandedBlockBandedLayout()
 
 sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice1}}) = BroadcastBandedLayout{typeof(*)}()
 sublayout(::InfKronTravBandedBlockBandedLayout, ::Type{<:NTuple{2,BlockSlice{BlockRange{1,Tuple{OneTo{Int}}}}}}) = KronTravBandedBlockBandedLayout()

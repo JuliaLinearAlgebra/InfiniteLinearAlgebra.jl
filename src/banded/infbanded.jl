@@ -381,11 +381,11 @@ _BandedMatrix(::PertToeplitzLayout, A::AbstractMatrix) =
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,InfAxes}) = BandedMatrix(V)
 @inline sub_materialize(::BandedColumns, V, ::Tuple{InfAxes,OneTo{Int}}) = BandedMatrix(V)
 
-sub_materialize(_, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
-sub_materialize(::AbstractBlockLayout, V, ::Tuple{<:BlockedUnitRange{<:InfRanges}}) = V
-function sub_materialize(::PaddedLayout, v::AbstractVector{T}, ax::Tuple{<:BlockedUnitRange{<:InfRanges}}) where T
+sub_materialize(_, V, ::Tuple{BlockedOneTo{Int,<:InfRanges}}) = V
+sub_materialize(::AbstractBlockLayout, V, ::Tuple{BlockedOneTo{Int,<:InfRanges}}) = V
+function sub_materialize(::PaddedColumns, v::AbstractVector{T}, ax::Tuple{BlockedOneTo{Int,<:InfRanges}}) where T
     dat = paddeddata(v)
-    PseudoBlockVector(Vcat(sub_materialize(dat), Zeros{T}(∞)), ax)
+    BlockedVector(Vcat(sub_materialize(dat), Zeros{T}(∞)), ax)
 end
 
 ##
@@ -446,14 +446,14 @@ _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyAr
 
 mulreduce(M::Mul{<:InfToeplitzLayouts, <:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:InfToeplitzLayouts}) = ApplyArray(M)
-mulreduce(M::Mul{<:InfToeplitzLayouts,<:PaddedLayout}) = MulAdd(M)
+mulreduce(M::Mul{<:InfToeplitzLayouts,<:PaddedColumns}) = MulAdd(M)
 mulreduce(M::Mul{<:Any, <:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, <:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:DiagonalLayout, <:InfToeplitzLayouts}) = Lmul(M)
 mulreduce(M::Mul{<:InfToeplitzLayouts, <:DiagonalLayout}) = Rmul(M)
 
 
-function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedLayout})
+function _bidiag_forwardsub!(M::Ldiv{<:Any,<:PaddedColumns})
     A, b_in = M.A, M.B
     dv = diagonaldata(A)
     ev = subdiagonaldata(A)
@@ -537,3 +537,11 @@ Base.typed_hcat(::Type{T}, A::BandedMatrix{<:Any,<:Any,OneToInf{Int}}, B::Abstra
 ###
 
 MemoryLayout(::Type{<:SymTriPertToeplitz}) = PertTridiagonalToeplitzLayout()
+
+
+####
+# Banded, TODO: move to extension in InfiniteArrays.jl
+###
+
+sublayout(::ApplyBandedLayout, ::Type{<:Tuple{KR,Integer}}) where {KR<:InfAxes} =
+    sublayout(PaddedColumns{UnknownLayout}(), Tuple{KR})

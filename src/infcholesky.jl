@@ -69,7 +69,7 @@ end
 colsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = rowsupport(parent(F), j)
 rowsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = colsupport(parent(F), j)
 
-function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveLayout},<:PaddedLayout})
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveLayout},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     T = eltype(M)
     COLGROWTH = 1000 # rate to grow columns

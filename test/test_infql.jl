@@ -1,5 +1,6 @@
 using InfiniteLinearAlgebra, InfiniteArrays, Random, BandedMatrices, LazyArrays, FillArrays, ArrayLayouts, LinearAlgebra, LazyBandedMatrices, Test
 using InfiniteLinearAlgebra: LowerHessenbergQ, tail_de, toeptail, InfToeplitz, PertToeplitz
+using LazyArrays: CachedMatrix
 using LazyBandedMatrices: LazyBandedLayout
 using BandedMatrices: _BandedMatrix, BandedLayout
 using ArrayLayouts: TriangularLayout, UnknownLayout
@@ -208,6 +209,9 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
         @testset "Basic properties" begin
             A = _BandedMatrix(Vcat(2*Ones(1,∞), ((1 ./(1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
             Q, L = ql(A)
+            
+            @test Q' * zeros(∞,2) isa CachedMatrix
+
             b = [[1, 2, 3]; zeros(∞)]
             @test MemoryLayout(L) isa TriangularLayout{'L', 'N'}
             @test MemoryLayout(L') isa TriangularLayout{'U', 'N'}
@@ -268,7 +272,6 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
         end
     end
     @testset "Periodic Schrödinger" begin
-
         A = BlockTridiagonal(Vcat([[0. 1.; 0. 0.]],Fill([0. 1.; 0. 0.], ∞)),
                              Vcat([[-1. 1.; 1. 1.]], Fill([-1. 1.; 1. 1.], ∞)),
                              Vcat([[0. 0.; 1. 0.]], Fill([0. 0.; 1. 0.], ∞)))

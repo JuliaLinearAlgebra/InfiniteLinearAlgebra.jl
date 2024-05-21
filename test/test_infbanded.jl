@@ -1,5 +1,7 @@
-using InfiniteLinearAlgebra, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, LazyArrays, Test
-import BandedMatrices: _BandedMatrix
+using InfiniteLinearAlgebra, ArrayLayouts, InfiniteArrays, BandedMatrices, FillArrays, LazyBandedMatrices, LazyArrays, Test
+import BandedMatrices: _BandedMatrix, bandeddata
+using InfiniteLinearAlgebra: InfToeplitz, ConstRows, BandedToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout, PertToeplitz, PertToeplitzLayout
+using Base: oneto
 
 @testset "∞-banded" begin
     @testset "Diagonal and BandedMatrix" begin
@@ -87,9 +89,9 @@ import BandedMatrices: _BandedMatrix
         @testset "Inf Pert" begin
             A = BandedMatrix(-2 => Vcat(Float64[], Fill(1/4,∞)), 0 => Vcat([1.0+im,2,3],Fill(0,∞)), 1 => Vcat(Float64[], Fill(1,∞)))
             @test A isa PertToeplitz
-            @test MemoryLayout(typeof(A)) == PertToeplitzLayout()
+            @test MemoryLayout(A) isa PertToeplitzLayout
             V = view(A,2:∞,2:∞)
-            @test MemoryLayout(typeof(V)) == PertToeplitzLayout()
+            @test MemoryLayout(V) isa PertToeplitzLayout
             @test BandedMatrix(V) isa PertToeplitz
             @test A[2:∞,2:∞] isa PertToeplitz
 

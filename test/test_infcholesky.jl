@@ -52,7 +52,8 @@ import InfiniteLinearAlgebra: SymmetricBandedLayouts, AdaptiveCholeskyFactors
     end
 
     @testset "powers" begin
-        b = [1; zeros(∞)]
+        S = Symmetric(BandedMatrix(0 => 1:∞, 5=> Ones(∞)));
+        b = [1; zeros(∞)];
         @test cholesky(S^2) \ b ≈ qr(S^2) \ b ≈ S^2 \ b
 
         @test cholesky(S^2).U[1:100,1:100] ≈ cholesky(Symmetric((S^2)[1:100,1:100])).U

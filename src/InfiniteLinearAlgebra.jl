@@ -23,8 +23,8 @@ import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix,
                        _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, _default_banded_broadcast, banded_chol!,
                        banded_similar, bandedcolumns, bandeddata, bandwidths, bandwidths
 
-import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedUnitRange,
-                    blockcolsupport, sizes_from_blocks
+import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedOneTo,
+                    blockcolsupport, sizes_from_blocks, OneToCumsum, AbstractBlockedUnitRange
 
 import BlockBandedMatrices: AbstractBlockBandedLayout, BlockBandedMatrix, BlockSkylineMatrix,
                             BlockSkylineSizes, BlockTridiagonal, _BlockBandedMatrix, _BlockSkylineMatrix,
@@ -38,12 +38,12 @@ import Infinities: InfiniteCardinal, Infinity
 
 import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayout, ApplyArray, ApplyLayout, ApplyMatrix,
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
-                   LazyLayouts, LazyMatrix, PaddedLayout, _broadcast_sub_arguments,
+                   LazyLayouts, LazyMatrix, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
                    simplify
 
 import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, ApplyBandedLayout, BlockVec,
-                           BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout, OneToCumsum,
+                           BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
 import LinearAlgebra: AbstractQ, AdjOrTrans, factorize, matprod, qr
@@ -103,7 +103,7 @@ resizes a vector `c` but in a way that block sizes are not changed when `c` has 
 It may allocate a new vector in some settings.
 """
 compatible_resize!(_, c::AbstractVector, n) = resize!(c, n)
-compatible_resize!(ax::BlockedUnitRange, c::AbstractVector, n) = resize!(c, iszero(n) ? Block(0) : findblock(ax, n))
+compatible_resize!(ax::BlockedOneTo, c::AbstractVector, n) = resize!(c, iszero(n) ? Block(0) : findblock(ax, n))
 compatible_resize!(c, n) = compatible_resize!(axes(c,1), c, n)
 chop!(c::AbstractVector{T}, tol::Real=zero(real(T))) where T = compatible_resize!(c, choplength(c, tol))
 
@@ -128,7 +128,7 @@ pad(c, ax...) = PaddedArray(c, ax)
 
 pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
 pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
-pad(c::BlockVec, ax::BlockedUnitRange{<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
+pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
 export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
 
