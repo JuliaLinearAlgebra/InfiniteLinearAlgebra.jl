@@ -537,3 +537,11 @@ Base.typed_hcat(::Type{T}, A::BandedMatrix{<:Any,<:Any,OneToInf{Int}}, B::Abstra
 ###
 
 MemoryLayout(::Type{<:SymTriPertToeplitz}) = PertTridiagonalToeplitzLayout()
+
+
+####
+# Banded, TODO: move to extension in InfiniteArrays.jl
+###
+
+sublayout(::ApplyBandedLayout, ::Type{<:Tuple{KR,Integer}}) where {KR<:InfAxes} =
+    sublayout(PaddedColumns{UnknownLayout}(), Tuple{KR})
