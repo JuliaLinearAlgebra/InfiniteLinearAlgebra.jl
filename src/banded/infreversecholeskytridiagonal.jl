@@ -90,7 +90,9 @@ function compute_ξ(LL::LazySymTridiagonalReverseCholeskyFactor)
         ξ′ += L[i, i] * ν
         ξ += ξ′^2
     end
-    return abs(LL.A[N, N+1]) * sqrt(ξ) # could maybe just return sqrt(ξ), but maybe bN helps for scaling?
+    bN = LL.A[N, N+1]
+    scale = iszero(bN) ? one(bN) : abs(bN)
+    return scale * sqrt(ξ) # could maybe just return sqrt(ξ), but maybe bN helps for scaling?
 end
 
 function has_converged(LL::LazySymTridiagonalReverseCholeskyFactor)
