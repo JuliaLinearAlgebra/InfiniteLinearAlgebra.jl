@@ -64,6 +64,7 @@ using Base: oneto
         @test T[2:∞,3:∞] isa SubArray
         @test exp.(T) isa BroadcastMatrix
         @test exp.(T)[2:∞,3:∞] isa SubArray
+        @test exp.(T[2:∞,3:∞]) isa BroadcastMatrix
 
         B = LazyBandedMatrices.Bidiagonal(Fill(1,∞), Zeros(∞), :U)
         @test B[2:∞,3:∞] isa SubArray
