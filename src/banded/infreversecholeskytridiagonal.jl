@@ -1,19 +1,19 @@
-const MAX_TRIDIAG_CHOL_N = 2^21 - 1
-mutable struct LazySymTridiagonalReverseCholeskyFactor{T,M1,M2} <: BandedMatrices.AbstractBandedMatrix{T}
+const MAX_TRIDIAG_CHOL_N = 2^21 - 1 # Maximum allowable size of Cholesky factor before terminating to prevent OutOfMemory errors without convergence
+mutable struct LazySymTridiagonalReverseCholeskyFactors{T,M1,M2} <: LazyMatrix{T}
     const A::M1 # original matrix
     const L::M2 # LN
     const ε::T  # adaptive tolerance
     N::Int      # size of L used for approximating Ln     
     n::Int      # size of approximated finite section
 end # this should behave like a lower Bidiagonal matrix
-function LazySymTridiagonalReverseCholeskyFactor(A, N, n, L, ε)
+function LazySymTridiagonalReverseCholeskyFactors(A, N, n, L, ε)
     require_one_based_indexing(A)
     M1, M2 = typeof(A), typeof(L)
     T = eltype(L)
-    return LazySymTridiagonalReverseCholeskyFactor{T,M1,M2}(A, L, convert(T, ε), N, n)
+    return LazySymTridiagonalReverseCholeskyFactors{T,M1,M2}(A, L, convert(T, ε), N, n)
 end
 
-function getproperty(C::ReverseCholesky{<:Any,<:LazySymTridiagonalReverseCholeskyFactor}, d::Symbol) # mimic getproperty(::ReverseCholesky{<:Any, <:Bidiagonal}, ::Symbol)
+function getproperty(C::ReverseCholesky{<:Any,<:LazySymTridiagonalReverseCholeskyFactors}, d::Symbol) # mimic getproperty(::ReverseCholesky{<:Any, <:Bidiagonal}, ::Symbol)
     Cfactors = getfield(C, :factors)
     #Cuplo    = 'L' 
     if d == :U
@@ -24,16 +24,23 @@ function getproperty(C::ReverseCholesky{<:Any,<:LazySymTridiagonalReverseCholesk
         return getfield(C, d)
     end
 end
-MemoryLayout(::Type{<:LazySymTridiagonalReverseCholeskyFactor}) = BidiagonalLayout{LazyLayout,LazyLayout}()
+MemoryLayout(::Type{<:LazySymTridiagonalReverseCholeskyFactors}) = BidiagonalLayout{LazyLayout,LazyLayout}()
 
-size(L::LazySymTridiagonalReverseCholeskyFactor) = size(L.A)
-axes(L::LazySymTridiagonalReverseCholeskyFactor) = axes(L.A)
-Base.eltype(L::Type{LazySymTridiagonalReverseCholeskyFactor}) = eltype(L.L)
+size(L::LazySymTridiagonalReverseCholeskyFactors) = size(L.A)
+axes(L::LazySymTridiagonalReverseCholeskyFactors) = axes(L.A)
+Base.eltype(L::Type{LazySymTridiagonalReverseCholeskyFactors}) = eltype(L.L)
 
-copy(L::LazySymTridiagonalReverseCholeskyFactor) = LazySymTridiagonalReverseCholeskyFactor(copy(L.A), copy(L.L), L.ε, L.N, L.n)
+copy(L::LazySymTridiagonalReverseCholeskyFactors) = LazySymTridiagonalReverseCholeskyFactors(copy(L.A), copy(L.L), L.ε, L.N, L.n)
+copy(U::Adjoint{T,<:LazySymTridiagonalReverseCholeskyFactors}) where {T} = copy(parent(U))'
 
-LazyBandedMatrices.bidiagonaluplo(L::LazySymTridiagonalReverseCholeskyFactor) = 'L'
+LazyBandedMatrices.bidiagonaluplo(L::LazySymTridiagonalReverseCholeskyFactors) = 'L'
 
+"""
+    InfiniteBoundsAccessError <: Exception 
+
+Struct for defining an error when accessing a `LazySymTridiagonalReverseCholeskyFactors` object outside of the 
+maximum allowable finite section of size `$MAX_TRIDIAG_CHOL_N × $MAX_TRIDIAG_CHOL_N`.
+"""
 struct InfiniteBoundsAccessError <: Exception
     i::Int
     j::Int
@@ -43,7 +50,7 @@ function Base.showerror(io::IO, err::InfiniteBoundsAccessError)
     print(io, "), outside of the maximum allowable finite section of size (", MAX_TRIDIAG_CHOL_N, " × ", MAX_TRIDIAG_CHOL_N, ")")
 end
 
-function getindex(L::LazySymTridiagonalReverseCholeskyFactor, i::Int, j::Int)
+function getindex(L::LazySymTridiagonalReverseCholeskyFactors, i::Int, j::Int)
     max(i, j) > MAX_TRIDIAG_CHOL_N && throw(InfiniteBoundsAccessError(i, j))
     T = eltype(L)
     if j > i
@@ -56,21 +63,22 @@ function getindex(L::LazySymTridiagonalReverseCholeskyFactor, i::Int, j::Int)
     end
 end
 
-function reversecholesky_layout(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, ::NoPivot; tol=sqrt(1e-5), kwds...) # need a better tol...
+function reversecholesky_layout(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, ::NoPivot; kwds...)
     a, b = A.dv, A.ev
     T = promote_type(eltype(a), eltype(b), eltype(b[1] / a[1])) # could also use promote_op(/, eltype(a), eltype(b)), but promote_op is fragile apparently 
+    tol = eps(real(T)) # no good way to pass this as a keyword currently, so just hardcode it
     L = Bidiagonal([zero(T)], T[], :L)
-    chol = LazySymTridiagonalReverseCholeskyFactor(A, 1, 1, L, tol)
+    chol = LazySymTridiagonalReverseCholeskyFactors(A, 1, 1, L, tol)
     _expand_factor!(chol, 2^4) # initialise with 2^4 
     return ReverseCholesky(chol, 'L', 0)
 end
 
-function _expand_factor!(L::LazySymTridiagonalReverseCholeskyFactor, n)
+function _expand_factor!(L::LazySymTridiagonalReverseCholeskyFactors, n)
     L.n ≥ n && return L
-    return __expand_factor!(L::LazySymTridiagonalReverseCholeskyFactor, n)
+    return __expand_factor!(L::LazySymTridiagonalReverseCholeskyFactors, n)
 end
 
-function compute_ξ(LL::LazySymTridiagonalReverseCholeskyFactor)
+function compute_ξ(LL::LazySymTridiagonalReverseCholeskyFactors)
     #=
     We can show that ||LN' Pn inv(LN') Vb|| = |bN| ||ξ||, where 
         ξₙ = LN[n, n]νₙ,
@@ -95,19 +103,19 @@ function compute_ξ(LL::LazySymTridiagonalReverseCholeskyFactor)
     return scale * sqrt(ξ) # could maybe just return sqrt(ξ), but maybe bN helps for scaling?
 end
 
-function has_converged(LL::LazySymTridiagonalReverseCholeskyFactor)
+function has_converged(LL::LazySymTridiagonalReverseCholeskyFactors)
     ξ = compute_ξ(LL)
     return ξ ≤ LL.ε
 end
 
-function _resize_factor!(L::LazySymTridiagonalReverseCholeskyFactor, N=2L.N)
+function _resize_factor!(L::LazySymTridiagonalReverseCholeskyFactors, N=2L.N)
     L.N = N
     resize!(L.L.dv, L.N)
     resize!(L.L.ev, L.N - 1)
     return L
 end
 
-function _finite_revchol!(L::LazySymTridiagonalReverseCholeskyFactor)
+function _finite_revchol!(L::LazySymTridiagonalReverseCholeskyFactors)
     # Computes the reverse Cholesky factorisation of L.A[1:L.N, 1:L.N]
     N = L.N
     a, b = L.A.dv, L.A.ev
@@ -120,7 +128,7 @@ function _finite_revchol!(L::LazySymTridiagonalReverseCholeskyFactor)
     return L
 end
 
-function __expand_factor!(L::LazySymTridiagonalReverseCholeskyFactor, n)
+function __expand_factor!(L::LazySymTridiagonalReverseCholeskyFactors, n)
     L.N > MAX_TRIDIAG_CHOL_N && return L
     L.n = n
     L.N < L.n && _resize_factor!(L, 2n)

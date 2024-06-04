@@ -14,42 +14,47 @@ using InfiniteLinearAlgebra, LazyBandedMatrices, FillArrays, MatrixFactorization
 end
 
 @testset "infreversecholeskytridiagonal" begin
-    # Test on Toeplitz example first
-    A = SymTridiagonal(Fill(3, ∞), Fill(1, ∞))
-    L = reversecholesky(A)
-    LL = InfiniteLinearAlgebra.reversecholesky_layout(SymTridiagonalLayout{LazyArrays.LazyLayout,LazyArrays.LazyLayout}(), axes(A), A, NoPivot())
-    @test L.L[1:1000, 1:1000] ≈ LL.L[1:1000, 1:1000]
-    @test (LL.L'*LL.L)[1:1000, 1:1000] == (LL.U*LL.L)[1:1000, 1:1000] ≈ A[1:1000, 1:1000]
+    local LL, L
+    @testset "Test on Toeplitz example first" begin
+        A = SymTridiagonal(Fill(3, ∞), Fill(1, ∞))
+        L = reversecholesky(A)
+        LL = InfiniteLinearAlgebra.reversecholesky_layout(SymTridiagonalLayout{LazyArrays.LazyLayout,LazyArrays.LazyLayout}(), axes(A), A, NoPivot())
+        @test L.L[1:1000, 1:1000] ≈ LL.L[1:1000, 1:1000]
+        @test (LL.L'*LL.L)[1:1000, 1:1000] == (LL.U*LL.L)[1:1000, 1:1000] ≈ A[1:1000, 1:1000]
+    end
 
-    # Basic tests 
-    L = LL
-    @test MemoryLayout(L.L) isa BidiagonalLayout
-    @test L.U === L.L'
-    @test L.uplo == 'L'
-    @test L.info == 0
-    @test size(L) == (∞, ∞)
-    @test axes(L) == (1:∞, 1:∞)
-    @test eltype(L) == Float64
-    Lc = copy(L)
-    @test !(Lc === L)
-    @test !(Lc.U === L.U)
-    @test Lc.L[1:1000, 1:1000] == L.L[1:1000, 1:1000]
-    UUc = copy(L.L')
-    @test !(UUc === L.U)
-    @test UUc[1:1000, 1:1000] == L.U[1:1000, 1:1000]
+    @testset "Basic tests" begin
+        L = LL
+        @test MemoryLayout(L.L) isa BidiagonalLayout
+        @test L.U === L.L'
+        @test L.uplo == 'L'
+        @test L.info == 0
+        @test size(L) == (∞, ∞)
+        @test axes(L) == (1:∞, 1:∞)
+        @test eltype(L) == Float64
+        Lc = copy(L)
+        @test !(Lc === L)
+        @test !(Lc.U === L.U)
+        @test Lc.L[1:1000, 1:1000] == L.L[1:1000, 1:1000]
+        UUc = copy(L.L')
+        @test !(UUc === L.U)
+        @test UUc[1:1000, 1:1000] == L.U[1:1000, 1:1000]
+    end
 
-    # Errors 
-    err = InfiniteLinearAlgebra.InfiniteBoundsAccessError(4, 6)
-    @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError throw(err)
-    @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError L.L[1, InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1]
-    @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError L.L[InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1, 1]
-    @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError L.L[InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1, InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1]
+    @testset "Errors" begin
+        err = InfiniteLinearAlgebra.InfiniteBoundsAccessError(4, 6)
+        @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError throw(err)
+        @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError L.L[1, InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1]
+        @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError L.L[InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1, 1]
+        @test_throws InfiniteLinearAlgebra.InfiniteBoundsAccessError L.L[InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1, InfiniteLinearAlgebra.MAX_TRIDIAG_CHOL_N+1]
+    end
 
-    # Another example
-    A = LazyBandedMatrices.SymTridiagonal(Ones(∞), 1 ./ (2:∞))
-    L = reversecholesky(A)
-    @test (L.U*L.L)[1:1000, 1:1000] ≈ A[1:1000, 1:1000] rtol = 1e-4
-    A = 5I + LazyBandedMatrices.SymTridiagonal(1 ./ (2:∞), Ones(∞))
-    L = reversecholesky(A)
-    @test (L.U*L.L)[1:1000, 1:1000] ≈ A[1:1000, 1:1000] rtol = 1e-4
+    @testset "Another example" begin
+        A = LazyBandedMatrices.SymTridiagonal(Ones(∞), 1 ./ (2:∞))
+        L = reversecholesky(A)
+        @test (L.U*L.L)[1:1000, 1:1000] ≈ A[1:1000, 1:1000]
+        A = 5I + LazyBandedMatrices.SymTridiagonal(1 ./ (2:∞), Ones(∞))
+        L = reversecholesky(A)
+        @test (L.U*L.L)[1:1000, 1:1000] ≈ A[1:1000, 1:1000]
+    end
 end
