@@ -19,7 +19,7 @@ import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, 
                      rowsupport, sub_materialize, subdiagonaldata, sublayout, supdiagonaldata, transposelayout,
                      triangulardata, triangularlayout, zero!, materialize!
 
-import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix,
+import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix, AbstractBandedMatrix,
                        _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, _default_banded_broadcast, banded_chol!,
                        banded_similar, bandedcolumns, bandeddata, bandwidths, bandwidths
 
@@ -32,7 +32,7 @@ import BlockBandedMatrices: AbstractBlockBandedLayout, BlockBandedMatrix, BlockS
 
 import FillArrays: AbstractFill, AbstractFillMatrix, axes_print_matrix_row, getindex_value
 
-import InfiniteArrays: AbstractInfUnitRange, InfAxes, InfRanges, InfStepRange, InfUnitRange, OneToInf, PosInfinity
+import InfiniteArrays: AbstractInfUnitRange, InfAxes, InfRanges, InfStepRange, InfUnitRange, OneToInf, PosInfinity, InfIndexRanges
 
 import Infinities: InfiniteCardinal, Infinity
 
