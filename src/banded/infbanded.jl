@@ -1,3 +1,5 @@
+BroadcastStyle(::Type{<:SubArray{<:Any,2,<:AbstractBandedMatrix,<:Tuple{<:InfIndexRanges,<:InfIndexRanges}}})= LazyArrayStyle{2}()
+
 _BandedMatrix(data::AbstractMatrix{T}, ::Infinity, l, u) where T = _BandedMatrix(data, ℵ₀, l, u)
 
 ###
