@@ -63,12 +63,14 @@ using Base: oneto
         T = LazyBandedMatrices.Tridiagonal(Fill(1,∞), Zeros(∞), Fill(3,∞))
         @test T[2:∞,3:∞] isa SubArray
         @test exp.(T) isa BroadcastMatrix
+        @test exp.(T)[2:∞,3:∞][1:10,1:10] == exp.(T[2:∞,3:∞])[1:10,1:10] == exp.(T[2:11,3:12])
         @test exp.(T)[2:∞,3:∞] isa BroadcastMatrix
         @test exp.(T[2:∞,3:∞]) isa BroadcastMatrix
 
         B = LazyBandedMatrices.Bidiagonal(Fill(1,∞), Zeros(∞), :U)
         @test B[2:∞,3:∞] isa SubArray
         @test exp.(B) isa BroadcastMatrix
+        @test exp.(B)[2:∞,3:∞][1:10,1:10] == exp.(B[2:∞,3:∞])[1:10,1:10] == exp.(B[2:11,3:12])
         @test exp.(B)[2:∞,3:∞] isa BroadcastMatrix
 
         @testset "algebra" begin
