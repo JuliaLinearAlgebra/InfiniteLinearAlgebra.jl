@@ -401,7 +401,7 @@ function initialadaptiveQLblock(A::AbstractMatrix{T}, tol) where T
         Ll = ql(A[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
         # compare bottom right sections and stop if desired level of convergence achieved
         Lerr = norm(Ll-Ls,2)
-        if N == maxN
+        if N >= maxN
             error("Reached max. iterations in adaptive QL without convergence to desired tolerance.")
         end
         Ls = Ll
@@ -449,7 +449,7 @@ function cache_filldata!(A::AdaptiveQLFactors{T}, inds::UnitRange{Int}) where T
         Ll = ql(A.M[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
         # compare bottom right sections and stop if desired level of convergence achieved
         Lerr = norm(Ll-Ls,2)
-        if N == maxN
+        if N >= maxN
             error("Reached max. iterations in adaptive QL without convergence to desired tolerance.")
         end
         Ls = Ll
@@ -470,7 +470,7 @@ function cache_filldata!(A::AdaptiveQLTau{T}, inds::UnitRange{Int}) where T
         Ll = ql(A.M[checkinds:2N,checkinds:2N]).L[2:j-checkinds+1,2:j-checkinds+1]
         # compare bottom right sections and stop if desired level of convergence achieved
         Lerr = norm(Ll-Ls,2)
-        if N == maxN
+        if N >= maxN
             error("Reached max. iterations in adaptive QL without convergence to desired tolerance.")
         end
         Ls = Ll
