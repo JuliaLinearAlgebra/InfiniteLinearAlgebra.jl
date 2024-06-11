@@ -219,6 +219,10 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
             @test (L*b)[1:6] == ApplyArray(*,L,b)[1:6] == [0. , -5.25,  -7.833333333333333, -2.4166666666666666, -1., 0.]
             @test size(ql(A).τ) == (ℵ₀, )
         end
+        @testset "Naive extremely long / infinite loop protection" begin
+            A = _BandedMatrix(Vcat((((0:∞)))', (((1:∞)).+1/4)', Ones(1,∞)./3), ℵ₀, 1, 1)
+            @test_throws ErrorException("Reached max. iterations in adaptive QL without convergence to desired tolerance.") ql(A)
+        end
         @testset "Explicit tolerance tests" begin
             Asym = LinearAlgebra.SymTridiagonal([[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
             Aplain = LinearAlgebra.Tridiagonal([[1., 2.]; Fill(1.,∞)], [[1.,2.]; Fill(3.,∞)], [[1., 2.]; Fill(1.,∞)])
