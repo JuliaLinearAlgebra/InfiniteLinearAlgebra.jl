@@ -168,6 +168,7 @@ using Base: oneto
 
     @testset "Banded * PaddedMatrix" begin
         A = Eye(∞)[2:∞,:]
+        @test LazyArrays.islazy(A) == Val(true)
         B = PaddedArray(randn(3,3),ℵ₀,ℵ₀)
         @test (A*B)[1:10,1:10] ≈ A[1:10,1:10] * B[1:10,1:10]
     end

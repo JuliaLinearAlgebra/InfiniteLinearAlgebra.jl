@@ -362,6 +362,8 @@ supdiagonalconstant(A) = getindex_value(supdiagonaldata(A))
 
 
 islazy_layout(::InfToeplitzLayouts) = Val(true)
+islazy(::BandedMatrix{<:Any,<:Any,OneToInf{Int}}) = Val(true)
+
 
 
 _BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) =
