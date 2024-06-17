@@ -323,8 +323,8 @@ ConstRowMatrix(A::AbstractMatrix{T}) where T = ApplyMatrix(*, A[:,1], Ones{T}(1,
 PertConstRowMatrix(A::AbstractMatrix{T}) where T =
     Hcat(_pertdata(A), ApplyMatrix(*, _constrows(A), Ones{T}(1,size(A,2))))
 
-struct ConstRows <: MemoryLayout end
-struct PertConstRows <: MemoryLayout end
+struct ConstRows <: AbstractLazyLayout end
+struct PertConstRows <: AbstractLazyLayout end
 MemoryLayout(::Type{<:ConstRowMatrix}) = ConstRows()
 MemoryLayout(::Type{<:PertConstRowMatrix}) = PertConstRows()
 bandedcolumns(::ConstRows) = BandedToeplitzLayout()
@@ -359,6 +359,9 @@ const InfToeplitzLayouts = Union{TridiagonalToeplitzLayout, BandedToeplitzLayout
 subdiagonalconstant(A) = getindex_value(subdiagonaldata(A))
 diagonalconstant(A) = getindex_value(diagonaldata(A))
 supdiagonalconstant(A) = getindex_value(supdiagonaldata(A))
+
+
+islazy_layout(::InfToeplitzLayouts) = Val(true)
 
 
 _BandedMatrix(::BandedToeplitzLayout, A::AbstractMatrix) =

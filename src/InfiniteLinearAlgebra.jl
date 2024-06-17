@@ -40,7 +40,7 @@ import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayou
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
                    LazyLayouts, LazyMatrix, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
-                   simplify
+                   simplify, islazy_layout
 
 import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, ApplyBandedLayout, BlockVec,
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
