@@ -34,8 +34,10 @@ using Base: oneto
     @testset "∞-Toeplitz" begin
         A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
         @test A isa InfToeplitz
-        @test MemoryLayout(typeof(A.data)) == ConstRows()
-        @test MemoryLayout(typeof(A)) == BandedToeplitzLayout()
+        @test MemoryLayout(A.data) == ConstRows()
+        @test MemoryLayout(A) == BandedToeplitzLayout()
+        @test LazyArrays.islazy(A) == Val(true)
+
         V = view(A,:,3:∞)
         @test MemoryLayout(typeof(bandeddata(V))) == ConstRows()
         @test MemoryLayout(typeof(V)) == BandedToeplitzLayout()
@@ -166,6 +168,7 @@ using Base: oneto
 
     @testset "Banded * PaddedMatrix" begin
         A = Eye(∞)[2:∞,:]
+        @test LazyArrays.islazy(A) == Val(true)
         B = PaddedArray(randn(3,3),ℵ₀,ℵ₀)
         @test (A*B)[1:10,1:10] ≈ A[1:10,1:10] * B[1:10,1:10]
     end
