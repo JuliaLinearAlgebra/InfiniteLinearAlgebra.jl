@@ -21,7 +21,7 @@ import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, 
 
 import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix, AbstractBandedMatrix,
                        _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, _default_banded_broadcast, banded_chol!,
-                       banded_similar, bandedcolumns, bandeddata, bandwidths, bandwidths
+                       banded_similar, bandedcolumns, bandeddata, bandwidths
 
 import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedOneTo,
                     blockcolsupport, sizes_from_blocks, OneToCumsum, AbstractBlockedUnitRange
@@ -143,5 +143,6 @@ include("infql.jl")
 include("infqr.jl")
 include("inful.jl")
 include("infcholesky.jl")
+include("banded/bidiagonalconjugationdata.jl")
 
 end # module
