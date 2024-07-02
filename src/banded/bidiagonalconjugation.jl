@@ -23,7 +23,7 @@ mutable struct BidiagonalConjugation{T,MU,MC} <: AbstractCachedMatrix{T}
     const U::MU
     const C::MC
     const data::Bidiagonal{T,Vector{T}}
-    datasize::Int # also compute up to a square finite section 
+    datasize::Int # always compute up to a square finite section 
     function BidiagonalConjugation(U::MU, C::MC, data::Bidiagonal{T}, datasize::Int) where {T,MU,MC}
         return new{T,MU,MC}(U, C, data, datasize)
     end # disambiguate with the next constructor
