@@ -38,7 +38,7 @@ import Infinities: InfiniteCardinal, Infinity
 
 import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayout, ApplyArray, ApplyLayout, ApplyMatrix,
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
-                   LazyLayouts, LazyMatrix, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
+                   LazyLayouts, LazyMatrix, LazyVector, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
                    simplify, islazy, islazy_layout
 
