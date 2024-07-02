@@ -143,6 +143,6 @@ include("infql.jl")
 include("infqr.jl")
 include("inful.jl")
 include("infcholesky.jl")
-include("banded/bidiagonalconjugationdata.jl")
+include("banded/bidiagonalconjugation.jl")
 
 end # module
