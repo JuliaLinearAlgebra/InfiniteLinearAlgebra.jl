@@ -3,15 +3,18 @@ using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, I
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate, tailiterate!, tail_de, ql_X!,
     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!, pad,
-    BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout
+    BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout,
+    BidiagonalConjugation, get_uplo
 import Base: BroadcastStyle, oneto
 import BlockArrays: _BlockArray, blockcolsupport
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
-import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedColumns
+import LazyArrays: colsupport, MemoryLayout, ApplyLayout, LazyArrayStyle, arguments, paddeddata, PaddedColumns, LazyLayout
 import InfiniteArrays: OneToInf, oneto, RealInfinity
 import LazyBandedMatrices: BroadcastBandedBlockBandedLayout, BroadcastBandedLayout, LazyBandedLayout, BlockVec
+import InfiniteRandomArrays: InfRandTridiagonal, InfRandBidiagonal
+import ArrayLayouts: diagonaldata, supdiagonaldata, subdiagonaldata
 
 using Aqua
 @testset "Project quality" begin
