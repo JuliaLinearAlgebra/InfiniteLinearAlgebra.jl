@@ -101,8 +101,7 @@ function _bcb_getindex(band::BidiagonalConjugationBand, I)
     end
 end
 
-@inline cache_getindex(band::BidiagonalConjugationBand, I::Integer) = _bcb_getindex(band, I) # needed for show
-@inline getindex(band::BidiagonalConjugationBand, I::Integer) = cache_getindex(band, I) # also needed for show because of isassigned
+@inline getindex(band::BidiagonalConjugationBand, I::Integer) = _bcb_getindex(band, I)
 @inline getindex(band::BidiagonalConjugationBand, I::AbstractVector) = _bcb_getindex(band, I)
 #@inline getindex(band::BidiagonalConjugationBand, I::AbstractInfUnitRange{<:Integer}) = view(band, I)
 #@inline getindex(band::SubArray{<:Any, 1, <:BidiagonalConjugationBand}, I::AbstractInfUnitRange{<:Integer}) = view(band, I)
