@@ -4,7 +4,7 @@ import InfiniteLinearAlgebra: qltail, toeptail, tailiterate, tailiterate!, tail_
     InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
     rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!, pad,
     BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout,
-    BidiagonalConjugation, get_uplo
+    BidiagonalConjugation
 import Base: BroadcastStyle, oneto
 import BlockArrays: _BlockArray, blockcolsupport
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
