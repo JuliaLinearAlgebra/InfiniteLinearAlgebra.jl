@@ -1,3 +1,8 @@
+using InfiniteLinearAlgebra, InfiniteRandomArrays, BandedMatrices, LazyArrays, LazyBandedMatrices, InfiniteArrays, ArrayLayouts, Test
+using InfiniteLinearAlgebra: BidiagonalConjugation, OneToInf
+using ArrayLayouts: supdiagonaldata, subdiagonaldata, diagonaldata
+using LazyArrays: LazyLayout
+
 @testset "BidiagonalConjugationData" begin
     @test InfiniteLinearAlgebra._to_uplo('U') == 'U'
     @test InfiniteLinearAlgebra._to_uplo('L') == 'L'

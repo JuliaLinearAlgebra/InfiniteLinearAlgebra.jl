@@ -85,7 +85,7 @@ function resizedata!(data::BidiagonalConjugationData, n)
     return _compute_columns!(data, 2n)
 end
 
-struct BidiagonalConjugationBand{T} <: AbstractCachedVector{T}
+struct BidiagonalConjugationBand{T} <: LazyVector{T}
     data::BidiagonalConjugationData{T}
     diag::Bool # true => diagonal, false => offdiagonal 
 end
