@@ -36,8 +36,7 @@ function copy(data::BidiagonalConjugationData)
     return BidiagonalConjugationData(copy(U), copy(C), copy(dv), copy(ev), uplo, datasize)
 end
 
-function _compute_column_up!(data::BidiagonalConjugationData, i)
-    U, C = data.U, data.C
+function _compute_column_up!(data::BidiagonalConjugationData, U, C, i)
     dv, ev = data.dv, data.ev
     if i == 1
         dv[i] = C[1, 1] / U[1, 1]
@@ -51,8 +50,7 @@ function _compute_column_up!(data::BidiagonalConjugationData, i)
     return data
 end
 
-function _compute_column_lo!(data::BidiagonalConjugationData, i)
-    U, C = data.U, data.C
+function _compute_column_lo!(data::BidiagonalConjugationData, U, C, i)
     dv, ev = data.dv, data.ev
     uᵢᵢ, uᵢ₊₁ᵢ, uᵢᵢ₊₁, uᵢ₊₁ᵢ₊₁ = U[i, i], U[i+1, i], U[i, i+1], U[i+1, i+1]
     cᵢᵢ, cᵢ₊₁ᵢ = C[i, i], C[i+1, i]
@@ -65,8 +63,14 @@ end
 function _compute_columns!(data::BidiagonalConjugationData, i)
     ds = data.datasize
     up = data.uplo == 'U'
+    U, C = data.U, data.C # Treat _compute_column_(up/lo) as function barriers and take these out early
+    return __compute_columns!(data, U, C, i)
+end
+function __compute_columns!(data::BidiagonalConjugationData, U, C, i)
+    ds = data.datasize 
+    up = data.uplo == 'U'
     for j in (ds+1):i
-        up ? _compute_column_up!(data, j) : _compute_column_lo!(data, j)
+        up ? _compute_column_up!(data, U, C, j) : _compute_column_lo!(data, U, C, j)
     end
     data.datasize = i
     return data
