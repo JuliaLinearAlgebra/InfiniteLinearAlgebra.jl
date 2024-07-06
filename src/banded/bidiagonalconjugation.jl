@@ -109,11 +109,6 @@ end
 
 copy(band::BidiagonalConjugationBand) = band
 
-function convert(::Type{BidiagonalConjugationBand{T}}, ::Zeros{V, 1, Tuple{OneToInf{Int}}}) where {T, V}
-    # without this method, we can't do e.g. B[Band(-1)] for upper bidiagonal
-    
-end
-
 const BidiagonalConjugation{T} = Bidiagonal{T, BidiagonalConjugationBand{T}}
 
 """
