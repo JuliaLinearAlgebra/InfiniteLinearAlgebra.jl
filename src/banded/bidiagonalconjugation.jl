@@ -133,9 +133,6 @@ function _BidiagonalConjugation(data, uplo) # need uplo argument so that we can 
     return Bidiagonal(dv, ev, uplo)
 end
 
-function copy(A::BidiagonalConjugation) # need a new method so that the data remains aliased between dv and ev 
-    data = copy(A.dv.data)
-    return _BidiagonalConjugation(data, A.uplo)
-end
+copy(A::BidiagonalConjugation)  = A # no-op
 
 LazyBandedMatrices.Bidiagonal(A::BidiagonalConjugation) = LazyBandedMatrices.Bidiagonal(A.dv, A.ev, A.uplo)

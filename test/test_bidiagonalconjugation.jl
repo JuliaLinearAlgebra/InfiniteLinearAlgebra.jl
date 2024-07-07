@@ -45,7 +45,7 @@ using LazyArrays: LazyLayout
                 BB = copy(_B)
                 @test BB.dv.data === BB.ev.data
                 @test parent(BB).dv.data.datasize == parent(_B).dv.data.datasize
-                @test !(BB === B) && !(parent(BB).dv.data === parent(B).dv.data)
+                # @test !(BB === B) && !(parent(BB).dv.data === parent(B).dv.data) # copy is a no-op
                 @test BB[1:100, 1:100] == _B[1:100, 1:100]
                 @test BB[1:2:50, 1:3:40] == _B[1:2:50, 1:3:40]
                 @test view(BB, [1, 3, 7, 10], 1:10) == _B[[1, 3, 7, 10], 1:10]
