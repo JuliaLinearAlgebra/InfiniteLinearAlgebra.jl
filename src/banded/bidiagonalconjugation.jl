@@ -61,13 +61,11 @@ function _compute_column_lo!(data::BidiagonalConjugationData, U, C, i)
 end
 
 function _compute_columns!(data::BidiagonalConjugationData, i)
-    ds = data.datasize
-    up = data.uplo == 'U'
     U, C = data.U, data.C # Treat _compute_column_(up/lo) as function barriers and take these out early
     return __compute_columns!(data, U, C, i)
 end
 function __compute_columns!(data::BidiagonalConjugationData, U, C, i)
-    ds = data.datasize 
+    ds = data.datasize
     up = data.uplo == 'U'
     for j in (ds+1):i
         up ? _compute_column_up!(data, U, C, j) : _compute_column_lo!(data, U, C, j)
@@ -89,26 +87,24 @@ struct BidiagonalConjugationBand{T} <: LazyVector{T}
     data::BidiagonalConjugationData{T}
     diag::Bool # true => diagonal, false => offdiagonal 
 end
-@inline size(A::BidiagonalConjugationBand) = (ℵ₀,)
+@inline size(::BidiagonalConjugationBand) = (ℵ₀,)
 @inline resizedata!(A::BidiagonalConjugationBand, n) = resizedata!(A.data, n)
 
 function _bcb_getindex(band::BidiagonalConjugationBand, I)
     resizedata!(band, maximum(I) + 1)
-    if band.diag 
+    if band.diag
         return band.data.dv[I]
-    else 
+    else
         return band.data.ev[I]
     end
 end
 
 @inline getindex(band::BidiagonalConjugationBand, I::Integer) = _bcb_getindex(band, I)
 @inline getindex(band::BidiagonalConjugationBand, I::AbstractVector) = _bcb_getindex(band, I)
-#@inline getindex(band::BidiagonalConjugationBand, I::AbstractInfUnitRange{<:Integer}) = view(band, I)
-#@inline getindex(band::SubArray{<:Any, 1, <:BidiagonalConjugationBand}, I::AbstractInfUnitRange{<:Integer}) = view(band, I)
 
 copy(band::BidiagonalConjugationBand) = band
 
-const BidiagonalConjugation{T} = Bidiagonal{T, BidiagonalConjugationBand{T}}
+const BidiagonalConjugation{T} = Bidiagonal{T,BidiagonalConjugationBand{T}}
 
 """
     BidiagonalConjugation(U, X, V, uplo)
@@ -133,6 +129,6 @@ function _BidiagonalConjugation(data, uplo) # need uplo argument so that we can 
     return Bidiagonal(dv, ev, uplo)
 end
 
-copy(A::BidiagonalConjugation)  = A # no-op
+copy(A::BidiagonalConjugation) = A # no-op
 
 LazyBandedMatrices.Bidiagonal(A::BidiagonalConjugation) = LazyBandedMatrices.Bidiagonal(A.dv, A.ev, A.uplo)
