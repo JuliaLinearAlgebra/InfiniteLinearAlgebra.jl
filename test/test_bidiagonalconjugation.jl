@@ -17,13 +17,13 @@ using LazyArrays: LazyLayout
         A1 = InfRandBidiagonal('U')
         X1 = brand(∞, 0, 2)
         U1 = X1 * V1 * ApplyArray(inv, A1)
-        B1 = BidiagonalConjugation(U1, X1, V1, 'U')
+        B1 = BidiagonalConjugation(U1, X1, V1, 'U');
 
         V2 = brand(∞, 0, 1)
         A2 = LazyBandedMatrices.Bidiagonal(Fill(0.2, ∞), 2.0 ./ (1.0 .+ (1:∞)), 'L') # LinearAlgebra.Bidiagonal not playing nice for this case
         X2 = InfRandBidiagonal('L')
-        U2 = X2 * V2 * ApplyArray(inv, A2) # U2 isn't upper Hessenberg (actually it's lower, oh well), doesn't seem to matter for computing A
-        B2 = BidiagonalConjugation(U2, X2, V2, :L)
+        U2 = X2 * V2 * ApplyArray(inv, A2) 
+        B2 = BidiagonalConjugation(U2, X2, V2, :L);
 
         for (A, B, uplo) in ((A1, B1, 'U'), (A2, B2, 'L'))
             @test B.dv.data === B.ev.data
@@ -66,9 +66,9 @@ using LazyArrays: LazyLayout
                 # @test B[band(1)][1:100] == zeros(100)
             end
             @test B.dv[500] == B.dv.data.dv[500]
-            @test B.dv.data.datasize == 1002
+            @test B.dv.data.datasize == 501
             @test B.ev[1005] == B.ev.data.ev[1005]
-            @test B.ev.data.datasize == 2012
+            @test B.ev.data.datasize == 1006
             @test ApplyArray(inv, B)[1:100, 1:100] ≈ ApplyArray(inv, A)[1:100, 1:100] # need to somehow let inv (or even ApplyArray(inv, )) work
             @test (B+B)[1:100, 1:100] ≈ 2A[1:100, 1:100] ≈ 2B[1:100, 1:100]
             @test (B*I)[1:100, 1:100] ≈ B[1:100, 1:100]

@@ -75,12 +75,16 @@ function __compute_columns!(data::BidiagonalConjugationData, U, C, i)
 end
 
 function resizedata!(data::BidiagonalConjugationData, n)
-    ds = data.datasize
-    n ≤ ds && return data
+    n ≤ 0 && return data
+    v = data.datasize
+    n = max(v, n)
     dv, ev = data.dv, data.ev
-    resize!(dv, 2n + 1)
-    resize!(ev, 2n)
-    return _compute_columns!(data, 2n)
+    if n > length(ev) # Avoid O(n²) growing. Note min(length(dv), length(ev)) == length(ev)
+        resize!(dv, 2n + 1)
+        resize!(ev, 2n)
+    end
+    n > v && _compute_columns!(data, n)
+    return data
 end
 
 struct BidiagonalConjugationBand{T} <: LazyVector{T}
