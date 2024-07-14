@@ -1,6 +1,6 @@
 name = "InfiniteLinearAlgebra"
 uuid = "cde9dba0-b1de-11e9-2c62-0bab9446c55c"
-version = "0.8.3"
+version = "0.8.4"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -23,8 +23,9 @@ BandedMatrices = "1.7.2"
 BlockArrays = "1.0"
 BlockBandedMatrices = "0.13"
 FillArrays = "1.0"
-Infinities = "0.1"
 InfiniteArrays = "0.14"
+InfiniteRandomArrays = "0.2"
+Infinities = "0.1"
 LazyArrays = "2.0"
 LazyBandedMatrices = "0.10"
 LinearAlgebra = "1"
@@ -39,9 +40,10 @@ julia = "1.10"
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+InfiniteRandomArrays = "2bc77966-89c7-476d-a40f-269028fac4a9"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Test", "Random", "SpecialFunctions", "StaticArrays"]
+test = ["Aqua", "Test", "Random", "InfiniteRandomArrays", "SpecialFunctions", "StaticArrays"]
