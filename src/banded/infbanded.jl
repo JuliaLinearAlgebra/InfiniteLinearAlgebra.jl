@@ -454,7 +454,6 @@ _bandedfill_mul(M::MulAdd, ::Tuple{Any,InfAxes}, ::Tuple{InfAxes,Any}) = ApplyAr
 
 mulreduce(M::Mul{<:InfToeplitzLayouts, <:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:InfToeplitzLayouts}) = ApplyArray(M)
-simplifiable(::Mul{<:InfToeplitzLayouts,<:PaddedColumns}) = Val(true)
 mulreduce(M::Mul{<:InfToeplitzLayouts,<:PaddedColumns}) = MulAdd(M)
 mulreduce(M::Mul{<:Any, <:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, <:InfToeplitzLayouts}) = ApplyArray(M)
