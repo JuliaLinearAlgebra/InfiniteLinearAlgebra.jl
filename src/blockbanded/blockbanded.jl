@@ -17,6 +17,7 @@ BlockBandedMatrices.blockbanded_rowstop(A, x::InfiniteCardinal{0}) = x
 
 BlockArrays.blocklasts(a::InfRanges) = Fill(length(a),1)
 
+BlockArrays.findblock(::BlockedOneTo, ::RealInfinity) = Block(ℵ₀)
 
 function BlockArrays.sortedunion(a::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}},
                                  b::Vcat{Int,1,<:Tuple{Union{Int,AbstractVector{Int}},<:AbstractRange}})
