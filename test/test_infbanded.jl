@@ -2,6 +2,7 @@ using InfiniteLinearAlgebra, ArrayLayouts, InfiniteArrays, BandedMatrices, FillA
 import BandedMatrices: _BandedMatrix, bandeddata
 using InfiniteLinearAlgebra: InfToeplitz, ConstRows, BandedToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout, PertToeplitz, PertToeplitzLayout
 using Base: oneto
+using LazyArrays: simplifiable
 
 @testset "∞-banded" begin
     @testset "Diagonal and BandedMatrix" begin
@@ -55,6 +56,9 @@ using Base: oneto
         @test A * [1; 2; Zeros(∞)] isa Vcat
         @test A * [1; 2; Zeros(∞)] == [A[1:5,1:2] * [1,2]; Zeros(∞)]
 
+        @test A * Vcat([1 2; 3 4], Zeros(∞,2)) isa ApplyMatrix{ComplexF64,typeof(Base.setindex)}
+        @test simplifiable(*, A, Vcat([1 2; 3 4], Zeros(∞,2))) == Val(true)
+
         @test MemoryLayout(Tridiagonal(Fill(1,∞), Fill(2,∞), Fill(3,∞))) isa TridiagonalToeplitzLayout
         @test MemoryLayout(Bidiagonal(Fill(1,∞), Fill(2,∞), :U)) isa BidiagonalToeplitzLayout
         @test MemoryLayout(SymTridiagonal(Fill(1,∞), Fill(2,∞))) isa TridiagonalToeplitzLayout
@@ -87,6 +91,18 @@ using Base: oneto
             @test (B*B)[1:10,1:10] ≈ B[1:10,1:14]B[1:14,1:10]
             @test (A*B)[1:10,1:10] ≈ A[1:10,1:14]B[1:14,1:10]
             @test (B*A)[1:10,1:10] ≈ B[1:10,1:14]A[1:14,1:10]
+            @test simplifiable(*, B, B) == Val(true)
+            @test length((A*B*B).args) == 2
+            @test length((B*B*A).args) == 2
+        end
+
+        @testset "Toep * Diag" begin
+            A = BandedMatrix(1 => Fill(2im,∞), 2 => Fill(-1,∞), 3 => Fill(2,∞), -2 => Fill(-4,∞), -3 => Fill(-2im,∞))
+            D = Diagonal(1:∞)
+            @test D*A isa BroadcastMatrix
+            @test A*D isa BroadcastMatrix
+            @test simplifiable(*, D, A) == Val(true)
+            @test simplifiable(*, A, D) == Val(true)
         end
     end
 

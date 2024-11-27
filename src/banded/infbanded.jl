@@ -428,6 +428,7 @@ similar(M::MulAdd{<:AbstractBandedLayout,<:AbstractBandedLayout}, ::Type{T}, axe
 # BandedFill * BandedFill
 ###
 
+simplifiable(::Mul{<:BandedColumns{<:AbstractFillLayout},<:BandedColumns{<:AbstractFillLayout}}) = Val(true)
 copy(M::MulAdd{<:BandedColumns{<:AbstractFillLayout},<:BandedColumns{<:AbstractFillLayout},ZerosLayout}) =
     _bandedfill_mul(M, axes(M.A), axes(M.B))
 
@@ -456,6 +457,8 @@ mulreduce(M::Mul{<:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:InfToeplitzLayouts,<:PaddedColumns}) = MulAdd(M)
 mulreduce(M::Mul{<:Any, <:InfToeplitzLayouts}) = ApplyArray(M)
 mulreduce(M::Mul{<:AbstractQLayout, <:InfToeplitzLayouts}) = ApplyArray(M)
+simplifiable(::Mul{<:DiagonalLayout, <:InfToeplitzLayouts}) = Val(true)
+simplifiable(::Mul{<:InfToeplitzLayouts, <:DiagonalLayout}) = Val(true)
 mulreduce(M::Mul{<:DiagonalLayout, <:InfToeplitzLayouts}) = Lmul(M)
 mulreduce(M::Mul{<:InfToeplitzLayouts, <:DiagonalLayout}) = Rmul(M)
 
