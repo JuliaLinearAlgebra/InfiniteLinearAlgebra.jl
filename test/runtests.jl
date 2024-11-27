@@ -6,7 +6,7 @@ import InfiniteLinearAlgebra: qltail, toeptail, tailiterate, tailiterate!, tail_
     BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout,
     BidiagonalConjugation
 import Base: BroadcastStyle, oneto
-import BlockArrays: _BlockArray, blockcolsupport
+import BlockArrays: _BlockArray, blockcolsupport, findblock
 import BlockBandedMatrices: isblockbanded, _BlockBandedMatrix
 import MatrixFactorizations: QLPackedQ
 import BandedMatrices: bandeddata, _BandedMatrix, BandedStyle
@@ -470,6 +470,10 @@ end
         @test subblockbandwidths(2A) == (1, 1)
         @test subblockbandwidths(2 * (A + B)) == (1, 1)
     end
+end
+
+@testset "findblock at +∞, HarmonicOrthogonalPolynomials#88" begin
+    @test findblock(blockedrange(1:2:∞), RealInfinity()) == Block(ℵ₀)
 end
 
 include("test_hessenbergq.jl")

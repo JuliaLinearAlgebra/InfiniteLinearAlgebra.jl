@@ -34,7 +34,7 @@ import FillArrays: AbstractFill, AbstractFillMatrix, axes_print_matrix_row, geti
 
 import InfiniteArrays: AbstractInfUnitRange, InfAxes, InfRanges, InfStepRange, InfUnitRange, OneToInf, PosInfinity, InfIndexRanges
 
-import Infinities: InfiniteCardinal, Infinity
+import Infinities: InfiniteCardinal, Infinity, RealInfinity
 
 import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayout, ApplyArray, ApplyLayout, ApplyMatrix,
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
