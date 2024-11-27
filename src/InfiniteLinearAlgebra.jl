@@ -55,10 +55,9 @@ import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPacke
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 
-if VERSION ≥ v"1.7-"
-    LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
-    LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
-end
+LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
+LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
+
 
 if VERSION ≥ v"1.11.0-DEV.21"
     using LinearAlgebra: UpperOrLowerTriangular
@@ -69,7 +68,6 @@ else
                                               LinearAlgebra.UnitLowerTriangular{T,S}}
 end
 
-const AdjointQtype = isdefined(LinearAlgebra, :AdjointQ) ? LinearAlgebra.AdjointQ : Adjoint
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
