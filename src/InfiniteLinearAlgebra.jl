@@ -53,35 +53,11 @@ import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPacke
                              ul!, ul_layout
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
-
-
-LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
-LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
-
-
-if VERSION ≥ v"1.11.0-DEV.21"
-    using LinearAlgebra: UpperOrLowerTriangular
-else
-    const UpperOrLowerTriangular{T,S} = Union{LinearAlgebra.UpperTriangular{T,S},
-                                              LinearAlgebra.UnitUpperTriangular{T,S},
-                                              LinearAlgebra.LowerTriangular{T,S},
-                                              LinearAlgebra.UnitLowerTriangular{T,S}}
-end
-
+import InfiniteArrays: UpperOrLowerTriangular
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
-function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::AbstractMatrix{T}, p::Integer) where T
-    if p < 0
-        inv(A)^(-p)
-    elseif p == 0
-        Eye{T}(∞)
-    elseif p == 1
-        copy(A)
-    else
-        A*A^(p-1)
-    end
-end
+
 
 function choplength(c::AbstractVector, tol)
     @inbounds for k = length(c):-1:1
@@ -128,7 +104,7 @@ pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
 pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
 pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
-export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
+export ∞, ContinuousSpectrumError, BlockTridiagonal
 
 include("banded/hessenbergq.jl")
 
