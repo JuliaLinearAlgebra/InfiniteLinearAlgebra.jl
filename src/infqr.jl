@@ -322,9 +322,9 @@ function _lmul_copymutable(A::Union{AbstractMatrix{T},AbstractQ{T}}, x::Abstract
 end
 
 (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
-(*)(A::AdjointQtype{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::AdjointQ{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::AbstractVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
 (*)(A::QRPackedQ{T,<:AdaptiveQRFactors}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
-(*)(A::AdjointQtype{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
+(*)(A::AdjointQ{T,<:QRPackedQ{T,<:AdaptiveQRFactors}}, x::LayoutVector; kwds...) where {T} = _lmul_copymutable(A, x; kwds...)
 
 function ldiv!(R::UpperTriangular{<:Any,<:AdaptiveQRFactors}, B::CachedVector{<:Any,<:Any,<:Zeros{<:Any,1}})
     n = B.datasize[1]

@@ -46,7 +46,7 @@ import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBand
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
-import LinearAlgebra: AbstractQ, AdjOrTrans, factorize, matprod, qr
+import LinearAlgebra: AbstractQ, AdjointQ, AdjOrTrans, factorize, matprod, qr
 
 import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPackedQLayout, QR, QRPackedQ,
                              copymutable_size, getL, getQ, getR, getU, ql, ql!, ql_layout, reversecholesky_layout, ul,
@@ -55,10 +55,9 @@ import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPacke
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
 
 
-if VERSION ≥ v"1.7-"
-    LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
-    LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
-end
+LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
+LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
+
 
 if VERSION ≥ v"1.11.0-DEV.21"
     using LinearAlgebra: UpperOrLowerTriangular
@@ -69,7 +68,6 @@ else
                                               LinearAlgebra.UnitLowerTriangular{T,S}}
 end
 
-const AdjointQtype = isdefined(LinearAlgebra, :AdjointQ) ? LinearAlgebra.AdjointQ : Adjoint
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 

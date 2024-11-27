@@ -210,7 +210,7 @@ ql(A::Adjoint{T,BlockTriPertToeplitz{T}}) where T = ql(BlockTridiagonal(A))
 
 const InfBlockBandedMatrix{T} = BlockSkylineMatrix{T,<:Vcat{T,1,<:Tuple{Vector{T},<:BlockArray{T,1,<:Fill{<:Any,1,Tuple{OneToInf{Int64}}}}}}}
 
-function lmul!(adjA::AdjointQtype{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix}}, B::AbstractVector)
+function lmul!(adjA::AdjointQ{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix}}, B::AbstractVector)
     require_one_based_indexing(B)
     A = parent(adjA)
     mA, nA = size(A.factors)
@@ -252,12 +252,12 @@ function (*)(A::QLPackedQ{T,<:InfBlockBandedMatrix}, x::AbstractVector{S}) where
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
 
-function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
+function (*)(A::AdjointQ{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end
 
-function (*)(A::AdjointQtype{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::LayoutVector{S}) where {T,S}
+function (*)(A::AdjointQ{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::LayoutVector{S}) where {T,S}
     TS = promote_op(matprod, T, S)
     lmul!(A, cache(convert(AbstractVector{TS},x)))
 end

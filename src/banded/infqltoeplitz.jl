@@ -91,16 +91,11 @@ struct ProductQ{T,QQ<:Tuple} <: LayoutQ{T}
     Qs::QQ
 end
 
-if VERSION < v"1.8-"
-    ArrayLayouts.@layoutmatrix ProductQ
-    ArrayLayouts.@_layoutlmul ProductQ
-else # ArrayLayouts.@layoutmatrix ProductQ without ArrayLayouts.@layoutgetindex
-    ArrayLayouts.@layoutldiv ProductQ
-    ArrayLayouts.@layoutmul ProductQ
-    ArrayLayouts.@layoutlmul ProductQ
-    ArrayLayouts.@layoutfactorizations ProductQ
-    ArrayLayouts.@_layoutlmul ProductQ
-end
+ArrayLayouts.@layoutldiv ProductQ
+ArrayLayouts.@layoutmul ProductQ
+ArrayLayouts.@layoutlmul ProductQ
+ArrayLayouts.@layoutfactorizations ProductQ
+ArrayLayouts.@_layoutlmul ProductQ
 
 ProductQ(Qs::Union{AbstractMatrix,AbstractQ}...) = ProductQ{mapreduce(eltype, promote_type, Qs),typeof(Qs)}(Qs)
 
@@ -116,16 +111,7 @@ function lmul!(Q::ProductQ, v::AbstractVecOrMat)
     v
 end
 
-if VERSION < v"1.8-"
-    # Avoid ambiguities
-    getindex(Q::ProductQ, i::Int, j::Int) = Q[:, j][i]
 
-    function getindex(Q::ProductQ, ::Colon, j::Int)
-        y = zeros(eltype(Q), size(Q, 2))
-        y[j] = 1
-        lmul!(Q, y)
-    end
-end
 getindex(Q::ProductQ, I::AbstractVector{Int}, J::AbstractVector{Int}) =
     _getindex_by_col(Q, I, J)
 
