@@ -46,7 +46,7 @@ import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBand
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
-import LinearAlgebra: AbstractQ, AdjOrTrans, factorize, matprod, qr
+import LinearAlgebra: AbstractQ, AdjointQ, AdjOrTrans, factorize, matprod, qr
 
 import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPackedQLayout, QR, QRPackedQ,
                              copymutable_size, getL, getQ, getR, getU, ql, ql!, ql_layout, reversecholesky_layout, ul,
