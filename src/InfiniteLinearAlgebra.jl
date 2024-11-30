@@ -14,7 +14,7 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, CNoPivot, DenseColumnMajor, FillLayout,
                      MatLdivVec, MatLmulMat, MatLmulVec, MemoryLayout, QRPackedQLayout, RangeCumsum, TriangularLayout,
-                     TridiagonalLayout, __qr, _bidiag_forwardsub!, _factorize, _qr, check_mul_axes, colsupport,
+                     TridiagonalLayout, __qr, _factorize, _qr, check_mul_axes, colsupport,
                      diagonaldata, ldiv!, lmul!, mul, mulreduce, reflector!, reflectorApply!,
                      rowsupport, sub_materialize, subdiagonaldata, sublayout, supdiagonaldata, transposelayout,
                      triangulardata, triangularlayout, zero!, materialize!
@@ -24,7 +24,7 @@ import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix,
                        banded_similar, bandedcolumns, bandeddata, bandwidths
 
 import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedOneTo,
-                    blockcolsupport, sizes_from_blocks, OneToCumsum, AbstractBlockedUnitRange
+                    blockcolsupport, sizes_from_blocks, AbstractBlockedUnitRange
 
 import BlockBandedMatrices: AbstractBlockBandedLayout, BlockBandedMatrix, BlockSkylineMatrix,
                             BlockSkylineSizes, BlockTridiagonal, _BlockBandedMatrix, _BlockSkylineMatrix,

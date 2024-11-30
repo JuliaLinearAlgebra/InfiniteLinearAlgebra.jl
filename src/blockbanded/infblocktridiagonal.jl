@@ -1,42 +1,4 @@
-const BlockTriPertToeplitz{T} = BlockMatrix{T,Tridiagonal{Matrix{T},Vcat{Matrix{T},1,Tuple{Vector{Matrix{T}},Fill{Matrix{T},1,Tuple{OneToInf{Int}}}}}},
-                                        NTuple{2,BlockedOneTo{Int,Vcat{Int,1,Tuple{Vector{Int},InfStepRange{Int,Int}}}}}}
 
-const BlockTridiagonalToeplitzLayout = BlockLayout{TridiagonalToeplitzLayout,DenseColumnMajor}
-
-function BlockTridiagonal(adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T
-    A = parent(adjA)
-    BlockTridiagonal(Matrix.(adjoint.(A.blocks.du)),
-                     Matrix.(adjoint.(A.blocks.d)),
-                     Matrix.(adjoint.(A.blocks.dl)))
-end
-
-for op in (:-, :+)
-    @eval begin
-        function $op(A::BlockTriPertToeplitz{T}, λ::UniformScaling) where T
-            TV = promote_type(T,eltype(λ))
-            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.dl.args)...),
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.d, Ref(λ)).args)...),
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, A.blocks.du.args)...))
-        end
-        function $op(λ::UniformScaling, A::BlockTriPertToeplitz{V}) where V
-            TV = promote_type(eltype(λ),V)
-            BlockTridiagonal(Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.dl.args))...),
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, Ref(λ), A.blocks.d).args)...),
-                             Vcat(convert.(AbstractVector{Matrix{TV}}, broadcast($op, A.blocks.du.args))...))
-        end
-        $op(adjA::Adjoint{T,BlockTriPertToeplitz{T}}, λ::UniformScaling) where T = $op(BlockTridiagonal(adjA), λ)
-        $op(λ::UniformScaling, adjA::Adjoint{T,BlockTriPertToeplitz{T}}) where T = $op(λ, BlockTridiagonal(adjA))
-    end
-end
-
-sizes_from_blocks(A::Diagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.diag, 1), size.(A.diag,2)
-sizes_from_blocks(A::Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
-sizes_from_blocks(A::LazyBandedMatrices.Tridiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.d, 1), size.(A.d,2)
-sizes_from_blocks(A::Bidiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.dv, 1), size.(A.dv,2)
-sizes_from_blocks(A::LazyBandedMatrices.Bidiagonal, ::NTuple{2,OneToInf{Int}}) = size.(A.dv, 1), size.(A.dv,2)
-
-axes_print_matrix_row(_, io, X, A, i, ::AbstractVector{<:PosInfinity}, sep) = nothing
-axes_print_matrix_row(::NTuple{2,AbstractBlockedUnitRange}, io, X, A, i, ::AbstractVector{<:PosInfinity}, sep) = nothing
 
 
 function BlockSkylineSizes(A::BlockTriPertToeplitz, (l,u)::NTuple{2,Int})
