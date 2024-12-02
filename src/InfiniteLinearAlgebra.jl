@@ -53,10 +53,18 @@ import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPacke
                              ul!, ul_layout
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
-import InfiniteArrays: UpperOrLowerTriangular
+import InfiniteArrays: UpperOrLowerTriangular, TridiagonalToeplitzLayout, TriToeplitz, PertTridiagonalToeplitzLayout, PertConstRows
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
+const InfiniteArraysBandedMatricesExt = Base.get_extension(InfiniteArrays, :InfiniteArraysBandedMatricesExt)
+const InfiniteArraysBlockArraysExt = Base.get_extension(InfiniteArrays, :InfiniteArraysBlockArraysExt)
+const InfBandedMatrix = InfiniteArraysBandedMatricesExt.InfBandedMatrix
+const InfToeplitz = InfiniteArraysBandedMatricesExt.InfToeplitz
+const PertToeplitzLayout = InfiniteArraysBandedMatricesExt.PertToeplitzLayout
+const PertToeplitz = InfiniteArraysBandedMatricesExt.PertToeplitz
+const BlockTriPertToeplitz = InfiniteArraysBlockArraysExt.BlockTriPertToeplitz
+const BlockTridiagonalToeplitzLayout = InfiniteArraysBlockArraysExt.BlockTridiagonalToeplitzLayout
 
 
 function choplength(c::AbstractVector, tol)

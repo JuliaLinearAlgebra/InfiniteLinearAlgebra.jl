@@ -1,9 +1,9 @@
 using InfiniteLinearAlgebra, BlockBandedMatrices, BlockArrays, BandedMatrices, InfiniteArrays, FillArrays, LazyArrays, Test,
     MatrixFactorizations, ArrayLayouts, LinearAlgebra, Random, LazyBandedMatrices, StaticArrays
 import InfiniteLinearAlgebra: qltail, toeptail, tailiterate, tailiterate!, tail_de, ql_X!,
-    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix, InfBandCartesianIndices,
-    rightasymptotics, QLHessenberg, ConstRows, PertConstRows, chop, chop!, pad,
-    BandedToeplitzLayout, PertToeplitzLayout, TridiagonalToeplitzLayout, BidiagonalToeplitzLayout,
+    InfToeplitz, PertToeplitz, TriToeplitz, InfBandedMatrix,
+    rightasymptotics, QLHessenberg, PertConstRows, chop, chop!, pad,
+    PertToeplitzLayout, TridiagonalToeplitzLayout,
     BidiagonalConjugation
 import Base: BroadcastStyle, oneto
 import BlockArrays: _BlockArray, blockcolsupport, findblock
