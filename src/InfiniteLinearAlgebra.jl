@@ -20,7 +20,7 @@ import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, 
                      triangulardata, triangularlayout, zero!, materialize!
 
 import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix, AbstractBandedMatrix,
-                       _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, _default_banded_broadcast, banded_chol!,
+                       _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, banded_chol!,
                        banded_similar, bandedcolumns, bandeddata, bandwidths
 
 import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedOneTo,
