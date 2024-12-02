@@ -108,8 +108,6 @@ export ∞, ContinuousSpectrumError, BlockTridiagonal
 
 include("banded/hessenbergq.jl")
 
-include("banded/infbanded.jl")
-include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
 include("banded/infreversecholeskytoeplitz.jl")
 include("banded/infreversecholeskytridiagonal.jl")
