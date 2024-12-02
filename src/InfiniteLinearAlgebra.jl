@@ -53,7 +53,8 @@ import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPacke
                              ul!, ul_layout
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
-import InfiniteArrays: UpperOrLowerTriangular, TridiagonalToeplitzLayout, TriToeplitz, PertTridiagonalToeplitzLayout, PertConstRows
+import InfiniteArrays: UpperOrLowerTriangular, TridiagonalToeplitzLayout, TriToeplitz, PertTridiagonalToeplitzLayout, PertConstRows, 
+                        subdiagonalconstant, diagonalconstant, supdiagonalconstant
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
