@@ -14,17 +14,17 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, CNoPivot, DenseColumnMajor, FillLayout,
                      MatLdivVec, MatLmulMat, MatLmulVec, MemoryLayout, QRPackedQLayout, RangeCumsum, TriangularLayout,
-                     TridiagonalLayout, __qr, _bidiag_forwardsub!, _factorize, _qr, check_mul_axes, colsupport,
+                     TridiagonalLayout, __qr, _factorize, _qr, check_mul_axes, colsupport,
                      diagonaldata, ldiv!, lmul!, mul, mulreduce, reflector!, reflectorApply!,
                      rowsupport, sub_materialize, subdiagonaldata, sublayout, supdiagonaldata, transposelayout,
                      triangulardata, triangularlayout, zero!, materialize!
 
 import BandedMatrices: BandedColumns, BandedMatrix, BandedMatrix, _BandedMatrix, AbstractBandedMatrix,
-                       _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, _default_banded_broadcast, banded_chol!,
+                       _BandedMatrix, _BandedMatrix, _banded_qr, _banded_qr!, banded_chol!,
                        banded_similar, bandedcolumns, bandeddata, bandwidths
 
 import BlockArrays: AbstractBlockLayout, BlockLayout, BlockSlice, BlockSlice1, BlockedOneTo,
-                    blockcolsupport, sizes_from_blocks, OneToCumsum, AbstractBlockedUnitRange
+                    blockcolsupport, sizes_from_blocks, AbstractBlockedUnitRange
 
 import BlockBandedMatrices: AbstractBlockBandedLayout, BlockBandedMatrix, BlockSkylineMatrix,
                             BlockSkylineSizes, BlockTridiagonal, _BlockBandedMatrix, _BlockSkylineMatrix,
@@ -53,35 +53,20 @@ import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPacke
                              ul!, ul_layout
 
 import SemiseparableMatrices: AbstractAlmostBandedLayout, _almostbanded_qr!
-
-
-LinearAlgebra._cut_B(x::AbstractVector, ::InfUnitRange) = x
-LinearAlgebra._cut_B(X::AbstractMatrix, ::InfUnitRange) = X
-
-
-if VERSION ≥ v"1.11.0-DEV.21"
-    using LinearAlgebra: UpperOrLowerTriangular
-else
-    const UpperOrLowerTriangular{T,S} = Union{LinearAlgebra.UpperTriangular{T,S},
-                                              LinearAlgebra.UnitUpperTriangular{T,S},
-                                              LinearAlgebra.LowerTriangular{T,S},
-                                              LinearAlgebra.UnitLowerTriangular{T,S}}
-end
-
+import InfiniteArrays: UpperOrLowerTriangular, TridiagonalToeplitzLayout, TriToeplitz, PertTridiagonalToeplitzLayout, PertConstRows, 
+                        subdiagonalconstant, diagonalconstant, supdiagonalconstant
 
 # BroadcastStyle(::Type{<:BandedMatrix{<:Any,<:Any,<:OneToInf}}) = LazyArrayStyle{2}()
 
-function ArrayLayouts._power_by_squaring(_, ::NTuple{2,InfiniteCardinal{0}}, A::AbstractMatrix{T}, p::Integer) where T
-    if p < 0
-        inv(A)^(-p)
-    elseif p == 0
-        Eye{T}(∞)
-    elseif p == 1
-        copy(A)
-    else
-        A*A^(p-1)
-    end
-end
+const InfiniteArraysBandedMatricesExt = Base.get_extension(InfiniteArrays, :InfiniteArraysBandedMatricesExt)
+const InfiniteArraysBlockArraysExt = Base.get_extension(InfiniteArrays, :InfiniteArraysBlockArraysExt)
+const InfBandedMatrix = InfiniteArraysBandedMatricesExt.InfBandedMatrix
+const InfToeplitz = InfiniteArraysBandedMatricesExt.InfToeplitz
+const PertToeplitzLayout = InfiniteArraysBandedMatricesExt.PertToeplitzLayout
+const PertToeplitz = InfiniteArraysBandedMatricesExt.PertToeplitz
+const BlockTriPertToeplitz = InfiniteArraysBlockArraysExt.BlockTriPertToeplitz
+const BlockTridiagonalToeplitzLayout = InfiniteArraysBlockArraysExt.BlockTridiagonalToeplitzLayout
+
 
 function choplength(c::AbstractVector, tol)
     @inbounds for k = length(c):-1:1
@@ -128,12 +113,10 @@ pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
 pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
 pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
-export Vcat, Fill, ql, ql!, ∞, ContinuousSpectrumError, BlockTridiagonal
+export ∞, ContinuousSpectrumError, BlockTridiagonal
 
 include("banded/hessenbergq.jl")
 
-include("banded/infbanded.jl")
-include("blockbanded/blockbanded.jl")
 include("banded/infqltoeplitz.jl")
 include("banded/infreversecholeskytoeplitz.jl")
 include("banded/infreversecholeskytridiagonal.jl")
