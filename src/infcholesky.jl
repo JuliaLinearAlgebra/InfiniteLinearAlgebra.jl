@@ -54,7 +54,8 @@ ArrayLayouts._cholesky(::SymTridiagonalLayout, ::NTuple{2,OneToInf{Int}}, A, ::C
 ArrayLayouts._cholesky(::SymmetricLayout{<:AbstractBandedLayout}, ::NTuple{2,OneToInf{Int}}, A, ::CNoPivot) = adaptivecholesky(A)
 
 colsupport(::AdaptiveCholeskyFactors, ::OneToInf) = OneToInf()
-rowsupport(::AdaptiveCholeskyFactors, ::OneToInf) = OneToInf()
+colsupport(F::AdaptiveCholeskyFactors, kr::AbstractInfUnitRange) = max(1,kr[1]-bandwidth(F,2)):∞
+rowsupport(::AdaptiveCholeskyFactors, kr::AbstractInfUnitRange) = kr
 
 function colsupport(F::AdaptiveCholeskyFactors, j)
     partialcholesky!(F, maximum(j)+bandwidth(F,2))
