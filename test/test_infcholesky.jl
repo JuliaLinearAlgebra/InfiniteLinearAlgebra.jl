@@ -64,6 +64,9 @@ import InfiniteLinearAlgebra: SymmetricBandedLayouts, AdaptiveCholeskyFactors
         F = cholesky(S)
         @test colsupport(F.factors,5) == rowsupport(F.factors,3) == 3:5
         @test rowsupport(F.factors) == colsupport(F.factors) == axes(F.factors,1)
+        @test rowsupport(F.factors,2:∞) == 2:∞
+        @test colsupport(F.factors,2:∞) == 1:∞
+        @test colsupport(F.factors,5:∞) == 3:∞
 
         @test (F.U * F.U')[1:10,1:10]  ≈ F.U[1:10,1:12] * F.U[1:10,1:12]'
         @test (F.U' * F.U)[1:10,1:10]  ≈ S[1:10,1:10]
