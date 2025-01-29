@@ -89,10 +89,45 @@ using LazyArrays: LazyLayout
     end
 
     @testset "Chebyshev" begin
-        R0 = BandedMatrix(0 => [1; Fill(0.5,∞)], 2 => Fill(-0.5,∞))
+        R0 = BandedMatrices._BandedMatrix(Vcat(-Ones(1,∞)/2,
+                                    Zeros(1,∞),
+                                    Hcat(Ones(1,1),Ones(1,∞)/2)), ℵ₀, 0,2)
+        
         D0 = BandedMatrix(1 => 1:∞)
         R1 = BandedMatrix(0 => 1 ./ (1:∞), 2 => -1 ./ (3:∞))
 
-        BidiagonalConjugation(R1, D0, R0, :U)
+        B = BidiagonalConjugation(R0', D0', R1', :L)'
     end
+end
+
+
+"""
+tridiagonal(A, B) == Tridiagonal(A*B)
+"""
+function tridiagonalmul(A, B)
+    T = promote_type(eltype(A), eltype(B))
+    UX = Tridiagonal(Vector{T}(undef, n-1), Vector{T}(undef, n), Vector{T}(undef, n-1))
+
+    for j = 1:n-1
+        UX.d[j] = U.data[3,j]*X.d[j] + U.data[2,j]*X.dl[j]
+    end
+    UX.d[n] = U.data[3,n]*X.d[n]
+
+    for j = 1:n-1
+        UX.dl[j] = U.data[3,j]*X.d[j] + U.data[2,j]*X.dl[j]
+    end
+end
+
+@testset "TridiagonalConjugation" begin
+    R0 = BandedMatrices._BandedMatrix(Vcat(-Ones(1,∞)/2,
+                                    Zeros(1,∞),
+                                    Hcat(Ones(1,1),Ones(1,∞)/2)), ℵ₀, 0,2)
+    X_T = LazyBandedMatrices.Tridiagonal(Vcat(1.0, Fill(1/2,∞)), Zeros(∞), Fill(1/2,∞))
+
+    n = 1000; @time U = V = R0[1:n,1:n]
+    @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]))
+
+    @time U*X
+    T = Float64
+
 end
