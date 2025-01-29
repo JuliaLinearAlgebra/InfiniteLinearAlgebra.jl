@@ -4,7 +4,7 @@ using ArrayLayouts: supdiagonaldata, subdiagonaldata, diagonaldata
 using LinearAlgebra
 using LazyArrays: LazyLayout
 
-@testset "BidiagonalConjugationData" begin
+@testset "BidiagonalConjugation" begin
     @test InfiniteLinearAlgebra._to_uplo('U') == 'U'
     @test InfiniteLinearAlgebra._to_uplo('L') == 'L'
     @test_throws ArgumentError InfiniteLinearAlgebra._to_uplo('a')
@@ -86,5 +86,13 @@ using LazyArrays: LazyLayout
             # Make sure that, when indexing the transpose, B expands correctly
             @test B'[3000:3005, 2993:3006] ≈ A[2993:3006, 3000:3005]'
         end
+    end
+
+    @testset "Chebyshev" begin
+        R0 = BandedMatrix(0 => [1; Fill(0.5,∞)], 2 => Fill(-0.5,∞))
+        D0 = BandedMatrix(1 => 1:∞)
+        R1 = BandedMatrix(0 => 1 ./ (1:∞), 2 => -1 ./ (3:∞))
+
+        BidiagonalConjugation(R1, D0, R0, :U)
     end
 end
