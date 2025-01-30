@@ -102,21 +102,88 @@ end
 
 
 """
-tridiagonal(A, B) == Tridiagonal(A*B)
+upper_mul_tri_triview(A, B) == Tridiagonal(A*B) where A is Upper triangular BandedMatrix and B is 
 """
-function tridiagonalmul(A, B)
-    T = promote_type(eltype(A), eltype(B))
-    UX = Tridiagonal(Vector{T}(undef, n-1), Vector{T}(undef, n), Vector{T}(undef, n-1))
+function upper_mul_tri_triview(U, X)
+    T = promote_type(eltype(U), eltype(X))
+    n = size(U,1)
+    upper_mul_tri_triview!(Tridiagonal(Vector{T}(undef, n-1), Vector{T}(undef, n), Vector{T}(undef, n-1)), U, X)
+end
 
-    for j = 1:n-1
-        UX.d[j] = U.data[3,j]*X.d[j] + U.data[2,j]*X.dl[j]
+
+# function upper_mul_tri_triview!(UX::Tridiagonal, U::BandedMatrix, X::Tridiagonal)
+#     n = size(U,1)
+#     @inbounds for j = 1:n-1
+#         UX.d[j] = U.data[3,j]*X.d[j] + U.data[2,j]*X.dl[j]
+#     end
+#     UX.d[n] = U.data[3,n]*X.d[n]
+
+#     @inbounds for j = 1:n-1
+#         UX.dl[j] = U.data[3,j+1]*X.dl[j]
+#     end
+
+#     @inbounds for j = 1:n-2
+#         UX.du[j] = U.data[3,j]*X.du[j] + U.data[2,j+1]*X.d[j+1] + U.data[1,j+2]*X.dl[j+1]
+#     end
+
+#     UX.du[n-1] = U.data[3,n-1]*X.du[n-1] + U.data[2,n]*X.d[n]
+
+#     UX
+# end
+
+function upper_mul_tri_triview!(UX::Tridiagonal, U::BandedMatrix, X::Tridiagonal)
+    n = size(U,1)
+    j = 1
+    Xⱼⱼ, Xⱼ₊₁ⱼ = X.d[1], X.dl[1]
+    Uⱼⱼ, Uⱼⱼ₊₁, Uⱼⱼ₊₂ =  U.data[3,1], U.data[2,2],  U.data[1,3] # U[j,j], U[j,j+1], U[j,j+2]
+    UX.d[1] = Uⱼⱼ*Xⱼⱼ +  Uⱼⱼ₊₁*Xⱼ₊₁ⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
+    Xⱼⱼ₊₁, Xⱼⱼ, Xⱼ₊₁ⱼ, Xⱼⱼ₋₁ = X.du[1], X.d[2], X.dl[2], Xⱼ₊₁ⱼ  # X[j,j+1], X[j+1,j+1], X[j+2,j+1], X[j+1,j]
+    UX.du[1] = Uⱼⱼ*Xⱼⱼ₊₁ + Uⱼⱼ₊₁*Xⱼⱼ + Uⱼⱼ₊₂*Xⱼ₊₁ⱼ # UX[j,j+1] = U[j,j]*X[j,j+1] + U[j,j+1]*X[j+1,j+1] + U[j,j+1]*X[j+1,j]
+
+    @inbounds for j = 2:n-2
+        Uⱼⱼ, Uⱼⱼ₊₁, Uⱼⱼ₊₂ =  U.data[3,j], U.data[2,j+1],  U.data[1,j+2] # U[j,j], U[j,j+1], U[j,j+2]
+        UX.dl[j-1] = Uⱼⱼ*Xⱼⱼ₋₁ # UX[j,j-1] = U[j,j]*X[j,j-1]
+        UX.d[j] = Uⱼⱼ*Xⱼⱼ +  Uⱼⱼ₊₁*Xⱼ₊₁ⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
+        Xⱼⱼ₊₁, Xⱼⱼ, Xⱼ₊₁ⱼ, Xⱼⱼ₋₁ = X.du[j], X.d[j+1], X.dl[j+1], Xⱼ₊₁ⱼ  # X[j,j+1], X[j+1,j+1], X[j+2,j+1], X[j+1,j]
+        UX.du[j] = Uⱼⱼ*Xⱼⱼ₊₁ + Uⱼⱼ₊₁*Xⱼⱼ + Uⱼⱼ₊₂*Xⱼ₊₁ⱼ # UX[j,j+1] = U[j,j]*X[j,j+1] + U[j,j+1]*X[j+1,j+1] + U[j,j+2]*X[j+2,j+1]
+    end
+
+    j = n-1
+    Uⱼⱼ, Uⱼⱼ₊₁ =  U.data[3,j], U.data[2,j+1] # U[j,j], U[j,j+1]
+    UX.dl[j-1] = Uⱼⱼ*Xⱼⱼ₋₁ # UX[j,j-1] = U[j,j]*X[j,j-1]
+    UX.d[j] = Uⱼⱼ*Xⱼⱼ +  Uⱼⱼ₊₁*Xⱼ₊₁ⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
+    Xⱼⱼ₊₁, Xⱼⱼ, Xⱼⱼ₋₁ = X.du[j], X.d[j+1], Xⱼ₊₁ⱼ  # X[j,j+1], X[j+1,j+1], X[j+2,j+1], X[j+1,j]
+    UX.du[j] = Uⱼⱼ*Xⱼⱼ₊₁ + Uⱼⱼ₊₁*Xⱼⱼ # UX[j,j+1] = U[j,j]*X[j,j+1] + U[j,j+1]*X[j+1,j+1] + U[j,j+2]*X[j+2,j+1]
+
+    j = n
+    Uⱼⱼ =  U.data[3,j] # U[j,j]
+    UX.dl[j-1] = Uⱼⱼ*Xⱼⱼ₋₁ # UX[j,j-1] = U[j,j]*X[j,j-1]
+    UX.d[j] = Uⱼⱼ*Xⱼⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
+
+    UX
+end
+
+tri_mul_invupper_triview(UX::Tridiagonal, R::BandedMatrix) = tri_mul_invupper_triview!(similar(UX, promote_type(eltype(UX), eltype(R))), UX, R)
+
+function tri_mul_invupper_triview!(X, UX, R)
+    @inbounds for j = 1:n-1
+        UX.d[j] = UX.d[j]/ U.data[3,j]*X.d[j] + U.data[2,j]*X.dl[j]
     end
     UX.d[n] = U.data[3,n]*X.d[n]
 
-    for j = 1:n-1
-        UX.dl[j] = U.data[3,j]*X.d[j] + U.data[2,j]*X.dl[j]
+    @inbounds for j = 1:n-1
+        UX.dl[j] = U.data[3,j+1]*X.dl[j]
     end
+
+    @inbounds for j = 1:n-2
+        UX.du[j] = U.data[3,j]*X.du[j] + U.data[2,j+1]*X.d[j+1] + U.data[1,j+2]*X.dl[j+1]
+    end
+
+    UX.du[n-1] = U.data[3,n-1]*X.du[n-1] + U.data[2,n]*X.d[n]
+
+    UX
 end
+
 
 @testset "TridiagonalConjugation" begin
     R0 = BandedMatrices._BandedMatrix(Vcat(-Ones(1,∞)/2,
@@ -124,10 +191,9 @@ end
                                     Hcat(Ones(1,1),Ones(1,∞)/2)), ℵ₀, 0,2)
     X_T = LazyBandedMatrices.Tridiagonal(Vcat(1.0, Fill(1/2,∞)), Zeros(∞), Fill(1/2,∞))
 
-    n = 1000; @time U = V = R0[1:n,1:n]
-    @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]))
+    n = 1000; @time U = V = R0[1:n,1:n];
+    @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]));
 
-    @time U*X
-    T = Float64
+    @test Tridiagonal(U*X) ≈  upper_mul_tri_triview(U, X)
 
 end
