@@ -158,7 +158,7 @@ function tri_mul_invupper_triview!(Y, X, R)
     Y.d[k] = Xₖₖ/Rₖₖ
     Y.du[k] = Xₖₖ₊₁ - Xₖₖ * Rₖₖ₊₁/Rₖₖ
     
-    for k = 2:n-1
+    @inbounds for k = 2:n-1
         Xₖₖ₋₁,Xₖₖ,Xₖₖ₊₁ = X.dl[k-1], X.d[k], X.du[k]
         Y.dl[k-1] = Xₖₖ₋₁/Rₖₖ
         Y.d[k] = Xₖₖ-Xₖₖ₋₁*Rₖₖ₊₁/Rₖₖ
