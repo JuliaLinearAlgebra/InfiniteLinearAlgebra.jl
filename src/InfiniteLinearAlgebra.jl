@@ -125,5 +125,6 @@ include("infqr.jl")
 include("inful.jl")
 include("infcholesky.jl")
 include("banded/bidiagonalconjugation.jl")
+include("banded/tridiagonalconjugation.jl")
 
 end # module
