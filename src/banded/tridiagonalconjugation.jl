@@ -24,9 +24,9 @@ function upper_mul_tri_triview!(UX::Tridiagonal, U::BandedMatrix, X::Tridiagonal
     # Tridiagonal bands can be resized
     @assert length(Xdl)+1 == length(Xd) == length(Xdu)+1 == length(UXdl)+1 == length(UXd) == length(UXdu)+1 == n
 
-    UX, bⱼ, aⱼ, cⱼ, cⱼ₋₁ = initiate_upper_mul_tri_triview!(UX, U, X)
-    UX, bⱼ, aⱼ, cⱼ, cⱼ₋₁ = main_upper_mul_tri_triview!(UX, U, X, 2:n-2, bⱼ, aⱼ, cⱼ, cⱼ₋₁)
-    finalize_upper_mul_tri_triview!(UX, U, X, n-1, bⱼ, aⱼ, cⱼ, cⱼ₋₁)
+    UX, bₖ, aₖ, cₖ, cₖ₋₁ = initiate_upper_mul_tri_triview!(UX, U, X)
+    UX, bₖ, aₖ, cₖ, cₖ₋₁ = main_upper_mul_tri_triview!(UX, U, X, 2:n-2, bₖ, aₖ, cₖ, cₖ₋₁)
+    finalize_upper_mul_tri_triview!(UX, U, X, n-1, bₖ, aₖ, cₖ, cₖ₋₁)
 end
 
 
@@ -37,50 +37,50 @@ function initiate_upper_mul_tri_triview!(UX, U, X)
 
     l,u = bandwidths(U)
 
-    j = 1
-    aⱼ, cⱼ = Xd[1], Xdl[1]
-    Uⱼⱼ, Uⱼⱼ₊₁, Uⱼⱼ₊₂ =  Udat[u+1,1], Udat[u,2],  Udat[u-1,3] # U[j,j], U[j,j+1], U[j,j+2]
-    UXd[1] = Uⱼⱼ*aⱼ +  Uⱼⱼ₊₁*cⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
-    bⱼ, aⱼ, cⱼ, cⱼ₋₁ = Xdu[1], Xd[2], Xdl[2], cⱼ  # X[j,j+1], X[j+1,j+1], X[j+2,j+1], X[j+1,j]
-    UXdu[1] = Uⱼⱼ*bⱼ + Uⱼⱼ₊₁*aⱼ + Uⱼⱼ₊₂*cⱼ # UX[j,j+1] = U[j,j]*X[j,j+1] + U[j,j+1]*X[j+1,j+1] + U[j,j+1]*X[j+1,j]
+    k = 1
+    aₖ, cₖ = Xd[1], Xdl[1]
+    Uₖₖ, Uₖₖ₊₁, Uₖₖ₊₂ =  Udat[u+1,1], Udat[u,2],  Udat[u-1,3] # U[k,k], U[k,k+1], U[k,k+2]
+    UXd[1] = Uₖₖ*aₖ +  Uₖₖ₊₁*cₖ  # UX[k,k] = U[k,k]*X[k,k] + U[k,k+1]*X[k+1,k]
+    bₖ, aₖ, cₖ, cₖ₋₁ = Xdu[1], Xd[2], Xdl[2], cₖ  # X[k,k+1], X[k+1,k+1], X[k+2,k+1], X[k+1,k]
+    UXdu[1] = Uₖₖ*bₖ + Uₖₖ₊₁*aₖ + Uₖₖ₊₂*cₖ # UX[k,k+1] = U[k,k]*X[k,k+1] + U[k,k+1]*X[k+1,k+1] + U[k,k+1]*X[k+1,k]
 
-    UX, bⱼ, aⱼ, cⱼ, cⱼ₋₁
+    UX, bₖ, aₖ, cₖ, cₖ₋₁
 end
 
-
-function main_upper_mul_tri_triview!(UX, U, X, jr, bⱼ, aⱼ, cⱼ, cⱼ₋₁)
+# fills in the rows kr of UX
+function main_upper_mul_tri_triview!(UX, U, X, kr, bₖ=X.du[kr[1]-1], aₖ=X.d[kr[1]], cₖ=X.dl[kr[1]], cₖ₋₁=X.du[kr[1]-1])
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     UXdl, UXd, UXdu = UX.dl, UX.d, UX.du
     Udat = U.data
     l,u = bandwidths(U)
 
-    @inbounds for j = jr
-        Uⱼⱼ, Uⱼⱼ₊₁, Uⱼⱼ₊₂ =  Udat[u+1,j], Udat[u,j+1],  Udat[u-1,j+2] # U[j,j], U[j,j+1], U[j,j+2]
-        UXdl[j-1] = Uⱼⱼ*cⱼ₋₁ # UX[j,j-1] = U[j,j]*X[j,j-1]
-        UXd[j] = Uⱼⱼ*aⱼ +  Uⱼⱼ₊₁*cⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
-        bⱼ, aⱼ, cⱼ, cⱼ₋₁ = Xdu[j], Xd[j+1], Xdl[j+1], cⱼ  # X[j,j+1], X[j+1,j+1], X[j+2,j+1], X[j+1,j]
-        UXdu[j] = Uⱼⱼ*bⱼ + Uⱼⱼ₊₁*aⱼ + Uⱼⱼ₊₂*cⱼ # UX[j,j+1] = U[j,j]*X[j,j+1] + U[j,j+1]*X[j+1,j+1] + U[j,j+2]*X[j+2,j+1]
+    for k = kr
+        Uₖₖ, Uₖₖ₊₁, Uₖₖ₊₂ =  Udat[u+1,k], Udat[u,k+1],  Udat[u-1,k+2] # U[k,k], U[k,k+1], U[k,k+2]
+        UXdl[k-1] = Uₖₖ*cₖ₋₁ # UX[k,k-1] = U[k,k]*X[k,k-1]
+        UXd[k] = Uₖₖ*aₖ +  Uₖₖ₊₁*cₖ  # UX[k,k] = U[k,k]*X[k,k] + U[k,k+1]*X[k+1,k]
+        bₖ, aₖ, cₖ, cₖ₋₁ = Xdu[k], Xd[k+1], Xdl[k+1], cₖ  # X[k,k+1], X[k+1,k+1], X[k+2,k+1], X[k+1,k]
+        UXdu[k] = Uₖₖ*bₖ + Uₖₖ₊₁*aₖ + Uₖₖ₊₂*cₖ # UX[k,k+1] = U[k,k]*X[k,k+1] + U[k,k+1]*X[k+1,k+1] + U[k,k+2]*X[k+2,k+1]
     end
 
-    UX, bⱼ, aⱼ, cⱼ, cⱼ₋₁
+    UX, bₖ, aₖ, cₖ, cₖ₋₁
 end
 
-function finalize_upper_mul_tri_triview!(UX, U, X, j, bⱼ, aⱼ, cⱼ, cⱼ₋₁)
+function finalize_upper_mul_tri_triview!(UX, U, X, k, bₖ, aₖ, cₖ, cₖ₋₁)
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     UXdl, UXd, UXdu = UX.dl, UX.d, UX.du
     Udat = U.data
     l,u = bandwidths(U)
 
-    Uⱼⱼ, Uⱼⱼ₊₁ =  Udat[u+1,j], Udat[u,j+1] # U[j,j], U[j,j+1]
-    UXdl[j-1] = Uⱼⱼ*cⱼ₋₁ # UX[j,j-1] = U[j,j]*X[j,j-1]
-    UXd[j] = Uⱼⱼ*aⱼ +  Uⱼⱼ₊₁*cⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
-    bⱼ, aⱼ, cⱼ₋₁ = Xdu[j], Xd[j+1], cⱼ  # X[j,j+1], X[j+1,j+1], X[j+2,j+1], X[j+1,j]
-    UXdu[j] = Uⱼⱼ*bⱼ + Uⱼⱼ₊₁*aⱼ # UX[j,j+1] = U[j,j]*X[j,j+1] + U[j,j+1]*X[j+1,j+1] + U[j,j+2]*X[j+2,j+1]
+    Uₖₖ, Uₖₖ₊₁ =  Udat[u+1,k], Udat[u,k+1] # U[k,k], U[k,k+1]
+    UXdl[k-1] = Uₖₖ*cₖ₋₁ # UX[k,k-1] = U[k,k]*X[k,k-1]
+    UXd[k] = Uₖₖ*aₖ +  Uₖₖ₊₁*cₖ  # UX[k,k] = U[k,k]*X[k,k] + U[k,k+1]*X[k+1,k]
+    bₖ, aₖ, cₖ₋₁ = Xdu[k], Xd[k+1], cₖ  # X[k,k+1], X[k+1,k+1], X[k+2,k+1], X[k+1,k]
+    UXdu[k] = Uₖₖ*bₖ + Uₖₖ₊₁*aₖ # UX[k,k+1] = U[k,k]*X[k,k+1] + U[k,k+1]*X[k+1,k+1] + U[k,k+2]*X[k+2,k+1]
 
-    j += 1
-    Uⱼⱼ =  Udat[u+1,j] # U[j,j]
-    UXdl[j-1] = Uⱼⱼ*cⱼ₋₁ # UX[j,j-1] = U[j,j]*X[j,j-1]
-    UXd[j] = Uⱼⱼ*aⱼ  # UX[j,j] = U[j,j]*X[j,j] + U[j,j+1]*X[j+1,j]
+    k += 1
+    Uₖₖ =  Udat[u+1,k] # U[k,k]
+    UXdl[k-1] = Uₖₖ*cₖ₋₁ # UX[k,k-1] = U[k,k]*X[k,k-1]
+    UXd[k] = Uₖₖ*aₖ  # UX[k,k] = U[k,k]*X[k,k] + U[k,k+1]*X[k+1,k]
 
     UX
 end
@@ -152,19 +152,24 @@ mutable struct TridiagonalConjugationData{T}
     datasize::Int
 end
 
-function TridiagonalConjugationData(U, X, V, uplo::Char)
-    T = promote_type(typeof(inv(V[1, 1])), eltype(U), eltype(C)) # include inv so that we can't get Ints
-    return BidiagonalConjugationData(U, X, V, Tridiagonal(T[], T[], T[]), Tridiagonal(T[], T[], T[]), 0)
+function TridiagonalConjugationData(U, X, V)
+    T = promote_type(typeof(inv(V[1, 1])), eltype(U), eltype(X)) # include inv so that we can't get Ints
+    n_init = 100
+    UX = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
+    Y = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
+    initiate_upper_mul_tri_triview!(UX, U, X) # fill-in 1st row
+    return TridiagonalConjugationData(U, X, V, UX, Y, 1)
 end
+
+TridiagonalConjugationData(U, X) = TridiagonalConjugationData(U, X, U)
 
 copy(data::TridiagonalConjugationData) = TridiagonalConjugationData(copy(data.U), copy(data.X), copy(data.V), copy(data.UX), copy(data.Y), data.datasize)
 
 
 function resizedata!(data::TridiagonalConjugationData, n)
-    n ≤ 0 && return data
-    n = max(v, n)
-    dv, ev = data.dv, data.ev
-    if n > length(ev) # Avoid O(n²) growing. Note min(length(dv), length(ev)) == length(ev)
+    n ≤ data.datasize && return data
+
+    if n > length(data.UX.d) # Avoid O(n²) growing. Note min(length(dv), length(ev)) == length(ev)
         resize!(data.UX.dl, 2n)
         resize!(data.UX.d, 2n + 1)
         resize!(data.UX.du, 2n)
@@ -174,6 +179,8 @@ function resizedata!(data::TridiagonalConjugationData, n)
         resize!(data.Y.du, 2n)
     end
 
+    main_upper_mul_tri_triview!(data.UX, data.U, data.X, data.datasize+1:n)
 
+    data.datasize = n
 end
 

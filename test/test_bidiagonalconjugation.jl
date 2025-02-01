@@ -115,6 +115,8 @@ end
         # U*X*inv(U) only depends on Tridiagonal(U*X)
         @time Y = InfiniteLinearAlgebra.tri_mul_invupper_triview(UX, U)
         @test Tridiagonal(U*X / U) ≈ Tridiagonal(UX / U) ≈ Y
+
+        InfiniteLinearAlgebra.TridiagonalConjugationData(U, X, U)
     end
     @testset "P -> Ultraspherical(3/2)" begin
         R = BandedMatrices._BandedMatrix(Vcat((-1 ./ (1:2:∞))',
