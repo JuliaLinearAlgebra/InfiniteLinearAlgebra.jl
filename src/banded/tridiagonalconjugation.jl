@@ -28,7 +28,11 @@ function upper_mul_tri_triview!(UX::Tridiagonal, U::BandedMatrix, X::Tridiagonal
 end
 
 # populate first row of UX with UX
-function initiate_upper_mul_tri_triview!(UX, U, X)
+
+initiate_upper_mul_tri_triview!(UX, U::UpperTriangular, X) = initiate_upper_mul_tri_triview!(UX, parent(U), X)
+initiate_upper_mul_tri_triview!(UX, U::CachedMatrix, X) = initiate_upper_mul_tri_triview!(UX, U.data, X)
+
+function initiate_upper_mul_tri_triview!(UX, U::BandedMatrix, X)
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     UXdl, UXd, UXdu = UX.dl, UX.d, UX.du
     Udat = U.data
@@ -46,7 +50,12 @@ function initiate_upper_mul_tri_triview!(UX, U, X)
 end
 
 # fills in the rows kr of UX
-function main_upper_mul_tri_triview!(UX, U, X, kr, bₖ=X.du[kr[1]-1], aₖ=X.d[kr[1]], cₖ=X.dl[kr[1]], cₖ₋₁=X.du[kr[1]-1])
+function main_upper_mul_tri_triview!(UX, U::CachedMatrix, X, kr, kwds...)
+    resizedata!(U, kr[end], kr[end]+2)
+    main_upper_mul_tri_triview!(UX, U.data, X, kr, kwds...)
+end
+
+function main_upper_mul_tri_triview!(UX, U::BandedMatrix, X, kr, bₖ=X.du[kr[1]-1], aₖ=X.d[kr[1]], cₖ=X.dl[kr[1]], cₖ₋₁=X.dl[kr[1]-1])
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     UXdl, UXd, UXdu = UX.dl, UX.d, UX.du
     Udat = U.data
@@ -109,8 +118,14 @@ function tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::BandedMatr
     finalize_tri_mul_invupper_triview!(Y, X, R, n, Rₖₖ, Rₖₖ₊₁)
 end
 
-# populate first row of X/R
-function initiate_tri_mul_invupper_triview!(Y, X, R)
+# partially-populate first row of X/R
+# Ydu[k] is updated below
+function initiate_tri_mul_invupper_triview!(Y, X, R::CachedMatrix)
+    resizedata!(R, 1, 2)
+    initiate_tri_mul_invupper_triview!(Y, X, R.data)
+end
+
+function initiate_tri_mul_invupper_triview!(Y, X, R::BandedMatrix)
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     Ydl, Yd, Ydu = Y.dl, Y.d, Y.du
     Rdat = R.data
@@ -120,6 +135,7 @@ function initiate_tri_mul_invupper_triview!(Y, X, R)
     k = 1
     aₖ,bₖ = Xd[k], Xdu[k]
     Rₖₖ,Rₖₖ₊₁ = Rdat[u+1,k], Rdat[u,k+1] # R[1,1], R[1,2]
+    
     Yd[k] = aₖ/Rₖₖ
     Ydu[k] = bₖ - aₖ * Rₖₖ₊₁/Rₖₖ
 
@@ -127,8 +143,13 @@ function initiate_tri_mul_invupper_triview!(Y, X, R)
 end
 
 
-# populate rows kr of X/R
-function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::BandedMatrix, kr, Rₖₖ=R[first(kr),first(kr)], Rₖₖ₊₁=R[first(kr),first(kr)+1])
+# populate rows kr of X/R. Ydu[k] is wrong until next run.
+function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::CachedMatrix, kr, kwds...)
+    resizedata!(R, kr[end], kr[end]+1)
+    main_tri_mul_invupper_triview!(Y, X, R.data, kr, kwds...)
+end
+
+function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::BandedMatrix, kr, Rₖₖ=R[first(kr)-1,first(kr)-1], Rₖₖ₊₁=R[first(kr)-1,first(kr)])
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     Ydl, Yd, Ydu = Y.dl, Y.d, Y.du
     Rdat = R.data
@@ -187,11 +208,18 @@ function TridiagonalConjugationData(U, X, V)
     n_init = 100
     UX = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
     Y = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
+    resizedata!(U, n_init, n_init)
+    resizedata!(V, n_init, n_init)
     initiate_upper_mul_tri_triview!(UX, U, X) # fill-in 1st row
-    return TridiagonalConjugationData(U, X, V, UX, Y, 1)
+    initiate_tri_mul_invupper_triview!(Y, UX, V)
+    return TridiagonalConjugationData(U, X, V, UX, Y, 0)
 end
 
-TridiagonalConjugationData(U, X) = TridiagonalConjugationData(U, X, U)
+
+function TridiagonalConjugationData(U, X)
+    C = cache(U)
+    TridiagonalConjugationData(C, X, C)
+end
 
 copy(data::TridiagonalConjugationData) = TridiagonalConjugationData(copy(data.U), copy(data.X), copy(data.V), copy(data.UX), copy(data.Y), data.datasize)
 
@@ -209,8 +237,13 @@ function resizedata!(data::TridiagonalConjugationData, n)
         resize!(data.Y.du, 2n)
     end
 
-    main_upper_mul_tri_triview!(data.UX, data.U, data.X, data.datasize+1:n)
 
-    data.datasize = n
+    if n > data.datasize
+        main_upper_mul_tri_triview!(data.UX, data.U, data.X, data.datasize+2:n+1)
+        main_tri_mul_invupper_triview!(data.Y, data.UX, data.U, data.datasize+2:n+1) # need one extra as it updates first row
+        data.datasize = n
+    end
+
+    data
 end
 

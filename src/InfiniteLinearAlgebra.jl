@@ -14,7 +14,7 @@ import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
 import ArrayLayouts: AbstractBandedLayout, AbstractQLayout, AdjQRPackedQLayout, CNoPivot, DenseColumnMajor, FillLayout,
                      MatLdivVec, MatLmulMat, MatLmulVec, MemoryLayout, QRPackedQLayout, RangeCumsum, TriangularLayout,
-                     TridiagonalLayout, __qr, _factorize, _qr, check_mul_axes, colsupport,
+                     TridiagonalLayout, _qr_layout, factorize_layout, qr_layout, check_mul_axes, colsupport,
                      diagonaldata, ldiv!, lmul!, mul, mulreduce, reflector!, reflectorApply!,
                      rowsupport, sub_materialize, subdiagonaldata, sublayout, supdiagonaldata, transposelayout,
                      triangulardata, triangularlayout, zero!, materialize!
@@ -40,7 +40,7 @@ import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayou
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
                    LazyLayouts, LazyMatrix, LazyVector, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
-                   simplify, islazy, islazy_layout, cache_getindex
+                   simplify, islazy, islazy_layout, cache_getindex, cache_layout
 
 import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, ApplyBandedLayout, BlockVec,
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,

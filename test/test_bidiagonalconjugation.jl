@@ -3,6 +3,7 @@ using InfiniteLinearAlgebra: BidiagonalConjugation, OneToInf
 using ArrayLayouts: supdiagonaldata, subdiagonaldata, diagonaldata
 using LinearAlgebra
 using LazyArrays: LazyLayout
+using BandedMatrices: _BandedMatrix
 
 @testset "BidiagonalConjugation" begin
     @test InfiniteLinearAlgebra._to_uplo('U') == 'U'
@@ -102,11 +103,25 @@ end
 
 
 @testset "TridiagonalConjugation" begin
-    @testset "T -> U" begin
-        R = BandedMatrices._BandedMatrix(Vcat(-Ones(1,∞)/2,
-                                        Zeros(1,∞),
-                                        Hcat(Ones(1,1),Ones(1,∞)/2)), ℵ₀, 0,2)
-        X_T = LazyBandedMatrices.Tridiagonal(Vcat(1.0, Fill(1/2,∞)), Zeros(∞), Fill(1/2,∞))
+    for (R,X_T) in (
+            # T -> U
+            (_BandedMatrix(Vcat(-Ones(1,∞)/2, Zeros(1,∞), Hcat(Ones(1,1),Ones(1,∞)/2)), ℵ₀, 0,2),
+            LazyBandedMatrices.Tridiagonal(Vcat(1.0, Fill(1/2,∞)), Zeros(∞), Fill(1/2,∞))),
+            # P -> C^(3/2)
+            (_BandedMatrix(Vcat((-1 ./ (1:2:∞))',
+                                         Zeros(1,∞),
+                                         (1 ./ (1:2:∞))'), ℵ₀, 0,2),
+             LazyBandedMatrices.Tridiagonal((1:∞) ./ (1:2:∞), Zeros(∞), (1:∞) ./ (3:2:∞))),
+             # P^(1,0) -> P^(2,0)
+            (_BandedMatrix(Vcat(Zeros(1,∞), # extra band since code assumes two bands
+             (-(0:∞) ./ (2:2:∞))',
+             ((2:∞) ./ (2:2:∞))'), ℵ₀, 0,2),
+             LazyBandedMatrices.Tridiagonal((2:∞) ./ (3:2:∞), -1 ./ ((1:2:∞) .* (3:2:∞)), (1:∞) ./ (3:2:∞))),
+            # P -> C^(5/2)
+            (_BandedMatrix(Vcat((-3 ./ (3:2:∞))', Zeros(1,∞), (3 ./ (3:2:∞))'), ℵ₀, 0,2) *
+            _BandedMatrix(Vcat((-1 ./ (1:2:∞))', Zeros(1,∞), (1 ./ (1:2:∞))'), ℵ₀, 0,2),
+            LazyBandedMatrices.Tridiagonal((1:∞) ./ (1:2:∞), Zeros(∞), (1:∞) ./ (3:2:∞)))
+            )
         n = 1000
         @time U = V = R[1:n,1:n];
         @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]));
@@ -116,50 +131,31 @@ end
         @time Y = InfiniteLinearAlgebra.tri_mul_invupper_triview(UX, U)
         @test Tridiagonal(U*X / U) ≈ Tridiagonal(UX / U) ≈ Y
 
-        InfiniteLinearAlgebra.TridiagonalConjugationData(U, X, U)
-    end
-    @testset "P -> Ultraspherical(3/2)" begin
-        R = BandedMatrices._BandedMatrix(Vcat((-1 ./ (1:2:∞))',
-                                         Zeros(1,∞),
-                                         (1 ./ (1:2:∞))'), ℵ₀, 0,2)
-        X_P = LazyBandedMatrices.Tridiagonal((1:∞) ./ (1:2:∞), Zeros(∞), (1:∞) ./ (3:2:∞))
-        n = 1000
-        @time U = V = R[1:n,1:n]
-        @time X = Tridiagonal(Vector(X_P.dl[1:n-1]), Vector(X_P.d[1:n]), Vector(X_P.du[1:n-1]))
-        @time UX = InfiniteLinearAlgebra.upper_mul_tri_triview(U, X)
-        @test Tridiagonal(U*X) ≈  UX
-        # U*X*inv(U) only depends on Tridiagonal(U*X)
-        @time Y = InfiniteLinearAlgebra.tri_mul_invupper_triview(UX, U)
-        @test Tridiagonal(U*X / U) ≈ Tridiagonal(UX / U) ≈ Y
-    end
+        data = InfiniteLinearAlgebra.TridiagonalConjugationData(R, X_T)
+        @test data.UX[1,:] ≈ UX[1,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 1)
+        @test data.UX[1:2,:] ≈ UX[1:2,1:100]
+        @test data.Y[1,:] ≈ Y[1,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 2)
+        @test data.UX[1:3,:] ≈ UX[1:3,1:100]
+        @test data.Y[1:2,:] ≈ Y[1:2,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 3)
+        @test data.UX[1:4,:] ≈ UX[1:4,1:100]
+        @test data.Y[1:3,:] ≈ Y[1:3,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 1000)
+        @test data.UX[1:999,1:999] ≈ UX[1:999,1:999]
+        @test data.Y[1:999,1:999] ≈ Y[1:999,1:999]
 
-    @testset "Jacobi(1,0) -> Jacobi(2,0)" begin
-        R = BandedMatrices._BandedMatrix(Vcat(Zeros(1,∞), # extra band since code assumes two bands
-                                         (-(0:∞) ./ (2:2:∞))',
-                                         ((2:∞) ./ (2:2:∞))'), ℵ₀, 0,2)
-        X_P = LazyBandedMatrices.Tridiagonal((2:∞) ./ (3:2:∞), -1 ./ ((1:2:∞) .* (3:2:∞)), (1:∞) ./ (3:2:∞))
-        n = 1000
-        @time U = V = R[1:n,1:n]
-        @time X = Tridiagonal(Vector(X_P.dl[1:n-1]), Vector(X_P.d[1:n]), Vector(X_P.du[1:n-1]))
-        @time UX = InfiniteLinearAlgebra.upper_mul_tri_triview(U, X)
-        @test Tridiagonal(U*X) ≈  UX
-        # U*X*inv(U) only depends on Tridiagonal(U*X)
-        @time Y = InfiniteLinearAlgebra.tri_mul_invupper_triview(UX, U)
-        @test Tridiagonal(U*X / U) ≈ Tridiagonal(UX / U) ≈ Y
+        data = InfiniteLinearAlgebra.TridiagonalConjugationData(R, X_T)
+        InfiniteLinearAlgebra.resizedata!(data, 1000)
+        @test data.UX[1:999,1:999] ≈ UX[1:999,1:999]
+        @test data.Y[1:999,1:999] ≈ Y[1:999,1:999]
     end
-
-    @testset "Legendre() -> Jacobi(5/2)" begin
-        R = BandedMatrices._BandedMatrix(Vcat((-3 ./ (3:2:∞))', Zeros(1,∞), (3 ./ (3:2:∞))'), ℵ₀, 0,2) *
-            BandedMatrices._BandedMatrix(Vcat((-1 ./ (1:2:∞))', Zeros(1,∞), (1 ./ (1:2:∞))'), ℵ₀, 0,2)
-        X_P = LazyBandedMatrices.Tridiagonal((1:∞) ./ (1:2:∞), Zeros(∞), (1:∞) ./ (3:2:∞))
-
-        n = 1000
-        @time U = V = R[1:n,1:n]
-        @time X = Tridiagonal(Vector(X_P.dl[1:n-1]), Vector(X_P.d[1:n]), Vector(X_P.du[1:n-1]))
-        @time UX = InfiniteLinearAlgebra.upper_mul_tri_triview(U, X)
-        @test Tridiagonal(U*X) ≈  UX
-        # U*X*inv(U) only depends on Tridiagonal(U*X)
-        @time Y = InfiniteLinearAlgebra.tri_mul_invupper_triview(UX, U)
-        @test Tridiagonal(U*X / U) ≈ Tridiagonal(UX / U) ≈ Y
+    
+    @testset "Cholesky" begin
+        M = Symmetric(_BandedMatrix(Vcat(Hcat(Fill(-1/(2sqrt(2)),1,3), Fill(-1/4,1,∞)), Zeros(1,∞), Hcat([0.5 0.25], Fill(0.5,1,∞))), ∞, 0, 2))
+        R = cholesky(M).U
+        X_T = LazyBandedMatrices.Tridiagonal(Vcat(1/sqrt(2), Fill(1/2,∞)), Zeros(∞), Vcat(1/sqrt(2), Fill(1/2,∞)))
+        data = InfiniteLinearAlgebra.TridiagonalConjugationData(R, X_T)
     end
 end
