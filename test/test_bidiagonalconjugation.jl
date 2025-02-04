@@ -156,6 +156,25 @@ end
         M = Symmetric(_BandedMatrix(Vcat(Hcat(Fill(-1/(2sqrt(2)),1,3), Fill(-1/4,1,∞)), Zeros(1,∞), Hcat([0.5 0.25], Fill(0.5,1,∞))), ∞, 0, 2))
         R = cholesky(M).U
         X_T = LazyBandedMatrices.Tridiagonal(Vcat(1/sqrt(2), Fill(1/2,∞)), Zeros(∞), Vcat(1/sqrt(2), Fill(1/2,∞)))
-        data = InfiniteLinearAlgebra.TridiagonalConjugationData(R, X_T)
+        data = InfiniteLinearAlgebra.TridiagonalConjugationData(R, X_T);
+        n = 1000
+        @time U = V = R[1:n,1:n];
+        @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]));
+        UX = Tridiagonal(U*X)
+        Y = Tridiagonal(UX / U)
+        @test data.UX[1,:] ≈ UX[1,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 1)
+        @test data.UX[1:2,:] ≈ UX[1:2,1:100]
+        @test data.Y[1,:] ≈ Y[1,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 2)
+        @test data.UX[1:3,:] ≈ UX[1:3,1:100]
+        @test data.Y[1:2,:] ≈ Y[1:2,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 3)
+        @test data.UX[1:4,:] ≈ UX[1:4,1:100]
+        @test data.Y[1:3,:] ≈ Y[1:3,1:100]
+        InfiniteLinearAlgebra.resizedata!(data, 1000)
+        @test data.UX[1:999,1:999] ≈ UX[1:999,1:999]
+        @test data.Y[1:999,1:999] ≈ Y[1:999,1:999]
+        
     end
 end

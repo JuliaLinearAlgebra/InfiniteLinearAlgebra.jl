@@ -41,6 +41,10 @@ function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) 
     F
 end
 
+resizedata!(F::AdaptiveCholeskyFactors, m, n) = partialcholesky!(F, n) # support cache interface
+
+resizedata!(R::UpperTriangular{<:Any,<:AdaptiveCholeskyFactors}, m...) = resizedata!(parent(R), m...)
+
 function getindex(F::AdaptiveCholeskyFactors, k::Int, j::Int)
     partialcholesky!(F, max(k,j))
     F.data.data[k,j]

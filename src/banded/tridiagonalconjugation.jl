@@ -31,6 +31,7 @@ end
 
 initiate_upper_mul_tri_triview!(UX, U::UpperTriangular, X) = initiate_upper_mul_tri_triview!(UX, parent(U), X)
 initiate_upper_mul_tri_triview!(UX, U::CachedMatrix, X) = initiate_upper_mul_tri_triview!(UX, U.data, X)
+initiate_upper_mul_tri_triview!(UX, U::AdaptiveCholeskyFactors, X) = initiate_upper_mul_tri_triview!(UX, U.data.data, X)
 
 function initiate_upper_mul_tri_triview!(UX, U::BandedMatrix, X)
     Xdl, Xd, Xdu = X.dl, X.d, X.du
@@ -50,7 +51,9 @@ function initiate_upper_mul_tri_triview!(UX, U::BandedMatrix, X)
 end
 
 # fills in the rows kr of UX
-function main_upper_mul_tri_triview!(UX, U::CachedMatrix, X, kr, kwds...)
+main_upper_mul_tri_triview!(UX, U::UpperTriangular, X, kr, kwds...) = main_upper_mul_tri_triview!(UX, parent(U), X, kr, kwds...)
+
+function main_upper_mul_tri_triview!(UX, U::Union{CachedMatrix,AdaptiveCholeskyFactors}, X, kr, kwds...)
     resizedata!(U, kr[end], kr[end]+2)
     main_upper_mul_tri_triview!(UX, U.data, X, kr, kwds...)
 end
@@ -125,6 +128,13 @@ function initiate_tri_mul_invupper_triview!(Y, X, R::CachedMatrix)
     initiate_tri_mul_invupper_triview!(Y, X, R.data)
 end
 
+function initiate_tri_mul_invupper_triview!(Y, X, R::AdaptiveCholeskyFactors)
+    resizedata!(R, 1, 2)
+    initiate_tri_mul_invupper_triview!(Y, X, R.data.data)
+end
+
+initiate_tri_mul_invupper_triview!(Y, X, R::UpperTriangular) = initiate_tri_mul_invupper_triview!(Y, X, parent(R))
+
 function initiate_tri_mul_invupper_triview!(Y, X, R::BandedMatrix)
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     Ydl, Yd, Ydu = Y.dl, Y.d, Y.du
@@ -144,7 +154,8 @@ end
 
 
 # populate rows kr of X/R. Ydu[k] is wrong until next run.
-function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::CachedMatrix, kr, kwds...)
+main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::UpperTriangular, kr, kwds...) = main_tri_mul_invupper_triview!(Y, X, parent(R), kr, kwds...)
+function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::Union{AdaptiveCholeskyFactors,CachedMatrix}, kr, kwds...)
     resizedata!(R, kr[end], kr[end]+1)
     main_tri_mul_invupper_triview!(Y, X, R.data, kr, kwds...)
 end
