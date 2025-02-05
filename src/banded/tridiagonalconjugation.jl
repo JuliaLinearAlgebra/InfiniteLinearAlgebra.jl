@@ -31,10 +31,10 @@ end
 
 initiate_upper_mul_tri_triview!(UX, U::UpperTriangular, X) = initiate_upper_mul_tri_triview!(UX, parent(U), X)
 initiate_upper_mul_tri_triview!(UX, U::CachedMatrix, X) = initiate_upper_mul_tri_triview!(UX, U.data, X)
-initiate_upper_mul_tri_triview!(UX, U::AdaptiveCholeskyFactors, X) = initiate_upper_mul_tri_triview!(UX, U.data.data, X)
+initiate_upper_mul_tri_triview!(UX, U::Union{AdaptiveCholeskyFactors,AdaptiveQRFactors}, X) = initiate_upper_mul_tri_triview!(UX, U.data.data, X)
 
 function initiate_upper_mul_tri_triview!(UX, U::BandedMatrix, X)
-    Xdl, Xd, Xdu = X.dl, X.d, X.du
+    Xdl, Xd, Xdu = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
     UXdl, UXd, UXdu = UX.dl, UX.d, UX.du
     Udat = U.data
 
@@ -53,13 +53,13 @@ end
 # fills in the rows kr of UX
 main_upper_mul_tri_triview!(UX, U::UpperTriangular, X, kr, kwds...) = main_upper_mul_tri_triview!(UX, parent(U), X, kr, kwds...)
 
-function main_upper_mul_tri_triview!(UX, U::Union{CachedMatrix,AdaptiveCholeskyFactors}, X, kr, kwds...)
+function main_upper_mul_tri_triview!(UX, U::Union{CachedMatrix,AdaptiveCholeskyFactors,AdaptiveQRFactors}, X, kr, kwds...)
     resizedata!(U, kr[end], kr[end]+2)
     main_upper_mul_tri_triview!(UX, U.data, X, kr, kwds...)
 end
 
-function main_upper_mul_tri_triview!(UX, U::BandedMatrix, X, kr, bₖ=X.du[kr[1]-1], aₖ=X.d[kr[1]], cₖ=X.dl[kr[1]], cₖ₋₁=X.dl[kr[1]-1])
-    Xdl, Xd, Xdu = X.dl, X.d, X.du
+function main_upper_mul_tri_triview!(UX, U::BandedMatrix, X, kr, bₖ=X[kr[1]-1,kr[1]], aₖ=X[kr[1],kr[1]], cₖ=X[kr[1]+1,kr[1]], cₖ₋₁=X[kr[1],kr[1]-1])
+    Xdl, Xd, Xdu = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
     UXdl, UXd, UXdu = UX.dl, UX.d, UX.du
     Udat = U.data
     l,u = bandwidths(U)
@@ -128,7 +128,7 @@ function initiate_tri_mul_invupper_triview!(Y, X, R::CachedMatrix)
     initiate_tri_mul_invupper_triview!(Y, X, R.data)
 end
 
-function initiate_tri_mul_invupper_triview!(Y, X, R::AdaptiveCholeskyFactors)
+function initiate_tri_mul_invupper_triview!(Y, X, R::Union{AdaptiveCholeskyFactors,AdaptiveQRFactors})
     resizedata!(R, 1, 2)
     initiate_tri_mul_invupper_triview!(Y, X, R.data.data)
 end

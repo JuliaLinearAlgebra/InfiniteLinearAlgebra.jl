@@ -46,6 +46,11 @@ import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBand
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
+const StructuredLayoutTypes{Lay} = Union{SymmetricLayout{Lay}, HermitianLayout{Lay}, TriangularLayout{'L','N',Lay}, TriangularLayout{'U','N',Lay}, TriangularLayout{'L','U',Lay}, TriangularLayout{'U','U',Lay}}
+
+const BandedLayouts = Union{AbstractBandedLayout, StructuredLayoutTypes{<:AbstractBandedLayout}}
+                           
+
 import LinearAlgebra: AbstractQ, AdjointQ, AdjOrTrans, factorize, matprod, qr
 
 import MatrixFactorizations: AdjQLPackedQLayout, LayoutQ, QL, QLPackedQ, QLPackedQLayout, QR, QRPackedQ,
