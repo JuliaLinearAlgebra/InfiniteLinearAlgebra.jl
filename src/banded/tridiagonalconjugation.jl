@@ -238,7 +238,7 @@ copy(data::TridiagonalConjugationData) = TridiagonalConjugationData(copy(data.U)
 function resizedata!(data::TridiagonalConjugationData, n)
     n ≤ data.datasize && return data
 
-    if n > length(data.UX.d) # Avoid O(n²) growing. Note min(length(dv), length(ev)) == length(ev)
+    if n ≥ length(data.UX.dl) # Avoid O(n²) growing. Note min(length(dv), length(ev)) == length(ev)
         resize!(data.UX.dl, 2n)
         resize!(data.UX.d, 2n + 1)
         resize!(data.UX.du, 2n)
@@ -258,3 +258,35 @@ function resizedata!(data::TridiagonalConjugationData, n)
     data
 end
 
+struct TridiagonalConjugationBand{T} <: LazyVector{T}
+    data::TridiagonalConjugationData{T}
+    diag::Symbol
+end
+
+size(P::TridiagonalConjugationBand) = (ℵ₀,)
+resizedata!(A::TridiagonalConjugationBand, n) = resizedata!(A.data, n)
+
+function _triconj_getindex(C::TridiagonalConjugationBand, I)
+    resizedata!(C, maximum(I)+1)
+    getfield(C.data.Y, C.diag)[I]
+end
+
+getindex(A::TridiagonalConjugationBand, I::Integer) = _triconj_getindex(A, I)
+getindex(A::TridiagonalConjugationBand, I::AbstractVector) = _triconj_getindex(A, I)
+getindex(K::TridiagonalConjugationBand, k::AbstractInfUnitRange{<:Integer}) = view(K, k)
+getindex(K::SubArray{<:Any,1,<:TridiagonalConjugationBand}, k::AbstractInfUnitRange{<:Integer}) = view(K, k)
+
+copy(A::TridiagonalConjugationBand) = A # immutable
+
+
+const TridiagonalConjugation{T} = Tridiagonal{T, TridiagonalConjugationBand{T}}
+const SymTridiagonalConjugation{T} = SymTridiagonal{T, TridiagonalConjugationBand{T}}
+function TridiagonalConjugation(R, X, Y...)
+    data = TridiagonalConjugationData(R, X, Y...)
+    Tridiagonal(TridiagonalConjugationBand(data, :dl), TridiagonalConjugationBand(data, :d), TridiagonalConjugationBand(data, :du))
+end
+
+function SymTridiagonalConjugation(R, X, Y...)
+    data = TridiagonalConjugationData(R, X, Y...)
+    SymTridiagonal(TridiagonalConjugationBand(data, :d), TridiagonalConjugationBand(data, :du))
+end
