@@ -228,8 +228,8 @@ end
 function TridiagonalConjugationData(U, X, V)
     T = promote_type(typeof(inv(V[1, 1])), eltype(U), eltype(X)) # include inv so that we can't get Ints
     n_init = 100
-    UX = Tridiagonal(zeros(T, n_init-1), zeros(T, n_init), zeros(T, n_init-1)) # zeros for BigFLoat
-    Y = Tridiagonal(zeros(T, n_init-1), zeros(T, n_init), zeros(T, n_init-1))
+    UX = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
+    Y = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
     resizedata!(U, n_init, n_init)
     resizedata!(V, n_init, n_init)
     initiate_upper_mul_tri_triview!(UX, U, X) # fill-in 1st row
