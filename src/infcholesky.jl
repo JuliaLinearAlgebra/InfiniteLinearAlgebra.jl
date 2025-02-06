@@ -12,7 +12,7 @@ const SymmetricBandedLayouts = Union{SymTridiagonalLayout,SymmetricLayout{<:Abst
 function AdaptiveCholeskyFactors(::SymmetricBandedLayouts, S::AbstractMatrix{T}) where T
     A = parent(S)
     l,u = bandwidths(A)
-    data = BandedMatrix{T}(undef,(0,0),(l,u)) # pad super
+    data = BandedMatrix(Zeros{T}(0,0),(l,u)) # pad super
     AdaptiveCholeskyFactors(CachedArray(data,A), 0)
 end
 AdaptiveCholeskyFactors(A::AbstractMatrix{T}) where T = AdaptiveCholeskyFactors(MemoryLayout(A), A)

@@ -53,10 +53,16 @@ end
 # fills in the rows kr of UX
 main_upper_mul_tri_triview!(UX, U::UpperTriangular, X, kr, kwds...) = main_upper_mul_tri_triview!(UX, parent(U), X, kr, kwds...)
 
-function main_upper_mul_tri_triview!(UX, U::Union{CachedMatrix,AdaptiveCholeskyFactors,AdaptiveQRFactors}, X, kr, kwds...)
+function main_upper_mul_tri_triview!(UX, U::Union{CachedMatrix,AdaptiveCholeskyFactors}, X, kr, kwds...)
     resizedata!(U, kr[end], kr[end]+2)
     main_upper_mul_tri_triview!(UX, U.data, X, kr, kwds...)
 end
+
+function main_upper_mul_tri_triview!(UX, U::AdaptiveQRFactors, X, kr, kwds...)
+    resizedata!(U, kr[end], kr[end]+2)
+    main_upper_mul_tri_triview!(UX, U.data.data, X, kr, kwds...)
+end
+
 
 function main_upper_mul_tri_triview!(UX, U::BandedMatrix, X, kr, bₖ=X[kr[1]-1,kr[1]], aₖ=X[kr[1],kr[1]], cₖ=X[kr[1]+1,kr[1]], cₖ₋₁=X[kr[1],kr[1]-1])
     Xdl, Xd, Xdu = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
@@ -160,6 +166,11 @@ function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::Union
     main_tri_mul_invupper_triview!(Y, X, R.data, kr, kwds...)
 end
 
+function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::AdaptiveQRFactors, kr, kwds...)
+    resizedata!(R, kr[end], kr[end]+1)
+    main_tri_mul_invupper_triview!(Y, X, R.data.data, kr, kwds...)
+end
+
 function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::BandedMatrix, kr, Rₖₖ=R[first(kr)-1,first(kr)-1], Rₖₖ₊₁=R[first(kr)-1,first(kr)])
     Xdl, Xd, Xdu = X.dl, X.d, X.du
     Ydl, Yd, Ydu = Y.dl, Y.d, Y.du
@@ -217,8 +228,8 @@ end
 function TridiagonalConjugationData(U, X, V)
     T = promote_type(typeof(inv(V[1, 1])), eltype(U), eltype(X)) # include inv so that we can't get Ints
     n_init = 100
-    UX = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
-    Y = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
+    UX = Tridiagonal(zeros(T, n_init-1), zeros(T, n_init), zeros(T, n_init-1)) # zeros for BigFLoat
+    Y = Tridiagonal(zeros(T, n_init-1), zeros(T, n_init), zeros(T, n_init-1))
     resizedata!(U, n_init, n_init)
     resizedata!(V, n_init, n_init)
     initiate_upper_mul_tri_triview!(UX, U, X) # fill-in 1st row
