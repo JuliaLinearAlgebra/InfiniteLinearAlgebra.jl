@@ -12,7 +12,7 @@ const SymmetricBandedLayouts = Union{SymTridiagonalLayout,SymmetricLayout{<:Abst
 function AdaptiveCholeskyFactors(::SymmetricBandedLayouts, S::AbstractMatrix{T}) where T
     A = parent(S)
     l,u = bandwidths(A)
-    data = BandedMatrix{T}(undef,(0,0),(l,u)) # pad super
+    data = BandedMatrix(Zeros{T}(0,0),(l,u)) # pad super
     AdaptiveCholeskyFactors(CachedArray(data,A), 0)
 end
 AdaptiveCholeskyFactors(A::AbstractMatrix{T}) where T = AdaptiveCholeskyFactors(MemoryLayout(A), A)
@@ -40,6 +40,10 @@ function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) 
     end
     F
 end
+
+resizedata!(F::AdaptiveCholeskyFactors, m, n) = partialcholesky!(F, n) # support cache interface
+
+resizedata!(R::UpperTriangular{<:Any,<:AdaptiveCholeskyFactors}, m...) = resizedata!(parent(R), m...)
 
 function getindex(F::AdaptiveCholeskyFactors, k::Int, j::Int)
     partialcholesky!(F, max(k,j))
