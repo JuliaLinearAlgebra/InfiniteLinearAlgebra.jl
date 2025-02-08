@@ -185,12 +185,15 @@ end
         R,X = (_BandedMatrix(Vcat(-Ones(1,∞)/2, Zeros(1,∞), Hcat(Ones(1,1),Ones(1,∞)/2)), ℵ₀, 0,2),
                 LazyBandedMatrices.Tridiagonal(Vcat(1.0, Fill(1/2,∞)), Zeros(∞), Fill(1/2,∞)))
 
-        Y = TridiagonalConjugation(R, X)
-        n = 100_000
-        @test Y[n,n+1] ≈ 1/2
+        for Y in (TridiagonalConjugation(R, X), SymTridiagonalConjugation(R, X))
+            n = 100_000
+            @test Y[n,n+1] ≈ 1/2
 
-        Y = SymTridiagonalConjugation(R, X)
-        n = 100_000
-        @test Y[n,n+1] ≈ 1/2
+            @testset "Y+I" begin
+                @test (Y+I)[1:10,1:10] == (I+Y)[1:10,1:10] == I + Y[1:10,1:10]
+                @test (Y-I)[1:10,1:10] == Y[1:10,1:10] - I
+                @test (I-Y)[1:10,1:10] == I - Y[1:10,1:10]
+            end
+        end
     end
 end

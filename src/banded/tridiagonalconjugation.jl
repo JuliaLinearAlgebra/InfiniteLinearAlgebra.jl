@@ -290,14 +290,15 @@ getindex(K::SubArray{<:Any,1,<:TridiagonalConjugationBand}, k::AbstractInfUnitRa
 copy(A::TridiagonalConjugationBand) = A # immutable
 
 
-const TridiagonalConjugation{T} = Tridiagonal{T, TridiagonalConjugationBand{T}}
-const SymTridiagonalConjugation{T} = SymTridiagonal{T, TridiagonalConjugationBand{T}}
+# Use LazyBandedMatrices.Tridiagonal to support algebra
+const TridiagonalConjugation{T} = LazyBandedMatrices.Tridiagonal{T, TridiagonalConjugationBand{T}, TridiagonalConjugationBand{T}, TridiagonalConjugationBand{T}}
+const SymTridiagonalConjugation{T} = LazyBandedMatrices.SymTridiagonal{T, TridiagonalConjugationBand{T}, TridiagonalConjugationBand{T}}
 function TridiagonalConjugation(R, X, Y...)
     data = TridiagonalConjugationData(R, X, Y...)
-    Tridiagonal(TridiagonalConjugationBand(data, :dl), TridiagonalConjugationBand(data, :d), TridiagonalConjugationBand(data, :du))
+    LazyBandedMatrices.Tridiagonal(TridiagonalConjugationBand(data, :dl), TridiagonalConjugationBand(data, :d), TridiagonalConjugationBand(data, :du))
 end
 
 function SymTridiagonalConjugation(R, X, Y...)
     data = TridiagonalConjugationData(R, X, Y...)
-    SymTridiagonal(TridiagonalConjugationBand(data, :d), TridiagonalConjugationBand(data, :du))
+    LazyBandedMatrices.SymTridiagonal(TridiagonalConjugationBand(data, :d), TridiagonalConjugationBand(data, :du))
 end
