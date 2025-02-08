@@ -117,14 +117,18 @@ end
              (-(0:∞) ./ (2:2:∞))',
              ((2:∞) ./ (2:2:∞))'), ℵ₀, 0,2),
              LazyBandedMatrices.Tridiagonal((2:∞) ./ (3:2:∞), -1 ./ ((1:2:∞) .* (3:2:∞)), (1:∞) ./ (3:2:∞))),
+             (_BandedMatrix(Vcat(
+             (-(0:∞) ./ (2:2:∞))',
+             ((2:∞) ./ (2:2:∞))'), ℵ₀, 0,1),
+             LazyBandedMatrices.Tridiagonal((2:∞) ./ (3:2:∞), -1 ./ ((1:2:∞) .* (3:2:∞)), (1:∞) ./ (3:2:∞)))
             # P -> C^(5/2)
             (_BandedMatrix(Vcat((-3 ./ (3:2:∞))', Zeros(1,∞), (3 ./ (3:2:∞))'), ℵ₀, 0,2) *
             _BandedMatrix(Vcat((-1 ./ (1:2:∞))', Zeros(1,∞), (1 ./ (1:2:∞))'), ℵ₀, 0,2),
             LazyBandedMatrices.Tridiagonal((1:∞) ./ (1:2:∞), Zeros(∞), (1:∞) ./ (3:2:∞)))
             )
         n = 1000
-        @time U = V = R[1:n,1:n];
-        @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]));
+        @time U = V = R[1:n,1:n]
+        @time X = Tridiagonal(Vector(X_T.dl[1:n-1]), Vector(X_T.d[1:n]), Vector(X_T.du[1:n-1]))
         @time UX = InfiniteLinearAlgebra.upper_mul_tri_triview(U, X)
         @test Tridiagonal(U*X) ≈  UX
         # U*X*inv(U) only depends on Tridiagonal(U*X)

@@ -18,7 +18,7 @@ function upper_mul_tri_triview!(UX::Tridiagonal, U::BandedMatrix, X::Tridiagonal
     l,u = bandwidths(U)
 
     @assert size(U) == (n,n)
-    @assert l == 0 && u ≥ 2
+    @assert l ≥ 0
     # Tridiagonal bands can be resized
     @assert length(Xdl)+1 == length(Xd) == length(Xdu)+1 == length(UXdl)+1 == length(UXd) == length(UXdu)+1 == n
 
@@ -42,7 +42,7 @@ function initiate_upper_mul_tri_triview!(UX, U::BandedMatrix, X)
 
     k = 1
     aₖ, cₖ = Xd[1], Xdl[1]
-    Uₖₖ, Uₖₖ₊₁, Uₖₖ₊₂ =  Udat[u+1,1], Udat[u,2],  Udat[u-1,3] # U[k,k], U[k,k+1], U[k,k+2]
+    Uₖₖ, Uₖₖ₊₁, Uₖₖ₊₂ =  Udat[u+1,1], Udat[u,2],  (u > 1 ? Udat[u-1,3] : zero(eltype(Udat)))  # U[k,k], U[k,k+1], U[k,k+2]
     UXd[1] = Uₖₖ*aₖ +  Uₖₖ₊₁*cₖ  # UX[k,k] = U[k,k]*X[k,k] + U[k,k+1]*X[k+1,k]
     bₖ, aₖ, cₖ, cₖ₋₁ = Xdu[1], Xd[2], Xdl[2], cₖ  # X[k,k+1], X[k+1,k+1], X[k+2,k+1], X[k+1,k]
     UXdu[1] = Uₖₖ*bₖ + Uₖₖ₊₁*aₖ + Uₖₖ₊₂*cₖ # UX[k,k+1] = U[k,k]*X[k,k+1] + U[k,k+1]*X[k+1,k+1] + U[k,k+1]*X[k+1,k]
@@ -71,7 +71,7 @@ function main_upper_mul_tri_triview!(UX, U::BandedMatrix, X, kr, bₖ=X[kr[1]-1,
     l,u = bandwidths(U)
 
     for k = kr
-        Uₖₖ, Uₖₖ₊₁, Uₖₖ₊₂ =  Udat[u+1,k], Udat[u,k+1],  Udat[u-1,k+2] # U[k,k], U[k,k+1], U[k,k+2]
+        Uₖₖ, Uₖₖ₊₁, Uₖₖ₊₂ =  Udat[u+1,k], Udat[u,k+1],  (u > 1 ? Udat[u-1,k+2] : zero(eltype(Udat))) # U[k,k], U[k,k+1], U[k,k+2]
         UXdl[k-1] = Uₖₖ*cₖ₋₁ # UX[k,k-1] = U[k,k]*X[k,k-1]
         UXd[k] = Uₖₖ*aₖ +  Uₖₖ₊₁*cₖ  # UX[k,k] = U[k,k]*X[k,k] + U[k,k+1]*X[k+1,k]
         bₖ, aₖ, cₖ, cₖ₋₁ = Xdu[k], Xd[k+1], Xdl[k+1], cₖ  # X[k,k+1], X[k+1,k+1], X[k+2,k+1], X[k+1,k]
@@ -118,7 +118,7 @@ function tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::BandedMatr
     l,u = bandwidths(R)
 
     @assert size(R) == (n,n)
-    @assert l == 0 && u ≥ 2
+    @assert l ≥ 0 && u ≥ 1
     # Tridiagonal bands can be resized
     @assert length(Xdl)+1 == length(Xd) == length(Xdu)+1 == length(Ydl)+1 == length(Yd) == length(Ydu)+1 == n
 
@@ -177,12 +177,12 @@ function main_tri_mul_invupper_triview!(Y::Tridiagonal, X::Tridiagonal, R::Bande
     Rdat = R.data
     l,u = bandwidths(R)
 
-    @inbounds for k = kr
+    for k = kr
         cₖ₋₁,aₖ,bₖ = Xdl[k-1], Xd[k], Xdu[k]
         Ydl[k-1] = cₖ₋₁/Rₖₖ
         Yd[k] = aₖ-cₖ₋₁*Rₖₖ₊₁/Rₖₖ
         Ydu[k] = cₖ₋₁/Rₖₖ
-        Rₖₖ,Rₖₖ₊₁,Rₖ₋₁ₖ₊₁,Rₖ₋₁ₖ = Rdat[u+1,k], Rdat[u,k+1],Rdat[u-1,k+1],Rₖₖ₊₁ # R[k,k], R[k,k+1], R[k-1,k]
+        Rₖₖ,Rₖₖ₊₁,Rₖ₋₁ₖ₊₁,Rₖ₋₁ₖ = Rdat[u+1,k], Rdat[u,k+1],(u > 1 ? Rdat[u-1,k+1] : zero(eltype(Rdat))),Rₖₖ₊₁ # R[k,k], R[k,k+1], R[k-1,k+1]
         Yd[k] /= Rₖₖ
         Ydu[k-1] /= Rₖₖ
         Ydu[k] *= Rₖ₋₁ₖ*Rₖₖ₊₁/Rₖₖ - Rₖ₋₁ₖ₊₁
