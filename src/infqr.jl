@@ -87,6 +87,7 @@ end
 
 partialqr!(F::AdaptiveQRData{<:Any,<:BlockSkylineMatrix}, n::Int) =
     partialqr!(F, findblock(axes(F.data,2), n))
+ 
 
 struct AdaptiveQRFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: LayoutMatrix{T}
     data::AdaptiveQRData{T,DM,M}
@@ -124,6 +125,11 @@ function getindex(F::AdaptiveQRFactors, k::Int, j::Int)
     F.data.data[k,j]
 end
 
+function resizedata!(F::AdaptiveQRFactors, k::Int, j::Int)
+    partialqr!(F.data, j)
+    F
+end
+
 colsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = 1:last(colsupport(F.factors, j))
 rowsupport(F::QRPackedQ{<:Any,<:AdaptiveQRFactors}, j) = first(rowsupport(F.factors, j)):size(F,2)
 
@@ -149,11 +155,16 @@ function adaptiveqr(A)
     QR(AdaptiveQRFactors(data), AdaptiveQRTau(data))
 end
 
-_qr(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
-_qr(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
-__qr(_, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
-_qr(::AbstractBlockBandedLayout, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
-_factorize(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
+qr_layout(::BandedLayouts, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+qr_layout(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+qr_layout(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
+_qr_layout(_, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
+qr_layout(::AbstractBlockBandedLayout, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
+factorize_layout(::BandedLayouts, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
+factorize_layout(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
+
+
+cache_layout(::TriangularLayout{UPLO, UNIT, <:AdaptiveLayout}, A::AbstractMatrix) where {UPLO, UNIT} = A # already cached
 
 partialqr!(F::QR, n) = partialqr!(F.factors, n)
 partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
