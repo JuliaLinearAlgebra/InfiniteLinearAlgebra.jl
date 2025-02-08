@@ -158,9 +158,10 @@ end
 qr_layout(::BandedLayouts, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 qr_layout(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
 qr_layout(::AbstractAlmostBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = adaptiveqr(A)
-__qr_layout(_, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
+_qr_layout(_, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
 qr_layout(::AbstractBlockBandedLayout, ::NTuple{2,InfiniteCardinal{0}}, A) = adaptiveqr(A)
 factorize_layout(::BandedLayouts, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
+factorize_layout(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
 
 
 cache_layout(::TriangularLayout{UPLO, UNIT, <:AdaptiveLayout}, A::AbstractMatrix) where {UPLO, UNIT} = A # already cached
