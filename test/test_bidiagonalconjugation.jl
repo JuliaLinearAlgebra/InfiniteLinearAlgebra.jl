@@ -192,5 +192,12 @@ end
         Y = SymTridiagonalConjugation(R, X)
         n = 100_000
         @test Y[n,n+1] ≈ 1/2
+
+        @testset "Y+I" begin
+            Y+I
+            Y-I
+            I+Y
+            I-Y
+        end
     end
 end

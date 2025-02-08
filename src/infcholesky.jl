@@ -29,6 +29,8 @@ adaptivecholeskyfactorslayout(::BlockBandedLayouts) = AdaptiveCholeskyFactorsBlo
 
 
 MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM}}) where {T,DM} = adaptivecholeskyfactorslayout(MemoryLayout(DM))
+triangularlayout(::Type{Tri}, ::ML) where {Tri, ML<:AdaptiveCholeskyFactorsLayouts} = Tri{ML}()
+transposelayout(A::AdaptiveCholeskyFactorsLayouts) = A
 
 copy(A::AdaptiveCholeskyFactors) = AdaptiveCholeskyFactors(copy(A.data), copy(A.ncols))
 copy(A::Adjoint{T,<:AdaptiveCholeskyFactors}) where T = copy(parent(A))'
