@@ -5,7 +5,7 @@ mutable struct AdaptiveQRData{T,DM<:AbstractMatrix{T}}
     ncols::Int
 end
 
-function AdaptiveQRData(::Union{SymmetricLayout{<:AbstractBandedLayout},AbstractBandedLayout}, A::AbstractMatrix{T}) where T
+function AdaptiveQRData(::BandedLayouts, A::AbstractMatrix{T}) where T
     l,u = bandwidths(A)
     FT = float(T)
     data = BandedMatrix{FT}(undef,(2l+u+1,0),(l,l+u)) # pad super

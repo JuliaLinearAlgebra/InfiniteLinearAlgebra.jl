@@ -36,6 +36,8 @@ copy(A::AdaptiveCholeskyFactors) = AdaptiveCholeskyFactors(copy(A.data), copy(A.
 copy(A::Adjoint{T,<:AdaptiveCholeskyFactors}) where T = copy(parent(A))'
 copy(A::Transpose{T,<:AdaptiveCholeskyFactors}) where T = transpose(copy(parent(A)))
 
+cache_layout(::TriangularLayout{'U', 'N', AdaptiveCholeskyFactorsBandedLayout}, A::AbstractMatrix) = A # already cached
+
 function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) where T
     if n > F.ncols
         _,u = bandwidths(F.data.array)
