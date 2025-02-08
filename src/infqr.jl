@@ -300,7 +300,7 @@ function materialize!(M::MatLmulVec{QRPackedQLayout{AdaptiveBlockBandedLayout},<
     B
 end
 
-function materialize!(M::MatLmulVec{AdjQRPackedQLayout{AdaptiveBlockBandedLayout},<:AbstractPaddedLayout}; tolerance=1E-30)
+function materialize!(M::MatLmulVec{<:AdjQRPackedQLayout{AdaptiveBlockBandedLayout},<:AbstractPaddedLayout}; tolerance=1E-30)
     adjA,B_in = M.A,M.B
     A = parent(adjA)
     T = eltype(M)

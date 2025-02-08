@@ -3,7 +3,7 @@ using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, Matr
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
-import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, adaptiveqr
+import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, AdaptiveBandedLayout, adaptiveqr
 import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
 

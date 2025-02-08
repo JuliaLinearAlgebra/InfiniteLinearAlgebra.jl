@@ -42,14 +42,14 @@ import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayou
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
                    simplify, islazy, islazy_layout, cache_getindex, cache_layout
 
-import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, ApplyBandedLayout, BlockVec,
+import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, AbstractLazyBlockBandedLayout, ApplyBandedLayout, BlockVec,
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
 const StructuredLayoutTypes{Lay} = Union{SymmetricLayout{Lay}, HermitianLayout{Lay}, TriangularLayout{'L','N',Lay}, TriangularLayout{'U','N',Lay}, TriangularLayout{'L','U',Lay}, TriangularLayout{'U','U',Lay}}
 
 const BandedLayouts = Union{AbstractBandedLayout, StructuredLayoutTypes{<:AbstractBandedLayout}}
-                           
+const BlockBandedLayouts = Union{AbstractBlockBandedLayout, BlockLayout{<:AbstractBandedLayout}, StructuredLayoutTypes{<:AbstractBlockBandedLayout}} 
 
 import LinearAlgebra: AbstractQ, AdjointQ, AdjOrTrans, factorize, matprod, qr
 
