@@ -44,7 +44,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @testset "col/rowsupport" begin
             A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
             F = qr(A)
-            @test MemoryLayout(typeof(F.factors)) isa AdaptiveLayout{BandedColumns{DenseColumnMajor}}
+            @test MemoryLayout(typeof(F.factors)) isa AdaptiveBandedLayout
             @test bandwidths(F.factors) == (1,2)
             @test colsupport(F.factors,1) ==  1:2
             @test colsupport(F.factors,5) ==  3:6
