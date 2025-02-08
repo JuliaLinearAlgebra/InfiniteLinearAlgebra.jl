@@ -3,7 +3,7 @@ using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, Matr
 import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
 import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
-import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveLayout, AdaptiveBandedLayout, adaptiveqr
+import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveQRFactorsBandedLayout, adaptiveqr
 import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
 
 
@@ -44,7 +44,7 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         @testset "col/rowsupport" begin
             A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
             F = qr(A)
-            @test MemoryLayout(typeof(F.factors)) isa AdaptiveBandedLayout
+            @test MemoryLayout(typeof(F.factors)) isa AdaptiveQRFactorsBandedLayout
             @test bandwidths(F.factors) == (1,2)
             @test colsupport(F.factors,1) ==  1:2
             @test colsupport(F.factors,5) ==  3:6

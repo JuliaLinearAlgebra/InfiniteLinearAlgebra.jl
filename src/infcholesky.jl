@@ -1,6 +1,6 @@
 
-mutable struct AdaptiveCholeskyFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: LazyMatrix{T}
-    data::CachedMatrix{T,DM,M}
+mutable struct AdaptiveCholeskyFactors{T,DM<:AbstractMatrix{T}} <: LazyMatrix{T}
+    data::CachedMatrix{T,DM}
     ncols::Int
 end
 
@@ -16,7 +16,19 @@ function AdaptiveCholeskyFactors(::SymmetricBandedLayouts, S::AbstractMatrix{T})
     AdaptiveCholeskyFactors(CachedArray(data,A), 0)
 end
 AdaptiveCholeskyFactors(A::AbstractMatrix{T}) where T = AdaptiveCholeskyFactors(MemoryLayout(A), A)
-MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
+
+struct AdaptiveCholeskyFactorsLayout <: AbstractLazyLayout end
+struct AdaptiveCholeskyFactorsBandedLayout <: AbstractLazyBandedLayout end
+struct AdaptiveCholeskyFactorsBlockBandedLayout <: AbstractLazyBlockBandedLayout end
+
+const AdaptiveCholeskyFactorsLayouts = Union{AdaptiveCholeskyFactorsLayout,AdaptiveCholeskyFactorsBandedLayout,AdaptiveCholeskyFactorsBlockBandedLayout}
+
+adaptivecholeskyfactorslayout(_) = AdaptiveCholeskyFactorsLayout()
+adaptivecholeskyfactorslayout(::BandedLayouts) = AdaptiveCholeskyFactorsBandedLayout()
+adaptivecholeskyfactorslayout(::BlockBandedLayouts) = AdaptiveCholeskyFactorsBlockBandedLayout()
+
+
+MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM}}) where {T,DM} = adaptivecholeskyfactorslayout(MemoryLayout(DM))
 
 copy(A::AdaptiveCholeskyFactors) = AdaptiveCholeskyFactors(copy(A.data), copy(A.ncols))
 copy(A::Adjoint{T,<:AdaptiveCholeskyFactors}) where T = copy(parent(A))'
@@ -74,7 +86,7 @@ end
 colsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = rowsupport(parent(F), j)
 rowsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = colsupport(parent(F), j)
 
-function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveLayout},<:AbstractPaddedLayout})
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveCholeskyFactorsLayouts},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     T = eltype(M)
     COLGROWTH = 1000 # rate to grow columns
