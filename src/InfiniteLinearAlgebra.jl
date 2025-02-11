@@ -48,7 +48,10 @@ import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBand
 
 const StructuredLayoutTypes{Lay} = Union{SymmetricLayout{Lay}, HermitianLayout{Lay}, TriangularLayout{'L','N',Lay}, TriangularLayout{'U','N',Lay}, TriangularLayout{'L','U',Lay}, TriangularLayout{'U','U',Lay}}
 
-const BandedLayouts = Union{AbstractBandedLayout, StructuredLayoutTypes{<:AbstractBandedLayout}}
+LazyArraysBandedMatricesExt = Base.get_extension(LazyArrays, :LazyArraysBandedMatricesExt)
+
+const BandedLazyLayouts = LazyArraysBandedMatricesExt.BandedLazyLayouts
+const BandedLayouts = LazyArraysBandedMatricesExt.BandedLayouts
 const BlockBandedLayouts = Union{AbstractBlockBandedLayout, BlockLayout{<:AbstractBandedLayout}, StructuredLayoutTypes{<:AbstractBlockBandedLayout}} 
 
 import LinearAlgebra: AbstractQ, AdjointQ, AdjOrTrans, factorize, matprod, qr

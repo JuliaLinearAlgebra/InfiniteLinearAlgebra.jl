@@ -384,8 +384,11 @@ simplifiable(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = Val(
 simplifiable(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = Val(false)
 
 
-copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts},<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}, <:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
 copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
-copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts},<:LazyLayouts}) = simplify(M)
-copy(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
-copy(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
+copy(M::Mul{<:AdaptiveQRFactorsLayouts, <:BandedLazyLayouts}) = simplify(M)
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}, <:BandedLazyLayouts}) = simplify(M)
+copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}, <:LazyLayouts}) = simplify(M)
+copy(M::Mul{<:Any, <:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
+copy(M::Mul{<:LazyLayouts, <:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
+copy(M::Mul{<:BandedLazyLayouts, <:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)
