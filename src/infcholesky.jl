@@ -23,9 +23,10 @@ struct AdaptiveCholeskyFactorsBlockBandedLayout <: AbstractLazyBlockBandedLayout
 
 const AdaptiveCholeskyFactorsLayouts = Union{AdaptiveCholeskyFactorsLayout,AdaptiveCholeskyFactorsBandedLayout,AdaptiveCholeskyFactorsBlockBandedLayout}
 
-adaptivecholeskyfactorslayout(_) = AdaptiveCholeskyFactorsLayout()
+# TODO: support other than Banded
+# adaptivecholeskyfactorslayout(_) = AdaptiveCholeskyFactorsLayout()
 adaptivecholeskyfactorslayout(::BandedLayouts) = AdaptiveCholeskyFactorsBandedLayout()
-adaptivecholeskyfactorslayout(::BlockBandedLayouts) = AdaptiveCholeskyFactorsBlockBandedLayout()
+# adaptivecholeskyfactorslayout(::BlockBandedLayouts) = AdaptiveCholeskyFactorsBlockBandedLayout()
 
 
 MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM}}) where {T,DM} = adaptivecholeskyfactorslayout(MemoryLayout(DM))

@@ -106,7 +106,7 @@ adaptiveqrfactorslayout(::BlockBandedLayouts) = AdaptiveQRFactorsBlockBandedLayo
 
 MemoryLayout(::Type{AdaptiveQRFactors{T,DM}}) where {T,DM} =adaptiveqrfactorslayout(MemoryLayout(DM))
 triangularlayout(::Type{Tri}, ::ML) where {Tri, ML<:AdaptiveQRFactorsLayouts} = Tri{ML}()
-transposelayout(A::AdaptiveQRFactorsLayouts) = A
+# transposelayout(A::AdaptiveQRFactorsLayouts) = A
 
 size(F::AdaptiveQRFactors) = size(F.data.data)
 axes(F::AdaptiveQRFactors) = axes(F.data.data)
@@ -174,7 +174,7 @@ factorize_layout(::BandedLayouts, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
 factorize_layout(::AbstractBandedLayout, ::NTuple{2,OneToInf{Int}}, A) = qr(A)
 
 
-cache_layout(::TriangularLayout{UPLO, UNIT, <:AdaptiveQRFactorsLayouts}, A::AbstractMatrix) where {UPLO, UNIT} = A # already cached
+cache_layout(::TriangularLayout{'U', 'N', AdaptiveQRFactorsBandedLayout}, A::AbstractMatrix) = A # already cached
 
 partialqr!(F::QR, n) = partialqr!(F.factors, n)
 partialqr!(F::AdaptiveQRFactors, n) = partialqr!(F.data, n)
@@ -382,6 +382,7 @@ simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts},<:QRPackedQLay
 simplifiable(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts},<:LazyLayouts}) = Val(false)
 simplifiable(M::Mul{<:Any,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = Val(false)
 simplifiable(M::Mul{<:LazyLayouts,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = Val(false)
+simplifiable(M::Mul{<:AbstractInvLayout,<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = Val(false)
 
 
 copy(M::Mul{<:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}, <:QRPackedQLayout{<:AdaptiveQRFactorsLayouts}}) = simplify(M)

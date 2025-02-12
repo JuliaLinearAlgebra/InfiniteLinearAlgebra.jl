@@ -1,6 +1,6 @@
 using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, InfiniteArrays, MatrixFactorizations, LazyArrays,
         FillArrays, SpecialFunctions, Test, SemiseparableMatrices, LazyBandedMatrices, BlockArrays, BlockBandedMatrices, ArrayLayouts
-import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments
+import LazyArrays: colsupport, rowsupport, MemoryLayout, DenseColumnMajor, TriangularLayout, resizedata!, arguments, simplifiable
 import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBlockBandedLayout
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveQRFactorsBandedLayout, adaptiveqr
@@ -164,6 +164,29 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
             b = [1.; 2; 3; zeros(∞)]
             @test F\b ≈ F\view(b,:)
             @test_broken F\b ≈ ldiv!(F, view(copy(b),:))
+        end
+
+        @testset "cache/mul" begin
+            A = _BandedMatrix(Vcat(Ones(1,∞), (1:∞)', Ones(1,∞)), ℵ₀, 1, 1)
+            Q,R = qr(A)
+            @test cache(R) ≡ R
+
+            @test simplifiable(*, R, A) == Val(false)
+            @test simplifiable(*, A, R) == Val(false)
+            @test simplifiable(*, parent(R), A) == Val(false)
+            @test simplifiable(*, A, parent(R)) == Val(false)
+            @test simplifiable(*, inv(R), A) == Val(false)
+            @test simplifiable(*, A, inv(R)) == Val(false)
+            @test simplifiable(*, inv(R), Q) == Val(false)
+            @test simplifiable(*, Q, inv(R)) == Val(false)
+            @test simplifiable(*, Symmetric(inv(R)), Q) == Val(false)
+            @test simplifiable(*, Q, Symmetric(inv(R))) == Val(false)
+            @test (R * A)[1:10,1:10] ≈ R[1:10,1:11] * A[1:11,1:10]
+            @test (Q * A)[1:10,1:10] ≈ Q[1:10,1:11] * A[1:11,1:10]
+            @test mul(Q, Symmetric(inv(R))) isa ApplyArray # several bugs avoided heree
+            @test mul(Symmetric(inv(R)), Q) isa ApplyArray # several bugs avoided heree
+            @test (parent(R) * A)[1:10,1:10] ≈ parent(R)[1:10,1:11] * A[1:11,1:10]
+
         end
     end
 
