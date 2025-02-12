@@ -40,16 +40,19 @@ import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayou
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
                    LazyLayouts, LazyMatrix, LazyVector, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
-                   simplify, islazy, islazy_layout, cache_getindex, cache_layout
+                   simplify, islazy, islazy_layout, cache_getindex, cache_layout, AbstractInvLayout
 
-import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, ApplyBandedLayout, BlockVec,
+import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, AbstractLazyBlockBandedLayout, ApplyBandedLayout, BlockVec,
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
                            _block_interlace_axes, _krontrav_axes, krontravargs
 
 const StructuredLayoutTypes{Lay} = Union{SymmetricLayout{Lay}, HermitianLayout{Lay}, TriangularLayout{'L','N',Lay}, TriangularLayout{'U','N',Lay}, TriangularLayout{'L','U',Lay}, TriangularLayout{'U','U',Lay}}
 
-const BandedLayouts = Union{AbstractBandedLayout, StructuredLayoutTypes{<:AbstractBandedLayout}}
-                           
+LazyArraysBandedMatricesExt = Base.get_extension(LazyArrays, :LazyArraysBandedMatricesExt)
+
+const BandedLazyLayouts = LazyArraysBandedMatricesExt.BandedLazyLayouts
+const BandedLayouts = LazyArraysBandedMatricesExt.BandedLayouts
+const BlockBandedLayouts = Union{AbstractBlockBandedLayout, BlockLayout{<:AbstractBandedLayout}, StructuredLayoutTypes{<:AbstractBlockBandedLayout}} 
 
 import LinearAlgebra: AbstractQ, AdjointQ, AdjOrTrans, factorize, matprod, qr
 
@@ -118,7 +121,7 @@ pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
 pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
 pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
-export ∞, ContinuousSpectrumError, BlockTridiagonal
+export ∞, ContinuousSpectrumError, BlockTridiagonal, TridiagonalConjugation, BidiagonalConjugation
 
 include("banded/hessenbergq.jl")
 

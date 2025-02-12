@@ -1,6 +1,6 @@
 
-mutable struct AdaptiveCholeskyFactors{T,DM<:AbstractMatrix{T},M<:AbstractMatrix{T}} <: LazyMatrix{T}
-    data::CachedMatrix{T,DM,M}
+mutable struct AdaptiveCholeskyFactors{T,DM<:AbstractMatrix{T}} <: LazyMatrix{T}
+    data::CachedMatrix{T,DM}
     ncols::Int
 end
 
@@ -16,11 +16,28 @@ function AdaptiveCholeskyFactors(::SymmetricBandedLayouts, S::AbstractMatrix{T})
     AdaptiveCholeskyFactors(CachedArray(data,A), 0)
 end
 AdaptiveCholeskyFactors(A::AbstractMatrix{T}) where T = AdaptiveCholeskyFactors(MemoryLayout(A), A)
-MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM,M}}) where {T,DM,M} = AdaptiveLayout{typeof(MemoryLayout(DM))}()
+
+struct AdaptiveCholeskyFactorsLayout <: AbstractLazyLayout end
+struct AdaptiveCholeskyFactorsBandedLayout <: AbstractLazyBandedLayout end
+struct AdaptiveCholeskyFactorsBlockBandedLayout <: AbstractLazyBlockBandedLayout end
+
+const AdaptiveCholeskyFactorsLayouts = Union{AdaptiveCholeskyFactorsLayout,AdaptiveCholeskyFactorsBandedLayout,AdaptiveCholeskyFactorsBlockBandedLayout}
+
+# TODO: support other than Banded
+# adaptivecholeskyfactorslayout(_) = AdaptiveCholeskyFactorsLayout()
+adaptivecholeskyfactorslayout(::BandedLayouts) = AdaptiveCholeskyFactorsBandedLayout()
+# adaptivecholeskyfactorslayout(::BlockBandedLayouts) = AdaptiveCholeskyFactorsBlockBandedLayout()
+
+
+MemoryLayout(::Type{AdaptiveCholeskyFactors{T,DM}}) where {T,DM} = adaptivecholeskyfactorslayout(MemoryLayout(DM))
+triangularlayout(::Type{Tri}, ::ML) where {Tri, ML<:AdaptiveCholeskyFactorsLayouts} = Tri{ML}()
+transposelayout(A::AdaptiveCholeskyFactorsLayouts) = A
 
 copy(A::AdaptiveCholeskyFactors) = AdaptiveCholeskyFactors(copy(A.data), copy(A.ncols))
 copy(A::Adjoint{T,<:AdaptiveCholeskyFactors}) where T = copy(parent(A))'
 copy(A::Transpose{T,<:AdaptiveCholeskyFactors}) where T = transpose(copy(parent(A)))
+
+cache_layout(::TriangularLayout{'U', 'N', AdaptiveCholeskyFactorsBandedLayout}, A::AbstractMatrix) = A # already cached
 
 function partialcholesky!(F::AdaptiveCholeskyFactors{T,<:BandedMatrix}, n::Int) where T
     if n > F.ncols
@@ -74,7 +91,7 @@ end
 colsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = rowsupport(parent(F), j)
 rowsupport(F::AdjOrTrans{<:Any,<:AdaptiveCholeskyFactors}, j) = colsupport(parent(F), j)
 
-function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveLayout},<:AbstractPaddedLayout})
+function materialize!(M::MatLdivVec{<:TriangularLayout{'L','N',<:AdaptiveCholeskyFactorsLayouts},<:AbstractPaddedLayout})
     A,B = M.A,M.B
     T = eltype(M)
     COLGROWTH = 1000 # rate to grow columns
