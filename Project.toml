@@ -19,7 +19,7 @@ SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 [compat]
 Aqua = "0.8"
 ArrayLayouts = "1.9.2"
-BandedMatrices = "1.7.2"
+BandedMatrices = "1.9.2"
 BlockArrays = "1.0"
 BlockBandedMatrices = "0.13"
 FillArrays = "1.0"

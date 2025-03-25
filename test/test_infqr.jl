@@ -5,7 +5,7 @@ import LazyBandedMatrices: BroadcastBandedLayout, InvDiagTrav, BroadcastBandedBl
 import BandedMatrices: _BandedMatrix, _banded_qr!, BandedColumns
 import InfiniteLinearAlgebra: partialqr!, AdaptiveQRData, AdaptiveQRFactorsBandedLayout, adaptiveqr
 import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
-
+import MatrixFactorizations: QRPackedQ
 
 @testset "Adaptive QR" begin
     @testset "banded" begin
@@ -342,5 +342,12 @@ import SemiseparableMatrices: AlmostBandedLayout, VcatAlmostBandedLayout
         # increase coverage
         @test mul(Q, Ones(∞,∞)) isa ApplyArray
         @test mul(Ones(∞,∞), Q) isa ApplyArray
+    end
+
+    @testset "∞-Banded QR" begin
+        c = sqrt.(2*(5:2:∞) ./ ((3:∞) .* (4:∞) ))
+        s = sqrt.(((1:∞) .* (2:∞)) ./ ((3:∞) .* (4:∞) ))
+        Q = QRPackedQ(BandedMatrix(-2 => -(s ./ (c .+ 1))), c .+ 1)
+        @test Q[1:12,1:10]'Q[1:12,1:10] ≈ I
     end
 end

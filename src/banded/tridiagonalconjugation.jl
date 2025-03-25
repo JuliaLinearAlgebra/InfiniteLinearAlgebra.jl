@@ -31,7 +31,10 @@ end
 
 initiate_upper_mul_tri_triview!(UX, U::UpperTriangular, X) = initiate_upper_mul_tri_triview!(UX, parent(U), X)
 initiate_upper_mul_tri_triview!(UX, U::CachedMatrix, X) = initiate_upper_mul_tri_triview!(UX, U.data, X)
-initiate_upper_mul_tri_triview!(UX, U::Union{AdaptiveCholeskyFactors,AdaptiveQRFactors}, X) = initiate_upper_mul_tri_triview!(UX, U.data.data, X)
+function initiate_upper_mul_tri_triview!(UX, U::Union{AdaptiveCholeskyFactors,AdaptiveQRFactors}, X)
+    resizedata!(U, 1, 3)
+    initiate_upper_mul_tri_triview!(UX, U.data.data, X)
+end
 
 function initiate_upper_mul_tri_triview!(UX, U::BandedMatrix, X)
     Xdl, Xd, Xdu = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
@@ -226,12 +229,10 @@ mutable struct TridiagonalConjugationData{T}
 end
 
 function TridiagonalConjugationData(U, X, V)
-    T = promote_type(typeof(inv(V[1, 1])), eltype(U), eltype(X)) # include inv so that we can't get Ints
+    T = float(promote_type(eltype(V), eltype(U), eltype(X)))
     n_init = 100
     UX = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
     Y = Tridiagonal(Vector{T}(undef, n_init-1), Vector{T}(undef, n_init), Vector{T}(undef, n_init-1))
-    resizedata!(U, n_init, n_init)
-    resizedata!(V, n_init, n_init)
     initiate_upper_mul_tri_triview!(UX, U, X) # fill-in 1st row
     initiate_tri_mul_invupper_triview!(Y, UX, V)
     return TridiagonalConjugationData(U, X, V, UX, Y, 0)
@@ -248,6 +249,8 @@ copy(data::TridiagonalConjugationData) = TridiagonalConjugationData(copy(data.U)
 
 function resizedata!(data::TridiagonalConjugationData, n)
     n ≤ data.datasize && return data
+
+    # println("tri resizedata! $n")
 
     if n ≥ length(data.UX.dl) # Avoid O(n²) growing. Note min(length(dv), length(ev)) == length(ev)
         resize!(data.UX.dl, 2n)
