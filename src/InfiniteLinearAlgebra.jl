@@ -115,6 +115,7 @@ function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
 end
 
 pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = [c; Zeros{T}(length(ax)-length(c))]
+pad(c::AbstractMatrix{T}, ax::Union{OneTo,OneToInf}, ::Colon) where T = [c; Zeros{T}(length(ax)-length(c), size(c,2))]
 pad(c, ax...) = PaddedArray(c, ax)
 
 pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
