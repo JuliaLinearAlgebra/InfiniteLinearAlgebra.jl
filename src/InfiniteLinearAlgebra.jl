@@ -8,7 +8,7 @@ import Base: *, +, -, /, \, ^, AbstractArray, AbstractMatrix, AbstractVector, Ar
              axes, copy, copymutable, copyto!, getindex, getproperty, inv,
              length, map, oneto, promote_op, require_one_based_indexing, show,
              similar, size, transpose, adjoint, copymutable, transpose,
-             adjoint, copymutable, transpose
+             adjoint, copymutable, transpose, tail
 
 import Base.Broadcast: BroadcastStyle, Broadcasted, broadcasted
 
@@ -115,7 +115,11 @@ function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
 end
 
 pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = [c; Zeros{T}(length(ax)-length(c))]
-pad(c, ax...) = PaddedArray(c, ax)
+
+_colon2axes(::Tuple{}, bx::Tuple{}) = ()
+_colon2axes(ax::Tuple, bx::Tuple{Colon, Vararg{Any}}) = (first(ax), _colon2axes(tail(ax), tail(bx))...)
+_colon2axes(ax::Tuple, bx::Tuple) = (first(bx), _colon2axes(tail(ax), tail(bx))...)
+pad(c, ax...) = PaddedArray(c, _colon2axes(axes(c), ax))
 
 pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
 pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
