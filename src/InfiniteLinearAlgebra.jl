@@ -114,12 +114,15 @@ function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
     return A
 end
 
-pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = [c; Zeros{T}(length(ax)-length(c))]
+pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = Vcat(c, Zeros{T}(length(ax)-length(c)))
+pad(c::AbstractVector{T}, n::Int) where T = Vcat(c, Zeros{T}(n-length(c)))
 
 _colon2axes(::Tuple{}, bx::Tuple{}) = ()
 _colon2axes(ax::Tuple, bx::Tuple{Colon, Vararg{Any}}) = (first(ax), _colon2axes(tail(ax), tail(bx))...)
+_colon2axes(ax::Tuple, bx::Tuple{Union{Integer,Infinity}, Vararg{Any}}) = (oneto(first(bx)), _colon2axes(tail(ax), tail(bx))...)
 _colon2axes(ax::Tuple, bx::Tuple) = (first(bx), _colon2axes(tail(ax), tail(bx))...)
 pad(c, ax...) = PaddedArray(c, _colon2axes(axes(c), ax))
+pad(c, ax::Colon...) = c
 
 pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
 pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
