@@ -38,9 +38,14 @@ end
 
     @test pad(1:3, 5) == [1:3; 0; 0]
     @test pad(1:3, oneto(∞)) isa Vcat
+    @test pad(1:3, :) ≡ 1:3
     X = Matrix(reshape(1:6, 3, 2))
-    P = pad(X, oneto(3), oneto(∞))
-    @test P isa PaddedArray
+    # TODO: replace ≈ with ==
+    @test pad(X, oneto(3), ∞) ≈ pad(X, oneto(3), oneto(∞)) ≈ pad(X, 3, oneto(∞)) ≈ pad(X, 3, ∞) ≈ pad(X, :, ∞)
+    @test pad(X, oneto(3), oneto(∞)) isa PaddedArray
+    @test pad(X, :, oneto(∞)) isa PaddedArray
+    @test pad(X, :, :) isa Matrix
+    @test pad(X, oneto(10), :) isa PaddedArray
     P = pad(BlockVec(X), blockedrange(Fill(3,∞)))
     @test P isa BlockVec
     @test MemoryLayout(P) isa PaddedColumns
