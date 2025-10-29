@@ -495,9 +495,9 @@ getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::Int, J::UnitRange{Int}) =
 getindex(Q::QLPackedQ{<:Any,<:AdaptiveQLFactors}, I::UnitRange{Int}, J::Int) =
     [Q[i,j] for i in I, j in J]
 
-materialize!(M::Lmul{<:QLPackedQLayout{<:LazyLayout},<:AbstractPaddedLayout}) = ApplyArray(*,M.A,M.B)
+materialize!(M::Lmul{<:QLPackedQLayout{<:AbstractLazyLayout},<:AbstractPaddedLayout}) = ApplyArray(*,M.A,M.B)
 
-function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:LazyLayout},<:AbstractPaddedLayout})
+function materialize!(M::Lmul{<:AdjQLPackedQLayout{<:AbstractLazyLayout},<:AbstractPaddedLayout})
     adjA,B = M.A,M.B
     A = parent(adjA)
     mA, nA = size(A.factors)
