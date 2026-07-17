@@ -130,6 +130,8 @@ pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1],
 
 export ∞, ContinuousSpectrumError, BlockTridiagonal, TridiagonalConjugation, BidiagonalConjugation
 
+include("solvent.jl")
+
 include("banded/hessenbergq.jl")
 
 include("banded/infqltoeplitz.jl")
