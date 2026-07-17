@@ -58,7 +58,7 @@ end
 end
 
 
-
+include("test_solvent.jl")
 include("test_hessenbergq.jl")
 include("test_infql.jl")
 include("test_infqr.jl")
