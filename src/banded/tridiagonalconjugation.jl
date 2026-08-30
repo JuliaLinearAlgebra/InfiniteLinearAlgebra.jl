@@ -213,7 +213,6 @@ end
 caches the infinite dimensional Tridiagonal(U*X/V)
 in the tridiagonal matrix `Y`
 """
-
 mutable struct TridiagonalConjugationData{T}
     const U::AbstractMatrix{T}
     const X::AbstractMatrix{T}
