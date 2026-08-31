@@ -40,7 +40,7 @@ import LazyArrays: AbstractCachedMatrix, AbstractCachedVector, AbstractLazyLayou
                    CachedArray, CachedLayout, CachedMatrix, CachedVector, LazyArrayStyle, LazyLayout,
                    LazyLayouts, LazyMatrix, LazyVector, AbstractPaddedLayout, PaddedColumns, _broadcast_sub_arguments,
                    applybroadcaststyle, applylayout, arguments, cacheddata, paddeddata, resizedata!, simplifiable,
-                   simplify, islazy, islazy_layout, cache_getindex, cache_layout, AbstractInvLayout
+                   simplify, islazy, islazy_layout, cache_getindex, cache_layout, AbstractInvLayout, pad, _colon2axes
 
 import LazyBandedMatrices: AbstractLazyBandedBlockBandedLayout, AbstractLazyBandedLayout, AbstractLazyBlockBandedLayout, ApplyBandedLayout, BlockVec,
                            BroadcastBandedLayout, KronTravBandedBlockBandedLayout, LazyBandedLayout,
@@ -114,18 +114,8 @@ function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
     return A
 end
 
-pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = Vcat(c, Zeros{T}(length(ax)-length(c)))
-pad(c::AbstractVector{T}, n::Int) where T = Vcat(c, Zeros{T}(n-length(c)))
-
-_colon2axes(::Tuple{}, bx::Tuple{}) = ()
-_colon2axes(ax::Tuple, bx::Tuple{Colon, Vararg{Any}}) = (first(ax), _colon2axes(tail(ax), tail(bx))...)
-_colon2axes(ax::Tuple, bx::Tuple{Union{Integer,Infinity}, Vararg{Any}}) = (oneto(first(bx)), _colon2axes(tail(ax), tail(bx))...)
-_colon2axes(ax::Tuple, bx::Tuple) = (first(bx), _colon2axes(tail(ax), tail(bx))...)
-pad(c, ax...) = PaddedArray(c, _colon2axes(axes(c), ax))
-pad(c, ax::Colon...) = c
-
-pad(c::Transpose, ax, bx) = transpose(pad(parent(c), bx, ax))
-pad(c::Adjoint, ax, bx) = adjoint(pad(parent(c), bx, ax))
+_colon2axes(ax::Tuple, bx::Tuple{Infinity, Vararg{Any}}) = (oneto(first(bx)), _colon2axes(tail(ax), tail(bx))...)
+pad(c::AbstractVector{T}, ax::OneToInf) where T = Vcat(c, Zeros{T}(length(ax)-length(c)))
 pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
 export ∞, ContinuousSpectrumError, BlockTridiagonal, TridiagonalConjugation, BidiagonalConjugation
