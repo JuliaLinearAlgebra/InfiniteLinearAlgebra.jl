@@ -114,8 +114,8 @@ function chop(A::AbstractMatrix{T}, tol::Real=zero(real(T))) where T
     return A
 end
 
-pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = Vcat(c, Zeros{T}(length(ax)-length(c)))
-_colon2axes(ax::Tuple, bx::Tuple{Union{Integer,Infinity}, Vararg{Any}}) = (oneto(first(bx)), _colon2axes(tail(ax), tail(bx))...)
+pad(c::AbstractVector{T}, ax::OneToInf) where T = pad(c, length(ax))
+_colon2axes(ax::Tuple, bx::Tuple{Infinity, Vararg{Any}}) = (oneto(first(bx)), _colon2axes(tail(ax), tail(bx))...)
 pad(c::BlockVec, ax::BlockedOneTo{Int,<:InfStepRange}) = BlockVec(pad(c.args[1], size(c.args[1],1), ∞))
 
 export ∞, ContinuousSpectrumError, BlockTridiagonal, TridiagonalConjugation, BidiagonalConjugation
