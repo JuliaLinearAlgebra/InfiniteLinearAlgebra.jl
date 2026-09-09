@@ -45,7 +45,7 @@ end
     @test pad(X, oneto(3), oneto(∞)) isa PaddedArray
     @test pad(X, :, oneto(∞)) isa PaddedArray
     @test pad(X, :, :) isa Matrix
-    @test pad(X, oneto(10), :) isa PaddedArray
+    @test pad(X, oneto(10), :) isa Vcat
     P = pad(BlockVec(X), blockedrange(Fill(3,∞)))
     @test P isa BlockVec
     @test MemoryLayout(P) isa PaddedColumns
