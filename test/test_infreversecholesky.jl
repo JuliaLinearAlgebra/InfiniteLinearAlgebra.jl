@@ -44,6 +44,50 @@ using InfiniteLinearAlgebra, LazyBandedMatrices, FillArrays, MatrixFactorization
             @test V*V' ≈ J[Block.(1:N), Block.(1:N)]
         end
 
+        @testset "solves" begin
+            B = [1.0 2; 3 4]/10
+            D = [5.0 1; 1 6]
+            J = mortar(Tridiagonal(Fill(Matrix(B'), ∞), Fill(D, ∞), Fill(B, ∞)))
+            F = reversecholesky(J)
+
+            b = [1.0; zeros(∞)]
+            x = F \ b
+            @test x isa BlockedVector
+            @test x[1:40] ≈ (J \ b)[1:40]
+            @test (J*x)[1:40] ≈ b[1:40]
+            @test x[Block(2)] == x[3:4]
+
+            # right-hand sides that do not fill a whole number of blocks
+            for nz = 1:7
+                b = [Float64.(1:nz); zeros(∞)]
+                @test (J*(F \ b))[1:40] ≈ b[1:40]
+            end
+
+            # the tail is truncated once it drops below `tolerance`
+            @test last(colsupport(\(F, [1.0; zeros(∞)]; tolerance=1e-15), 1)) <
+                  last(colsupport(F \ [1.0; zeros(∞)], 1))
+
+            # a zero right-hand side needs no tail at all
+            z = F \ [0.0; zeros(∞)]
+            @test iszero(z[1:10])
+
+            @testset "3x3 blocks" begin
+                B = [1.0 2 3; 4 5 6; 7 8 10]/20
+                D = Matrix(Symmetric([1.0 2 3; 2 5 6; 3 6 10]) + 8I)
+                J = mortar(Tridiagonal(Fill(Matrix(B'), ∞), Fill(D, ∞), Fill(B, ∞)))
+                b = [1.0; zeros(∞)]
+                @test (J*(reversecholesky(J) \ b))[1:40] ≈ b[1:40]
+            end
+
+            @testset "Hermitian blocks" begin
+                B = [1.0+im 2; 3 4-2im]/10
+                D = [5.0 1+im; 1-im 6+0im]
+                J = mortar(Tridiagonal(Fill(Matrix(B'), ∞), Fill(D, ∞), Fill(B, ∞)))
+                b = [1.0+0im; zeros(∞)]
+                @test (J*(reversecholesky(J) \ b))[1:40] ≈ b[1:40]
+            end
+        end
+
         @testset "1x1 blocks match scalar" begin
             a, b = 3.0, 1.0
             J = mortar(Tridiagonal(Fill(fill(b,1,1), ∞), Fill(fill(a,1,1), ∞), Fill(fill(b,1,1), ∞)))
