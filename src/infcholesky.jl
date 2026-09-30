@@ -63,6 +63,7 @@ resizedata!(F::AdaptiveCholeskyFactors, m, n) = partialcholesky!(F, n) # support
 resizedata!(R::UpperTriangular{<:Any,<:AdaptiveCholeskyFactors}, m...) = resizedata!(parent(R), m...)
 
 function getindex(F::AdaptiveCholeskyFactors, k::Int, j::Int)
+    k > j && return zero(eltype(F)) # data below the diagonal is not overwritten by the factorization
     partialcholesky!(F, max(k,j))
     F.data.data[k,j]
 end
