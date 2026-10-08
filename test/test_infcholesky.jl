@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, ArrayLayouts, LazyBandedMatrices, Test
+using InfiniteLinearAlgebra, LinearAlgebra, BandedMatrices, ArrayLayouts, LazyArrays, LazyBandedMatrices, Test
 import InfiniteLinearAlgebra: SymmetricBandedLayouts, AdaptiveCholeskyFactors
 
 @testset "infinite-cholesky" begin
@@ -30,6 +30,13 @@ import InfiniteLinearAlgebra: SymmetricBandedLayouts, AdaptiveCholeskyFactors
         L = chol.L
         U = chol.U
         @test L[1:10,1:10]' == U[1:10,1:10]
+
+        # entries below the diagonal are zero
+        F = chol.factors
+        @test F[2,1] == F'[1,2] == 0
+        @test istriu(Matrix(view(F, 1:10, 1:10)))
+        @test (F')[1:10,1:10] == F[1:10,1:10]'
+        @test LazyArrays.BroadcastMatrix(/, F, 2)'[1:10,1:10] ≈ F[1:10,1:10]'/2
     end
 
     @testset "singularly perturbed" begin
