@@ -163,105 +163,154 @@ end
 
 
 
-function blocktailiterate(c,a,b, d=c, e=a)
-    z = zero(c)
-    n = size(c,1)
-    for _=1:1_000_000
-        X = [c a b; z d e]
-        F = ql!(X)
-        d̃,ẽ = F.L[1:n,1:n], F.L[1:n,n+1:2n]
-
-        d̃,ẽ = QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*d̃,QLPackedQ(F.factors[1:n,n+1:2n],F.τ[1:n])*ẽ  # undo last rotation
-        if ≈(d̃, d; atol=1E-10) && ≈(ẽ, e; atol=1E-10)
-            X[1:n,1:n] = d̃; X[1:n,n+1:2n] = ẽ
-            return BlockedArray(X,fill(n,2), fill(n,3)), F.τ[n+1:2n]
-        end
-        d,e = d̃,ẽ
-    end
-    error("Did not converge")
-end
-
-
 ###
 # BlockTridiagonal
 ####
 
-function _blocktripert_ql(A, d, e)
-    N = max(length(A.blocks.du.args[1])+1,length(A.blocks.d.args[1]),length(A.blocks.dl.args[1]))
-    c,a,b = A[Block(N+1,N)],A[Block(N,N)],A[Block(N-1,N)]
-    P,τ = blocktailiterate(c,a,b,d,e)
-    B = BlockBandedMatrix(A,(2,1))
+"""
+    blocktailql(c, a, b)
 
-    n = size(c,1)
-    BB = _BlockBandedMatrix(B.data.args[1], fill(n,N+2), fill(n,N), (2,1))
-    BB[Block(N),Block.(N-1:N)] .= P[Block(1), Block.(1:2)]
-    F = ql!(view(BB, Block.(1:N), Block.(1:N)))
-    BB[Block(N+1),Block.(N-1:N)] .= P[Block(2), Block.(1:2)]
-    BB[Block(N+2),Block(N)] .= P[Block(2), Block.(1)]
+computes the stationary tail of the QL factorisation of the block-tridiagonal Toeplitz operator
+with sub-diagonal, diagonal and super-diagonal blocks `c`, `a` and `b`. That is, it returns
+a unitary `G`, blocks `d` and `e`, and blocks `L₂`, `L₁` and lower-triangular `L₀` such that
 
+    G' * [c a b; 0 d e] == [d e 0; L₂ L₁ L₀]
 
-    QL(_BlockSkylineMatrix(Vcat(BB.data, mortar(Fill(vec(Vcat(P[Block(1,3)], P[Block(2,3)], P[Block(2,2)], P[Block(2,1)])),∞))),B.block_sizes),
-            Vcat(F.τ,mortar(Fill(τ,∞)))), P[Block(1,1)], P[Block(1,2)]
+Applying `G'` to consecutive block rows, starting infinitely far down, thus reduces the operator to
+lower-triangular form, where `[d e]` is the block row carried up to the next application.
+"""
+function blocktailql(c, a, b)
+    T = float(promote_type(eltype(c), eltype(a), eltype(b)))
+    n = LinearAlgebra.checksquare(a)
+    Z = zeros(T, n, n)
+    # Since [d e 0] lies in the row space of [c a b; 0 d e], eliminating the last block column
+    # shows that W = e \ d satisfies b*W^2 - a*W + c == 0. The minimal solvent gives the decaying tail.
+    W = _realifreal(T, matrixroot(b, -a, c))
+    K = a - b*W # so that K*W == c
+    # The first block column of G is then [e*inv(K) -e*inv(K)*b*inv(e)]', which is orthonormal iff
+    # E = e'e satisfies E == K'*inv(I + b*inv(E)*b')*K. Writing F = E + b'b this becomes
+    # F == D - B'*inv(F)*B, i.e., F \ B is a solvent of B'*X^2 - D*X + B == 0.
+    D = K'K + b'b
+    B = b'K
+    λ, V = eigen(Hermitian(D - B'*_realifreal(T, matrixroot(B', -D, B)) - b'b))
+    e = Diagonal(sqrt.(max.(λ, 0))) * V' # any e with e'e == E will do
+    d = e*W
+    Q = ql([b; e]).Q * Matrix{T}(I, 2n, 2n)
+    X = Q' * [c a b; Z d e] # == [Ω'*[d e] 0; L₂ L₁ L₀] for some unitary Ω
+    # Ω solves the Procrustes problem of rotating X[1:n,1:2n] onto [d e]
+    S = svd([d e] * X[1:n,1:2n]')
+    G = Q * [S.V*S.U' Z; Z I]
+    G, d, e, X[n+1:2n,1:n], X[n+1:2n,n+1:2n], tril!(X[n+1:2n,2n+1:3n])
 end
 
-ql(A::BlockTriPertToeplitz) = _blocktripert_ql(A, A[Block(2,3)], A[Block(3,3)])[1]
+"""
+    BlockTailQ(Q₀, G)
+
+represents the infinite unitary operator `⋯ * G₃ * G₂ * G₁ * Q₀` where `Q₀` acts on the first
+`m = size(Q₀,1)` rows and `Gₖ` is `G` acting on rows `m+(k-2)n+1:m+k*n`, with `size(G) == (2n,2n)`.
+"""
+struct BlockTailQ{T,QQ<:Union{AbstractMatrix{T},AbstractQ{T}},GG<:AbstractMatrix{T}} <: AbstractQ{T}
+    Q₀::QQ
+    G::GG
+end
+
+size(::BlockTailQ) = (ℵ₀, ℵ₀)
+function axes(Q::BlockTailQ)
+    ax = blockedrange(Fill(size(Q.G,1) ÷ 2, ∞))
+    (ax, ax)
+end
+
+function lmul!(Q::BlockTailQ, x::AbstractVector)
+    G, m = Q.G, size(Q.Q₀,1)
+    n = size(G,1) ÷ 2
+    T = eltype(x)
+    nz = last(colsupport(x))
+    resizedata!(x, m)
+    lmul!(Q.Q₀, view(x.data, 1:m))
+    t = Vector{T}(undef, 2n)
+    for k = 1:∞
+        kr = m+(k-2)n+1:m+k*n
+        resizedata!(x, last(kr))
+        v = view(x.data, kr)
+        mul!(t, G, v)
+        v .= t
+        # beyond the support of x only the bottom block is carried to the next Gₖ
+        last(kr) > nz && norm(view(t, n+1:2n)) ≤ 10floatmin(real(T)) && break
+    end
+    x
+end
+
+function lmul!(adjQ::AdjointQ{<:Any,<:BlockTailQ}, x::AbstractVector)
+    Q = parent(adjQ)
+    G, m = Q.G, size(Q.Q₀,1)
+    n = size(G,1) ÷ 2
+    T = eltype(x)
+    # Gₖ' acts as the identity once its rows are beyond the support of x
+    K = fld(last(colsupport(x)) - m - 1, n) + 2
+    resizedata!(x, max(m, m+K*n))
+    t = Vector{T}(undef, 2n)
+    for k = K:-1:1
+        v = view(x.data, m+(k-2)n+1:m+k*n)
+        mul!(t, G', v)
+        v .= t
+    end
+    lmul!(Q.Q₀', view(x.data, 1:m))
+    x
+end
+
+for Typ in (:BlockTailQ, :(AdjointQ{<:Any,<:BlockTailQ}))
+    @eval begin
+        function (*)(Q::$Typ, x::AbstractVector{S}) where S
+            TS = promote_op(matprod, eltype(Q), S)
+            lmul!(Q, cache(convert(AbstractVector{TS}, x)))
+        end
+        function (*)(Q::$Typ, x::LayoutVector{S}) where S
+            TS = promote_op(matprod, eltype(Q), S)
+            lmul!(Q, cache(convert(AbstractVector{TS}, x)))
+        end
+    end
+end
+
+getindex(Q::BlockTailQ{T}, i::Int, j::Int) where T = (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
+function getindex(Q::BlockTailQ{T}, I::AbstractVector{Int}, J::AbstractVector{Int}) where T
+    ret = Matrix{T}(undef, length(I), length(J))
+    for (k,i) in enumerate(I)
+        ret[k,:] .= conj.((Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[J])
+    end
+    ret
+end
+
+@inline getQ(F::QLProduct{<:Any,<:Tuple{BlockTailQ}}) = only(F.Qs)
+
+function ql(A::BlockTriPertToeplitz{T}) where T
+    dl, d, du = A.blocks.dl, A.blocks.d, A.blocks.du
+    c, a, b = getindex_value(last(dl.args)), getindex_value(last(d.args)), getindex_value(last(du.args))
+    n = size(a,1)
+    S = float(T)
+    G, dₜ, eₜ, L₂, L₁, L₀ = blocktailql(c, a, b)
+    # block rows N+1, N+2, … of A are Toeplitz, and are reduced by Gₖ, which carry into block row N
+    N = max(length(first(dl.args))+1, length(first(d.args)), length(first(du.args))+1, 2)
+    B = BlockBandedMatrix(A, (2,1))
+    BB = BlockBandedMatrix{S}(undef, fill(n,N+2), fill(n,N), (2,1))
+    fill!(BB.data, zero(S))
+    for J = 1:N, K = max(1,J-1):J+1
+        BB[Block(K,J)] = A[Block(K,J)]
+    end
+    Y = G' * [A[Block(N,N-1)] A[Block(N,N)] A[Block(N,N+1)]; zeros(S,n,n) dₜ eₜ]
+    BB[Block(N,N-1)] = Y[1:n,1:n]
+    BB[Block(N,N)] = Y[1:n,n+1:2n]
+    F = ql!(view(BB, Block.(1:N), Block.(1:N)))
+    Q₀ = QLPackedQ(Matrix(F.factors), F.τ)
+    BB[Block(N+1,N-1)] = Y[n+1:2n,1:n]
+    BB[Block(N+1,N)] = Y[n+1:2n,n+1:2n]
+    BB[Block(N+2,N)] = L₂
+    tail = vec(Vcat(zeros(S,n,n), L₀, L₁, L₂))
+    QLProduct((BlockTailQ(Q₀, G),), LowerTriangular(_BlockSkylineMatrix(Vcat(BB.data, mortar(Fill(tail,∞))), B.block_sizes)))
+end
 
 ql(A::Adjoint{T,BlockTriPertToeplitz{T}}) where T = ql(BlockTridiagonal(A))
 
 const InfBlockBandedMatrix{T} = BlockSkylineMatrix{T,<:Vcat{T,1,<:Tuple{Vector{T},<:BlockArray{T,1,<:Fill{<:Any,1,Tuple{OneToInf{Int64}}}}}}}
-
-function lmul!(adjA::AdjointQ{<:Any,<:QLPackedQ{<:Any,<:InfBlockBandedMatrix}}, B::AbstractVector)
-    require_one_based_indexing(B)
-    A = parent(adjA)
-    mA, nA = size(A.factors)
-    mB, nB = size(B,1), size(B,2)
-    if mA != mB
-        throw(DimensionMismatch("matrix A has dimensions ($mA,$nA) but B has dimensions ($mB, $nB)"))
-    end
-    Afactors = A.factors
-    l,u = blockbandwidths(Afactors)
-    # todo: generalize
-    l = 2l+1
-    u = 2u+1
-    @inbounds begin
-        for k = last(colsupport(B))+u:-1:1
-            ν = k
-            for j = 1:nB
-                vBj = B[k,j]
-                for i = max(1,ν-u):k-1
-                    vBj += conj(Afactors[i,ν])*B[i,j]
-                end
-                vBj = conj(A.τ[k])*vBj
-                B[k,j] -= vBj
-                for i = max(1,ν-u):k-1
-                    B[i,j] -= Afactors[i,ν]*vBj
-                end
-            end
-        end
-    end
-    B
-end
-
-getindex(Q::QLPackedQ{T,<:InfBlockBandedMatrix{T}}, i::Int, j::Int) where T =
-    (Q'*Vcat(Zeros{T}(i-1), one(T), Zeros{T}(∞)))[j]'
-getindex(Q::QLPackedQ{<:Any,<:InfBlockBandedMatrix}, I::AbstractVector{Int}, J::AbstractVector{Int}) =
-    [Q[i,j] for i in I, j in J]
-
-function (*)(A::QLPackedQ{T,<:InfBlockBandedMatrix}, x::AbstractVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, cache(convert(AbstractVector{TS},x)))
-end
-
-function (*)(A::AdjointQ{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::AbstractVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, cache(convert(AbstractVector{TS},x)))
-end
-
-function (*)(A::AdjointQ{T,<:QLPackedQ{T,<:InfBlockBandedMatrix}}, x::LayoutVector{S}) where {T,S}
-    TS = promote_op(matprod, T, S)
-    lmul!(A, cache(convert(AbstractVector{TS},x)))
-end
-
 
 ldiv!(F::QLProduct, b::AbstractVector) = ldiv!(F.L, lmul!(F.Q',b))
 ldiv!(F::QLProduct, b::LayoutVector) = ldiv!(F.L, lmul!(F.Q',b))

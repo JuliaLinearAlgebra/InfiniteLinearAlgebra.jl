@@ -81,9 +81,6 @@ function reversecholesky_layout(::BlockTridiagonalToeplitzLayout, ::NTuple{2,Blo
     ReverseCholesky(mortar(Bidiagonal(Fill(α,∞), Fill(β,∞), :U)), 'U', 0)
 end
 
-_realifreal(::Type{<:Real}, X) = real(X)
-_realifreal(_, X) = X
-
 # the factors are already block-upper-triangular so we avoid the `UpperTriangular` wrapper,
 # mimicking `getproperty(::ReverseCholesky{<:Any,<:Bidiagonal}, ::Symbol)`.
 function getproperty(C::ReverseCholesky{<:Any,<:BlockMatrix{<:Any,<:Bidiagonal}}, d::Symbol)
