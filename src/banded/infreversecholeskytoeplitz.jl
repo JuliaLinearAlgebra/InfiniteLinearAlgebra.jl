@@ -97,3 +97,58 @@ function getproperty(C::ReverseCholesky{<:Any,<:BlockMatrix{<:Any,<:Bidiagonal}}
         return getfield(C, d)
     end
 end
+
+"""
+    \\(F::ReverseCholesky{<:Any,<:BlockMatrix{<:Any,<:Bidiagonal}}, b; tolerance)
+
+solves `U*U'*x == b` where `U` is block-bidiagonal Toeplitz and `b` has finite support.
+The solution has infinite support but decays geometrically: it is truncated once a block
+has all entries at most `tolerance` in absolute value.
+"""
+function \(F::ReverseCholesky{<:Any,<:BlockMatrix{<:Any,<:Bidiagonal}}, b::AbstractVector; tolerance=floatmin(real(promote_type(eltype(F), eltype(b)))))
+    #   U = [α β          U' = [α'
+    #          α β  ⋱          β' α'
+    #            ⋱ ⋱]             ⋱  ⋱]
+    #
+    # Solving U*y == b by back-substitution, the minimal solvent guarantees that inv(α)*β has
+    # spectral radius below one so that y is supported on the same blocks as b. Then U'*x == y
+    # by forward-substitution, where beyond the support of y we have x_{k+1} == -inv(α')*β'*x_k.
+    U = F.U
+    ax = axes(U, 2)
+    α = getindex_value(blocks(U).dv)
+    β = getindex_value(blocks(U).ev)
+    m = size(α, 1)
+    T = promote_type(eltype(F), eltype(b))
+
+    cs = colsupport(b, 1)
+    n = isempty(cs) ? 0 : last(cs)
+    N = iszero(n) ? 0 : Int(findblock(ax, n))
+    Y = zeros(T, m, N)
+    Y[1:n] = b[1:n]
+
+    αl = lu(α)
+    for k = N:-1:1
+        k < N && mul!(view(Y,:,k), β, view(Y,:,k+1), -one(T), one(T))
+        ldiv!(αl, view(Y,:,k))
+    end
+
+    αl = lu(α')
+    X = Y # overwrite in place
+    for k = 1:N
+        k > 1 && mul!(view(X,:,k), β', view(X,:,k-1), -one(T), one(T))
+        ldiv!(αl, view(X,:,k))
+    end
+
+    if !iszero(N)
+        Γ = -(αl \ β') # x_{k+1} == Γ*x_k
+        tail = Vector{T}[]
+        x = Γ*X[:,N]
+        while maximum(abs, x) > tolerance
+            push!(tail, x)
+            x = Γ*x
+        end
+        X = [X reduce(hcat, tail; init=zeros(T,m,0))]
+    end
+
+    BlockedVector(Vcat(vec(X), Zeros{T}(∞)), (ax,))
+end
