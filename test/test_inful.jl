@@ -1,4 +1,4 @@
-using InfiniteLinearAlgebra, BlockArrays, ArrayLayouts, Test
+using InfiniteLinearAlgebra, InfiniteArrays, BlockArrays, ArrayLayouts, FillArrays, LazyArrays, LinearAlgebra, Test
 import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
 
 @testset "∞-UL" begin
@@ -40,6 +40,61 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
         @test istril(L[1:2N,1:2N])
         @test istriu(U[1:2N,1:2N])
         @test diag(U[1:2N,1:2N]) == ones(2N)
+        @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
+    end
+
+    @testset "Perturbed Toeplitz" begin
+        J = Tridiagonal(Vcat([1.5], Fill(2.0,∞)),
+                        Vcat([-8.0, -9, -11], Fill(-10.0,∞)),
+                        Vcat([0.4, 0.7], Fill(0.5,∞)))
+        N = 10
+        for A in (J,
+                  Tridiagonal(Vcat(Float64[], Fill(2.0,∞)),
+                              Vcat([-8.0], Fill(-10.0,∞)),
+                              Vcat(Float64[], Fill(0.5,∞))),
+                  Tridiagonal(Vcat(Float64[], Fill(2.0,∞)),
+                              Vcat(Float64[], Fill(-10.0,∞)),
+                              Vcat(Float64[], Fill(0.5,∞))),
+                  SymTridiagonal(Vcat([-8.0, -9], Fill(-10.0,∞)),
+                                 Vcat([1.5], Fill(1.0,∞))))
+            U,L = ul(A, Val(false))
+            Un,Ln = ul(Matrix(A[1:50,1:50]), Val(false))
+            @test U[1:N,1:N+1]*L[1:N+1,1:N] ≈ A[1:N,1:N]
+            @test U[1:N,1:N] ≈ Un[1:N,1:N]
+            @test L[1:N,1:N] ≈ Ln[1:N,1:N]
+        end
+        U,L = ul(J)
+        @test U[1:N,1:N+1]*L[1:N+1,1:N] ≈ J[1:N,1:N]
+    end
+
+    @testset "Perturbed block Toeplitz" begin
+        A = [-10.0 1; 0 -12]
+        B = [1.0 0; 1 2]
+        C = [2.0 1; 0 1]
+        J = mortar(Tridiagonal(Vcat([C/2], Fill(C,∞)),
+                               Vcat([A+I, A-2I], Fill(A,∞)),
+                               Vcat([2B, B/2, B+I], Fill(B,∞))))
+        U,L = ul(J, Val(false))
+        Un,Ln = ul(Matrix(J[1:100,1:100]), Val(false))
+        N = 10
+        @test istril(L[1:2N,1:2N])
+        @test istriu(U[1:2N,1:2N])
+        @test diag(U[1:2N,1:2N]) == ones(2N)
+        @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
+        @test U[1:2N,1:2N] ≈ Un[1:2N,1:2N]
+        @test L[1:2N,1:2N] ≈ Ln[1:2N,1:2N]
+        @test_throws ErrorException ul(J, Val(true))
+
+        # A larger leading block represents a dense top-left perturbation.
+        A0 = [-9.0 1 2; 3 -10 1; 2 1 -11]
+        B0 = [1.0 2; 0 1; 2 1]
+        C0 = [2.0 0 1; 1 1 0]
+        J = mortar(Tridiagonal(Vcat([C0], Fill(C,∞)),
+                               Vcat([A0], Fill(A,∞)),
+                               Vcat([B0], Fill(B,∞))))
+        U,L = ul(J, Val(false))
+        @test istril(L[1:2N+1,1:2N+1])
+        @test istriu(U[1:2N+1,1:2N+1])
         @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
     end
 

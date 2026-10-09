@@ -56,19 +56,80 @@ function ul_layout(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{fa
     UL(mortar(Tridiagonal(Fill(U \ C,∞), Fill(F.factors,∞), Fill(B/L,∞))), OneToInf(), F.info)
 end
 
+function _ul_perturbed(J, pivot; check::Bool = true)
+    C, A, B = subdiagonaldata(J), diagonaldata(J), supdiagonaldata(J)
+    c, c∞ = _data_tail(C)
+    a, a∞ = _data_tail(A)
+    b, b∞ = _data_tail(B)
+    F∞ = ul(Tridiagonal(Fill(c∞,∞), Fill(a∞,∞), Fill(b∞,∞)), pivot; check=check)
+    L∞, U∞ = F∞.factors.d[1], F∞.factors.du[1]
+    n = max(length(c), length(a), length(b))
+    L = Vector{eltype(F∞)}(undef, n)
+    U = similar(L)
+    info = F∞.info
 
-_inf_getU(::TridiagonalToeplitzLayout, F::UL) = Bidiagonal(Fill(one(eltype(F)),∞),F.factors.du, :U)
-_inf_getL(::TridiagonalToeplitzLayout, F::UL) = Bidiagonal(F.factors.d,F.factors.dl, :L)
-
-
-function _inf_getU(::BlockTridiagonalToeplitzLayout, F::UL)
-    U = Matrix(UnitUpperTriangular(getindex_value(F.factors.blocks.d)))
-    mortar(Bidiagonal(Fill(U,∞),F.factors.blocks.du, :U))
+    # Complete the finite prefix backwards from the exact tail pivot.
+    nextL = L∞
+    for k = n:-1:1
+        U[k] = B[k]/nextL
+        L[k] = A[k] - U[k]*C[k]
+        if iszero(L[k])
+            check && throw(SingularException(k))
+            iszero(info) && (info = k)
+        end
+        nextL = L[k]
+    end
+    UL(Tridiagonal(Vcat(Vector{eltype(F∞)}(C[1:n]), Fill(convert(eltype(F∞),c∞),∞)),
+                   Vcat(L, Fill(L∞,∞)), Vcat(U, Fill(U∞,∞))), OneToInf(), info)
 end
 
-function _inf_getL(::BlockTridiagonalToeplitzLayout, F::UL)
-    L = Matrix(LowerTriangular(getindex_value(F.factors.blocks.d)))
-    mortar(Bidiagonal(Fill(L,∞),F.factors.blocks.dl, :L))
+ul_layout(::TridiagonalLayout, J::InfiniteArrays.TriPertToeplitz, pivot::Union{Val{false},Val{true}}; check::Bool = true) =
+    _ul_perturbed(J, pivot; check=check)
+ul_layout(::PertTridiagonalToeplitzLayout, J::AbstractMatrix, pivot::Union{Val{false},Val{true}}; check::Bool = true) =
+    _ul_perturbed(J, pivot; check=check)
+
+function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, ::Val{false}; check::Bool = true)
+    C, A, B = subdiagonaldata(blocks(J)), diagonaldata(blocks(J)), supdiagonaldata(blocks(J))
+    c, c∞ = _data_tail(C)
+    a, a∞ = _data_tail(A)
+    b, b∞ = _data_tail(B)
+    F∞ = ul(mortar(Tridiagonal(Fill(c∞,∞), Fill(a∞,∞), Fill(b∞,∞))), Val(false); check=check)
+    C∞, A∞, B∞ = F∞.factors.blocks.dl[1], F∞.factors.blocks.d[1], F∞.factors.blocks.du[1]
+    n = max(length(c), length(a), length(b))
+    d = Vector{typeof(A∞)}(undef, n)
+    dl, du = similar(d), similar(d)
+    info = F∞.info
+
+    # Eliminate each block against the next block's triangular factors.
+    nextD = A∞
+    for k = n:-1:1
+        dl[k] = UnitUpperTriangular(nextD) \ C[k]
+        du[k] = B[k]/LowerTriangular(nextD)
+        F = ul!(A[k] - du[k]*dl[k], Val(false); check=check)
+        d[k] = nextD = F.factors
+        if iszero(info) && !iszero(F.info)
+            info = sum(j -> size(A[j],1), 1:k-1; init=0) + F.info
+        end
+    end
+    UL(mortar(Tridiagonal(Vcat(dl, Fill(C∞,∞)), Vcat(d, Fill(A∞,∞)), Vcat(du, Fill(B∞,∞)))), OneToInf(), info)
+end
+
+ul_layout(::BlockLayout{<:TridiagonalLayout}, ::BlockTriPertToeplitz, ::Val{true}; check::Bool = true) =
+    error("Pivoting not implemented; use ul(J, Val(false))")
+
+
+_inf_getU(::Union{TridiagonalToeplitzLayout,TridiagonalLayout}, F::UL) = Bidiagonal(one.(F.factors.d),F.factors.du, :U)
+_inf_getL(::Union{TridiagonalToeplitzLayout,TridiagonalLayout}, F::UL) = Bidiagonal(F.factors.d,F.factors.dl, :L)
+
+
+function _inf_getU(::Union{BlockTridiagonalToeplitzLayout,BlockLayout{<:TridiagonalLayout}}, F::UL)
+    U = Matrix.(UnitUpperTriangular.(F.factors.blocks.d))
+    mortar(Bidiagonal(U,F.factors.blocks.du, :U))
+end
+
+function _inf_getL(::Union{BlockTridiagonalToeplitzLayout,BlockLayout{<:TridiagonalLayout}}, F::UL)
+    L = Matrix.(LowerTriangular.(F.factors.blocks.d))
+    mortar(Bidiagonal(L,F.factors.blocks.dl, :L))
 end
 
 
