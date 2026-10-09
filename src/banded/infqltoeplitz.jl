@@ -56,7 +56,7 @@ ql(Op::TriToeplitz{T}) where {T} = ql(InfToeplitz(Op))
 function ql_hessenberg(A::InfToeplitz{T}; kwds...) where {T}
     l, u = bandwidths(A)
     @assert u == 1
-    a = reverse(A.data.args[1])
+    a = reverse(convert(AbstractArray{T}, A.data.args[1]))
     de = tail_de(a; kwds...)
     X = [transpose(a); zero(T) transpose(de)]::Matrix{float(T)}
     F = ql_X!(X) # calculate data for fixed point
@@ -128,6 +128,10 @@ mul(A::ProductQ, x::AbstractVector) = _productq_mul(A, x)
 
 mul(Q::ProductQ, X::AbstractMatrix) = ApplyArray(*, Q.Qs...) * X
 mul(X::AbstractMatrix, Q::ProductQ) = X * ApplyArray(*, Q.Qs...)
+
+# An infinite Q need only be an isometry, so that e.g. Q*Q' may be a projection rather than
+# the identity. We therefore keep products of Qs as a ProductQ.
+mul(A::ProductQ, B::ProductQ) = ProductQ(A.Qs..., B.Qs...)
 
 
 # LQ where Q is a product of orthogonal operations

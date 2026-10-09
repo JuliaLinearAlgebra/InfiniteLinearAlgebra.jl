@@ -28,7 +28,7 @@ function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
     C*(V*Diagonal(inv.(λ))/V) # L = C inv(R)
 end
 
-function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
+function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::NoPivot; check::Bool = true)
     C = getindex_value(subdiagonaldata(J))
     A = getindex_value(diagonaldata(J))
     B = getindex_value(supdiagonaldata(J))
@@ -37,20 +37,20 @@ function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false};
     UL(Tridiagonal(Fill(convert(typeof(L),C),∞), Fill(L,∞), Fill(U,∞)), OneToInf(), 0)
 end
 
-function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{true}; check::Bool = true)
+function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::RowMaximum; check::Bool = true)
     C = getindex_value(subdiagonaldata(J))
     A = getindex_value(diagonaldata(J))
     B = getindex_value(supdiagonaldata(J))
     A^2 ≥ 4B*C || error("Pivotting not implemented")
-    ul(J, Val(false))
+    ul(J, NoPivot())
 end
 
-function ul_layout(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
+function ul_layout(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::NoPivot; check::Bool = true)
     C = getindex_value(subdiagonaldata(blocks(J)))
     A = getindex_value(diagonaldata(blocks(J)))
     B = getindex_value(supdiagonaldata(blocks(J)))
     # Factor the dense tail block and absorb its upper factor into the adjacent blocks.
-    F = ul!(_ultailL1(C, A, B), Val(false); check=check)
+    F = ul!(_ultailL1(C, A, B), NoPivot(); check=check)
     U = UnitUpperTriangular(F.factors)
     L = LowerTriangular(F.factors)
     UL(mortar(Tridiagonal(Fill(U \ C,∞), Fill(F.factors,∞), Fill(B/L,∞))), OneToInf(), F.info)
@@ -93,7 +93,7 @@ function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, 
     c, c∞ = _data_tail(C)
     a, a∞ = _data_tail(A)
     b, b∞ = _data_tail(B)
-    F∞ = ul(mortar(Tridiagonal(Fill(c∞,∞), Fill(a∞,∞), Fill(b∞,∞))), Val(false); check=check)
+    F∞ = ul(mortar(Tridiagonal(Fill(c∞,∞), Fill(a∞,∞), Fill(b∞,∞))), NoPivot(); check=check)
     C∞, A∞, B∞ = F∞.factors.blocks.dl[1], F∞.factors.blocks.d[1], F∞.factors.blocks.du[1]
     n = max(length(c), length(a), length(b))
     d = Vector{typeof(A∞)}(undef, n)
@@ -105,7 +105,7 @@ function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, 
     for k = n:-1:1
         dl[k] = UnitUpperTriangular(nextD) \ C[k]
         du[k] = B[k]/LowerTriangular(nextD)
-        F = ul!(A[k] - du[k]*dl[k], Val(false); check=check)
+        F = ul!(A[k] - du[k]*dl[k], NoPivot(); check=check)
         d[k] = nextD = F.factors
         if iszero(info) && !iszero(F.info)
             info = sum(j -> size(A[j],1), 1:k-1; init=0) + F.info
@@ -115,7 +115,7 @@ function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, 
 end
 
 ul_layout(::BlockLayout{<:TridiagonalLayout}, ::BlockTriPertToeplitz, ::Val{true}; check::Bool = true) =
-    error("Pivoting not implemented; use ul(J, Val(false))")
+    error("Pivoting not implemented; use ul(J, NoPivot())")
 
 
 _inf_getU(::Union{TridiagonalToeplitzLayout,TridiagonalLayout}, F::UL) = Bidiagonal(one.(F.factors.d),F.factors.du, :U)
@@ -130,6 +130,30 @@ end
 function _inf_getL(::Union{BlockTridiagonalToeplitzLayout,BlockLayout{<:TridiagonalLayout}}, F::UL)
     L = Matrix.(LowerTriangular.(F.factors.blocks.d))
     mortar(Bidiagonal(L,F.factors.blocks.dl, :L))
+end
+
+# The product of infinite upper and lower bidiagonal Toeplitz matrices U*L has no boundary
+# effects, hence is (block) tridiagonal Toeplitz.
+function _bidiagonaltoeplitz_mul(U::Bidiagonal, L::Bidiagonal)
+    Ud, Uu = getindex_value(U.dv), getindex_value(U.ev)
+    Ld, Ll = getindex_value(L.dv), getindex_value(L.ev)
+    Tridiagonal(Fill(Ud*Ll,∞), Fill(Ud*Ld + Uu*Ll,∞), Fill(Uu*Ld,∞))
+end
+
+_isupperlower(U, L) = false
+_isupperlower(U::Bidiagonal, L::Bidiagonal) = U.uplo == 'U' && L.uplo == 'L'
+
+function copy(M::Mul{BidiagonalToeplitzLayout,BidiagonalToeplitzLayout})
+    _isupperlower(M.A, M.B) || return simplify(M)
+    _bidiagonaltoeplitz_mul(M.A, M.B)
+end
+
+const BlockBidiagonalToeplitzLayout = BlockLayout{BidiagonalToeplitzLayout,DenseColumnMajor}
+
+function copy(M::Mul{BlockBidiagonalToeplitzLayout,BlockBidiagonalToeplitzLayout})
+    U, L = blocks(M.A), blocks(M.B)
+    _isupperlower(U, L) || return ApplyArray(*, M.A, M.B)
+    mortar(_bidiagonaltoeplitz_mul(U, L))
 end
 
 

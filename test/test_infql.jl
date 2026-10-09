@@ -291,4 +291,15 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
         Q,L = ql(A)
         @test (Q*L)[1:10,1:10] ≈ A[1:10,1:10]
     end
+
+    @testset "lazy Q*Q'" begin
+        A = BandedMatrix(1 => Fill(1/2,∞), -1 => Fill(2,∞))
+        Q,L = ql(complex(A))
+        n = 50
+        @test Q*Q' isa InfiniteLinearAlgebra.ProductQ
+        @test (Q*Q')[1:n,1:n] ≈ Q[1:n,1:n+40]*Q[1:n,1:n+40]'
+        @test (Q*Q')[3,5] ≈ (Q*Q')[1:n,1:n][3,5]
+        @test (Q*Q')[3:7,[2,9]] ≈ (Q*Q')[1:n,1:n][3:7,[2,9]]
+        @test (Q'*Q)[1:n,1:n] ≈ I
+    end
 end

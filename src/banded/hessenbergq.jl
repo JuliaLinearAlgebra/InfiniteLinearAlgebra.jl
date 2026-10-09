@@ -150,8 +150,8 @@ end
 function _getindex_by_col(Q, I, J)
     T = eltype(Q)
     ret = Matrix{T}(undef, length(I), length(J))
-    for j in J
-        ret[:,j] = Q[:,j][I]
+    for (k, j) in enumerate(J)
+        ret[:,k] = Q[:,j][I]
     end
     ret
 end
