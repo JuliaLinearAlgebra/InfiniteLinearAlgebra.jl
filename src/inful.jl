@@ -19,19 +19,13 @@ _ultailL1(c::Number, a::Number, b::Number) = (a + sign(a)*sqrt(a^2-4b*c))/2
 # A - B*R == inv(C)inv(R)
 # C*A*R - C*B*R^2 == I
 # and do eigen decomposition of R to reduce this to a companion matrix problem.
-
 function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
-    d = size(A,1)
-    λs = filter!(λ -> abs(λ) ≤ 1, eigvals([zeros(d,d) -B; -C -A], [B zeros(d,d); zeros(d,d) -B]))
-    @assert length(λs) == d
-    V = Matrix{eltype(λs)}(undef, d, d)
-    j = 1
-    for λ in union(λs)
-        c = count(==(λ), λs) # multiplicities
-        V[:,j:j+c-1] = svd(A-λ*B - C/λ).V[:,end-c+1:end] # nullspace(A-λ*B - C/λ)
-        j += c
-    end
-    C*(V*Diagonal(inv.(λs))/V)
+    d = size(A,1)    
+    F = eigen([zeros(d,d) B; C A], [-B zeros(d,d); zeros(d,d) B])
+    inds = findall(λ -> abs(λ) ≤ 1, F.values)
+    @assert length(inds) == d
+    λ, V = F.values[inds], F.vectors[d+1:2d,inds]
+    C*(V*Diagonal(inv.(λ))/V) # L = C inv(R)
 end
 
 function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{false}; check::Bool = true)
