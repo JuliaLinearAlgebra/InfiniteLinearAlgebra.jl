@@ -30,6 +30,16 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
         @test (J \ [1; zeros(∞)])[Block(1)] ≈ inv(L[Block(1,1)])[:,1]
     end
 
+    @testset "Non-symmetric" begin
+        A = [-10.0 1; 0 -12]
+        B = [1.0 0; 1 2]
+        C = [2.0 1; 0 1]
+        J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞)))
+        U,L = ul(J, Val(false))
+        N = 10
+        @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
+    end
+
     @testset "Periodic Jacobi" begin
         e = 0.1
         B = [e 0; 1 e]
