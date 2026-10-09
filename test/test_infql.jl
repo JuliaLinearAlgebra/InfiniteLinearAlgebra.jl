@@ -296,7 +296,7 @@ using ArrayLayouts: TriangularLayout, UnknownLayout
         A = BandedMatrix(1 => Fill(1/2,∞), -1 => Fill(2,∞))
         Q,L = ql(complex(A))
         n = 50
-        @test Q*Q' isa ApplyArray
+        @test Q*Q' isa InfiniteLinearAlgebra.ProductQ
         @test (Q*Q')[1:n,1:n] ≈ Q[1:n,1:n+40]*Q[1:n,1:n+40]'
         @test (Q*Q')[3,5] ≈ (Q*Q')[1:n,1:n][3,5]
         @test (Q*Q')[3:7,[2,9]] ≈ (Q*Q')[1:n,1:n][3:7,[2,9]]
