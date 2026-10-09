@@ -20,7 +20,7 @@ function tail_de(a::AbstractVector{T}; branch=findmax) where {T}
     C = [view(a, m-1:-1:1) Vcat(-a[end] * Eye(m - 2), Zeros{T}(1, m - 2))]
     λ, V = eigen(C)::Eigen{float(T),float(T),Matrix{float(T)},Vector{float(T)}}
     n2, j = branch(abs2.(λ))
-    n2 ≥ abs2(a[end]) || throw(DomainError(a, "QL factorization does not exist. This could indicate that the operator is not Fredholm or that the dimension of the kernel exceeds that of the co-kernel. Try again with the adjoint."))
+    # n2 ≥ abs2(a[end]) || throw(DomainError(a, "QL factorization does not exist. This could indicate that the operator is not Fredholm or that the dimension of the kernel exceeds that of the co-kernel. Try again with the adjoint."))
     c_abs = sqrt((n2 - abs2(a[end])) / abs2(V[1, j]))
     c_sgn = -sign(λ[j]) / sign(V[1, j] * a[end-1] - V[2, j] * a[end])
     c_sgn * c_abs * V[end:-1:1, j]
@@ -56,7 +56,7 @@ ql(Op::TriToeplitz{T}) where {T} = ql(InfToeplitz(Op))
 function ql_hessenberg(A::InfToeplitz{T}; kwds...) where {T}
     l, u = bandwidths(A)
     @assert u == 1
-    a = reverse(A.data.args[1])
+    a = reverse(convert(AbstractArray{T}, A.data.args[1]))
     de = tail_de(a; kwds...)
     X = [transpose(a); zero(T) transpose(de)]::Matrix{float(T)}
     F = ql_X!(X) # calculate data for fixed point
@@ -128,6 +128,25 @@ mul(A::ProductQ, x::AbstractVector) = _productq_mul(A, x)
 
 mul(Q::ProductQ, X::AbstractMatrix) = ApplyArray(*, Q.Qs...) * X
 mul(X::AbstractMatrix, Q::ProductQ) = X * ApplyArray(*, Q.Qs...)
+
+# An infinite Q need only be an isometry, so that e.g. Q*Q' may be a projection rather than
+# the identity. We therefore represent products of Qs lazily, computing entries column-by-column.
+mul(A::ProductQ, B::ProductQ) = ApplyArray(*, A, B)
+
+const ProductQMul{T} = ApplyMatrix{T,typeof(*),<:Tuple{ProductQ,ProductQ}}
+
+function _productqmul_getindex(M::ProductQMul{T}, I, J) where T
+    A, B = arguments(*, M)
+    ret = Matrix{T}(undef, length(I), length(J))
+    for (k, j) in enumerate(J)
+        ret[:, k] .= (A * (B * Vcat(Zeros{T}(j-1), one(T), Zeros{T}(∞))))[I]
+    end
+    ret
+end
+
+getindex(M::ProductQMul, I::AbstractVector{Int}, J::AbstractVector{Int}) = _productqmul_getindex(M, I, J)
+getindex(M::ProductQMul, I::AbstractUnitRange{Int}, J::AbstractUnitRange{Int}) = _productqmul_getindex(M, I, J)
+getindex(M::ProductQMul, i::Int, j::Int) = _productqmul_getindex(M, i:i, j:j)[1]
 
 
 # LQ where Q is a product of orthogonal operations
