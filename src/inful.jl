@@ -49,9 +49,11 @@ function ul_layout(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::Val{fa
     C = getindex_value(subdiagonaldata(blocks(J)))
     A = getindex_value(diagonaldata(blocks(J)))
     B = getindex_value(supdiagonaldata(blocks(J)))
-    L = _ultailL1(C, A, B)
-    U = B/L
-    UL(mortar(Tridiagonal(Fill(convert(typeof(L),C),∞), Fill(L,∞), Fill(U,∞))), OneToInf(), 0)
+    # Factor the dense tail block and absorb its upper factor into the adjacent blocks.
+    F = ul!(_ultailL1(C, A, B), Val(false); check=check)
+    U = UnitUpperTriangular(F.factors)
+    L = LowerTriangular(F.factors)
+    UL(mortar(Tridiagonal(Fill(U \ C,∞), Fill(F.factors,∞), Fill(B/L,∞))), OneToInf(), F.info)
 end
 
 
@@ -60,12 +62,14 @@ _inf_getL(::TridiagonalToeplitzLayout, F::UL) = Bidiagonal(F.factors.d,F.factors
 
 
 function _inf_getU(::BlockTridiagonalToeplitzLayout, F::UL)
-    d = size(F.factors.blocks.du[1],1)
-    II = convert(eltype(F.factors.blocks.du), I(d))
-    mortar(Bidiagonal(Fill(II,∞),F.factors.blocks.du, :U))
+    U = Matrix(UnitUpperTriangular(getindex_value(F.factors.blocks.d)))
+    mortar(Bidiagonal(Fill(U,∞),F.factors.blocks.du, :U))
 end
 
-_inf_getL(::BlockTridiagonalToeplitzLayout, F::UL) = mortar(Bidiagonal(F.factors.blocks.d,F.factors.blocks.dl, :L))
+function _inf_getL(::BlockTridiagonalToeplitzLayout, F::UL)
+    L = Matrix(LowerTriangular(getindex_value(F.factors.blocks.d)))
+    mortar(Bidiagonal(Fill(L,∞),F.factors.blocks.dl, :L))
+end
 
 
 getU(F::UL, ::NTuple{2,InfiniteCardinal{0}}) = _inf_getU(MemoryLayout(F.factors), F)

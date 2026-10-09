@@ -37,6 +37,9 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, ul, adaptiveqr
         J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞)))
         U,L = ul(J, Val(false))
         N = 10
+        @test istril(L[1:2N,1:2N])
+        @test istriu(U[1:2N,1:2N])
+        @test diag(U[1:2N,1:2N]) == ones(2N)
         @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]
     end
 
