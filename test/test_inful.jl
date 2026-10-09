@@ -40,7 +40,7 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, TridiagonalToeplit
         B = [1.0 0; 1 2]
         C = [2.0 1; 0 1]
         J = mortar(Tridiagonal(Fill(C,∞), Fill(A,∞), Fill(B,∞)))
-        U,L = ul(J, Val(false))
+        U,L = ul(J, NoPivot())
         N = 10
         @test istril(L[1:2N,1:2N])
         @test istriu(U[1:2N,1:2N])
@@ -62,8 +62,8 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, TridiagonalToeplit
                               [Float64[]; Fill(0.5,∞)]),
                   SymTridiagonal([[-8.0, -9]; Fill(-10.0,∞)],
                                  [[1.5]; Fill(1.0,∞)]))
-            U,L = ul(A, Val(false))
-            Un,Ln = ul(Matrix(A[1:50,1:50]), Val(false))
+            U,L = ul(A, NoPivot())
+            Un,Ln = ul(Matrix(A[1:50,1:50]), NoPivot())
             @test U[1:N,1:N+1]*L[1:N+1,1:N] ≈ A[1:N,1:N]
             @test U[1:N,1:N] ≈ Un[1:N,1:N]
             @test L[1:N,1:N] ≈ Ln[1:N,1:N]
@@ -79,8 +79,8 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, TridiagonalToeplit
         J = mortar(Tridiagonal([[C/2]; Fill(C,∞)],
                                [[A+I, A-2I]; Fill(A,∞)],
                                [[2B, B/2, B+I]; Fill(B,∞)]))
-        U,L = ul(J, Val(false))
-        Un,Ln = ul(Matrix(J[1:100,1:100]), Val(false))
+        U,L = ul(J, NoPivot())
+        Un,Ln = ul(Matrix(J[1:100,1:100]), NoPivot())
         N = 10
         @test istril(L[1:2N,1:2N])
         @test istriu(U[1:2N,1:2N])
@@ -97,7 +97,7 @@ import InfiniteLinearAlgebra: BlockTridiagonalToeplitzLayout, TridiagonalToeplit
         J = mortar(Tridiagonal([[C0]; Fill(C,∞)],
                                [[A0]; Fill(A,∞)],
                                [[B0]; Fill(B,∞)]))
-        U,L = ul(J, Val(false))
+        U,L = ul(J, NoPivot())
         @test istril(L[1:2N+1,1:2N+1])
         @test istriu(U[1:2N+1,1:2N+1])
         @test U[Block.(1:N),Block.(1:N+1)] * L[Block.(1:N+1),Block.(1:N)] ≈ J[Block.(1:N),Block.(1:N)]

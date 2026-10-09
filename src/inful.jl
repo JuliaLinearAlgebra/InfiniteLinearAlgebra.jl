@@ -50,7 +50,7 @@ function ul_layout(::BlockTridiagonalToeplitzLayout, J::AbstractMatrix, ::NoPivo
     A = getindex_value(diagonaldata(blocks(J)))
     B = getindex_value(supdiagonaldata(blocks(J)))
     # Factor the dense tail block and absorb its upper factor into the adjacent blocks.
-    F = ul!(_ultailL1(C, A, B), Val(false); check=check)
+    F = ul!(_ultailL1(C, A, B), NoPivot(); check=check)
     U = UnitUpperTriangular(F.factors)
     L = LowerTriangular(F.factors)
     UL(mortar(Tridiagonal(Fill(U \ C,∞), Fill(F.factors,∞), Fill(B/L,∞))), OneToInf(), F.info)
@@ -93,7 +93,7 @@ function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, 
     c, c∞ = _data_tail(C)
     a, a∞ = _data_tail(A)
     b, b∞ = _data_tail(B)
-    F∞ = ul(mortar(Tridiagonal(Fill(c∞,∞), Fill(a∞,∞), Fill(b∞,∞))), Val(false); check=check)
+    F∞ = ul(mortar(Tridiagonal(Fill(c∞,∞), Fill(a∞,∞), Fill(b∞,∞))), NoPivot(); check=check)
     C∞, A∞, B∞ = F∞.factors.blocks.dl[1], F∞.factors.blocks.d[1], F∞.factors.blocks.du[1]
     n = max(length(c), length(a), length(b))
     d = Vector{typeof(A∞)}(undef, n)
@@ -105,7 +105,7 @@ function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, 
     for k = n:-1:1
         dl[k] = UnitUpperTriangular(nextD) \ C[k]
         du[k] = B[k]/LowerTriangular(nextD)
-        F = ul!(A[k] - du[k]*dl[k], Val(false); check=check)
+        F = ul!(A[k] - du[k]*dl[k], NoPivot(); check=check)
         d[k] = nextD = F.factors
         if iszero(info) && !iszero(F.info)
             info = sum(j -> size(A[j],1), 1:k-1; init=0) + F.info
@@ -115,7 +115,7 @@ function ul_layout(::BlockLayout{<:TridiagonalLayout}, J::BlockTriPertToeplitz, 
 end
 
 ul_layout(::BlockLayout{<:TridiagonalLayout}, ::BlockTriPertToeplitz, ::Val{true}; check::Bool = true) =
-    error("Pivoting not implemented; use ul(J, Val(false))")
+    error("Pivoting not implemented; use ul(J, NoPivot())")
 
 
 _inf_getU(::Union{TridiagonalToeplitzLayout,TridiagonalLayout}, F::UL) = Bidiagonal(one.(F.factors.d),F.factors.du, :U)
