@@ -1,31 +1,51 @@
 """
-_ultailL1(C, A, B)
+    _ultailL1(C, A, B)
 
-gives L[Block(1,1)] of a block-tridiagonal Toeplitz operator. Based on Delvaux and Dette 2012.
+Return the stationary UL tail pivot for a block-tridiagonal Toeplitz operator
+with subdiagonal C, diagonal A, and superdiagonal B.
 """
 
-# need to solve [1 -B*inv(L); 0 1] * [C A B; 0 C L] == [C L 0; 0 C L]
-# that is
-# A - B*inv(L)*C == L
-# In the scalar case this is quadratic
-# L^2 - A*L + B*C == 0
-# so that
-# = L = (A ± sqrt(A^2 - 4B*C))/2
-# we choose sign(A) to maximise the magnitude as we know inv(T)[1,1] -> 0, hence
-# inv(L) -> 0
+# Seek a stationary UL factorisation of the semi-infinite block Toeplitz matrix:
+#
+#       [ A  B  0  ... ]   [ I  U  0  ... ] [ L  0  0  ... ]
+#   J = [ C  A  B  ... ] = [ 0  I  U  ... ] [ C  L  0  ... ]
+#       [ 0  C  A  ... ]   [ 0  0  I  ... ] [ 0  C  L  ... ]
+#       [ :  :  :  ... ]   [ :  :  :  ... ] [ :  :  :  ... ]
+#
+# The product gives A = L + U*C and B = U*L, hence L = A - B*inv(L)*C
+# for nonsingular L. Equivalently, local elimination must reproduce L:
+#
+#   [I -B*inv(L); 0 I] * [C A B; 0 C L] = [C L 0; 0 C L].
+#
+# Scalars give L^2 - a*L + b*c = 0. For real nonzero a and nonnegative
+# discriminant, the sign below selects the root of larger magnitude.
 _ultailL1(c::Number, a::Number, b::Number) = (a + sign(a)*sqrt(a^2-4b*c))/2
 
-# In the matrix case we write inv(L)*C = R (double check) to make it quadratic
-# A - B*R == inv(C)inv(R)
-# C*A*R - C*B*R^2 == I
-# and do eigen decomposition of R to reduce this to a companion matrix problem.
+# Set R = inv(L)*C. Then L = A - B*R and L*R = C give B*R^2 - A*R + C = 0.
+# Apply Theorem 3 of Higham--Kim (IMAJNA, 2000) with coefficients (B, -A, C):
+# https://doi.org/10.1093/imanum/20.4.499.
 function _ultailL1(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix)
-    d = size(A,1)    
-    F = eigen([zeros(d,d) B; C A], [-B zeros(d,d); zeros(d,d) B])
-    inds = findall(λ -> abs(λ) ≤ 1, F.values)
-    @assert length(inds) == d
-    λ, V = F.values[inds], F.vectors[d+1:2d,inds]
-    C*(V*Diagonal(inv.(λ))/V) # L = C inv(R)
+    d = size(A,1)
+    # Linearise the quadratic as F*[I; R] = G*[I; R]*R.
+    F = [zeros(d,d) I; -C A]; G = [I zeros(d,d); zeros(d,d) B]
+    # Julia's convention is F = Q*S*Z' and G = Q*T*Z'.
+    schurfact = schur(F, G)
+
+    # Require the infinite lower factor to have a bounded inverse on ℓ².
+    # Its formal inverse has (i,j) block (-R)^(i-j)*inv(L), i ≥ j, and is
+    # bounded iff every eigenvalue of R has |λ| < 1. The ≤ test also admits
+    # unit-circle boundary cases, where bounded invertibility fails.
+    # Select exactly d generalized eigenvalues for the d-by-d R and move
+    # their Schur blocks first.
+    select = abs.(schurfact.values) .≤ 1
+    @assert count(select) == d
+    ordschur!(schurfact, select)
+
+    # With d-by-d blocks, Theorem 3 gives R = Z21/Z11. From G*Z = Q*T,
+    # Z11 = Q11*T11 and B*Z21 = Q21*T11. Finite selected roots make T11
+    # invertible, so B*R = Q21/Q11 and L = A - Q21/Q11. This requires
+    # nonsingular Q11 (equivalently Z11), but allows singular R.
+    A - schurfact.Q[d+1:2d, 1:d] / schurfact.Q[1:d, 1:d]
 end
 
 function ul_layout(::TridiagonalToeplitzLayout, J::AbstractMatrix, ::NoPivot; check::Bool = true)
